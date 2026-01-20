@@ -41,9 +41,15 @@ Item {
 
         text: {
             if (root.pam.passwd.active)
-                return qsTr("Loading...");
+                return qsTr("Authenticating...");
             if (root.pam.state === "max")
-                return qsTr("You have reached the maximum number of tries");
+                return qsTr("Maximum attempts reached");
+            
+            // Show different placeholder based on auth mode
+            if (root.pam.currentMode === "face")
+                return qsTr("Look directly at the camera");
+            if (root.pam.currentMode === "pin")
+                return qsTr("Enter your 4-digit PIN");
             return qsTr("Enter your password");
         }
 

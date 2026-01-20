@@ -27,22 +27,62 @@ Scope {
 
     signal flashMsg
 
+    function verifyPin(): void {
+        const configuredPin = Config.lock.auth.userPin;
+        
+        // If no PIN configured, show error
+        if (!configuredPin || configuredPin === "") {
+            root.state = "error";
+            root.lockMessage = qsTr("No PIN configured. Please set a PIN in Security settings.");
+            root.buffer = "";
+            root.flashMsg();
+            stateReset.restart();
+            return;
+        }
+
+        // Check if PIN matches
+        if (root.buffer === configuredPin) {
+            // PIN correct - unlock
+            root.faceFailedAttempts = 0;
+            root.pinFailedAttempts = 0;
+            root.passwordFailedAttempts = 0;
+            root.faceEnabled = Config.lock.auth.enableFaceAuth;
+            root.pinEnabled = Config.lock.auth.enablePinAuth;
+            root.buffer = "";
+            root.lock.unlock();
+        } else {
+            // PIN incorrect
+            root.pinFailedAttempts++;
+            if (root.pinFailedAttempts >= Config.lock.auth.maxPinRetries) {
+                root.pinEnabled = false;
+            }
+            root.state = "fail";
+            root.buffer = "";
+            root.flashMsg();
+            stateReset.restart();
+        }
+    }
+
     function handleKey(event: KeyEvent): void {
         if (passwd.active || state === "max")
             return;
 
-        // PIN mode: only accept numbers
+        // PIN mode: only accept numbers, auto-submit on 4 digits
         if (currentMode === "pin") {
             if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
-                buffer += event.text;
+                if (buffer.length < 4) {
+                    buffer += event.text;
+                    // Auto-submit when 4 digits entered
+                    if (buffer.length === 4) {
+                        verifyPin();
+                    }
+                }
             } else if (event.key === Qt.Key_Backspace) {
                 if (event.modifiers & Qt.ControlModifier) {
                     buffer = "";
                 } else {
                     buffer = buffer.slice(0, -1);
                 }
-            } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                passwd.start();
             }
             return;
         }

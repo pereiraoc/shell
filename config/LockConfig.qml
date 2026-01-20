@@ -16,7 +16,10 @@ JsonObject {
     component Auth: JsonObject {
         property bool enableFaceAuth: true
         property bool enablePinAuth: true
+        property bool faceEnabled: true
+        property bool pinEnabled: true
         property string defaultMethod: "face"
+        property string userPin: ""
         property int maxFaceRetries: 5
         property int maxPinRetries: 10
         property int maxPasswordRetries: 30

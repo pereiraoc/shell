@@ -41,6 +41,12 @@ QtObject {
             readonly property string label: "launcher"
             readonly property string icon: "apps"
             readonly property string component: "launcher/LauncherPane.qml"
+        },
+        QtObject {
+            readonly property string id: "security"
+            readonly property string label: "security"
+            readonly property string icon: "security"
+            readonly property string component: "security/SecurityPane.qml"
         }
     ]
 
