@@ -11,10 +11,10 @@ Scope {
     required property WlSessionLock lock
 
     readonly property alias passwd: passwd
-    readonly property alias fprint: fprint
+    readonly property alias howdy: howdy
     property string lockMessage
     property string state
-    property string fprintState
+    property string howdyState
     property string buffer
 
     // Auth method management
@@ -121,14 +121,14 @@ Scope {
     }
 
     PamContext {
-        id: fprint
+        id: howdy
 
         property bool available
         property int tries
         property int errorTries
 
         function checkAvail(): void {
-            // Use fprint for face auth when in face mode
+            // Use howdy for face auth when in face mode
             if (!available || !Config.lock.auth.enableFaceAuth || !root.lock.secure) {
                 abort();
                 return;
@@ -145,7 +145,7 @@ Scope {
             start();
         }
 
-        config: "fprint"
+        config: "howdy"
         configDirectory: Quickshell.shellDir + "/assets/pam.d"
 
         onCompleted: res => {
@@ -169,7 +169,7 @@ Scope {
             }
 
             if (res === PamResult.Error) {
-                root.fprintState = "error";
+                root.howdyState = "error";
                 errorTries++;
                 if (errorTries < 5) {
                     abort();
@@ -177,27 +177,29 @@ Scope {
                 }
             } else if (res === PamResult.MaxTries) {
                 tries++;
-                if (tries < Config.lock.maxFprintTries) {
-                    root.fprintState = "fail";
+                if (tries < 3) {
+                    root.howdyState = "fail";
                     start();
                 } else {
-                    root.fprintState = "max";
+                    root.howdyState = "max";
                     abort();
                 }
             }
 
             root.flashMsg();
-            fprintStateReset.start();
+            howdyStateReset.start();
         }
     }
 
     Process {
         id: availProc
 
-        command: ["sh", "-c", "fprintd-list $USER"]
+        command: ["sh", "-c", "command -v howdy && howdy list 2>/dev/null | grep -q 'No faces'"]
         onExited: code => {
-            fprint.available = code === 0;
-            fprint.checkAvail();
+            // code 0 means howdy exists but no faces, code 1 means howdy with faces
+            // We want howdy.available = true if howdy command exists
+            howdy.available = true;
+            howdy.checkAvail();
         }
     }
 
@@ -205,7 +207,7 @@ Scope {
         id: errorRetry
 
         interval: 800
-        onTriggered: fprint.start()
+        onTriggered: howdy.start()
     }
 
     Timer {
@@ -219,12 +221,12 @@ Scope {
     }
 
     Timer {
-        id: fprintStateReset
+        id: howdyStateReset
 
         interval: 4000
         onTriggered: {
-            root.fprintState = "";
-            fprint.errorTries = 0;
+            root.howdyState = "";
+            howdy.errorTries = 0;
         }
     }
 
@@ -236,7 +238,7 @@ Scope {
                 availProc.running = true;
                 root.buffer = "";
                 root.state = "";
-                root.fprintState = "";
+                root.howdyState = "";
                 root.lockMessage = "";
                 // Set default mode on lock
                 root.currentMode = Config.lock.auth.defaultMethod;
@@ -244,22 +246,16 @@ Scope {
         }
 
         function onUnlock(): void {
-            fprint.abort();
-        }
-    }
-
-    Connections {
-        target: Config.lock
-
-        function onEnableFprintChanged(): void {
-            fprint.checkAvail();
+            howdy.abort();
         }
     }
 
     // Watch for mode changes
     onCurrentModeChanged: {
         if (currentMode === "face") {
-            fprint.checkAvail();
+            howdy.checkAvail();
+        } else {
+            howdy.abort();
         }
     }
 }
