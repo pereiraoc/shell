@@ -66,13 +66,6 @@ RowLayout {
                 font.pointSize: Appearance.font.size.small
             }
         }
-
-        Tooltip {
-            visible: parent.hovered
-            text: root.faceEnabled ? 
-                qsTr("Unlock with face recognition") : 
-                qsTr("Face disabled. Use PIN or Password.")
-        }
     }
 
     // PIN button
@@ -124,13 +117,6 @@ RowLayout {
                 font.pointSize: Appearance.font.size.small
             }
         }
-
-        Tooltip {
-            visible: parent.hovered
-            text: root.pinEnabled ? 
-                qsTr("Unlock with PIN") : 
-                qsTr("PIN disabled. Use Face or Password.")
-        }
     }
 
     // Password button (always enabled)
@@ -176,11 +162,6 @@ RowLayout {
                     Colours.palette.m3onSurface
                 font.pointSize: Appearance.font.size.small
             }
-        }
-
-        Tooltip {
-            visible: parent.hovered
-            text: qsTr("Unlock with password")
         }
     }
 }
