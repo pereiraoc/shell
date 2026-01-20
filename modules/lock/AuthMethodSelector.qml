@@ -46,7 +46,7 @@ RowLayout {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: Appearance.spacing.tiny
+            spacing: Appearance.spacing.small
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
@@ -104,7 +104,7 @@ RowLayout {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: Appearance.spacing.tiny
+            spacing: Appearance.spacing.small
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
@@ -157,7 +157,7 @@ RowLayout {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: Appearance.spacing.tiny
+            spacing: Appearance.spacing.small
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter

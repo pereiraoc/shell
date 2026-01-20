@@ -114,12 +114,31 @@ ColumnLayout {
         Layout.topMargin: Appearance.spacing.large
         Layout.alignment: Qt.AlignHCenter
 
-        selectedMethod: Config.lock.auth.defaultMethod
-        faceEnabled: root.lock.pam.faceEnabled
-        pinEnabled: root.lock.pam.pinEnabled
+        selectedMethod: {
+            if (Config.lock.auth && Config.lock.auth.defaultMethod) {
+                return Config.lock.auth.defaultMethod;
+            }
+            return "face";
+        }
+        
+        faceEnabled: {
+            if (root.lock.pam.faceEnabled !== undefined) {
+                return root.lock.pam.faceEnabled;
+            }
+            return true;
+        }
+        
+        pinEnabled: {
+            if (root.lock.pam.pinEnabled !== undefined) {
+                return root.lock.pam.pinEnabled;
+            }
+            return true;
+        }
 
         onSelectedMethodChanged: {
-            root.lock.pam.currentMode = selectedMethod;
+            if (root.lock.pam.currentMode !== undefined) {
+                root.lock.pam.currentMode = selectedMethod;
+            }
         }
     }
 
