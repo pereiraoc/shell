@@ -194,12 +194,13 @@ Scope {
     Process {
         id: availProc
 
-        command: ["sh", "-c", "command -v howdy && howdy list 2>/dev/null | grep -q 'No faces'"]
+        command: ["sh", "-c", "command -v howdy >/dev/null 2>&1"]
         onExited: code => {
-            // code 0 means howdy exists but no faces, code 1 means howdy with faces
-            // We want howdy.available = true if howdy command exists
-            howdy.available = true;
-            howdy.checkAvail();
+            // code 0 means howdy command exists
+            howdy.available = (code === 0);
+            if (howdy.available) {
+                howdy.checkAvail();
+            }
         }
     }
 
