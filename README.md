@@ -1,750 +1,407 @@
-<h1 align=center>caelestia-shell</h1>
+# Caelestia Shell - Pereiraoc Patch
+## caelestia-shell-pereiraoc-patch
 
-<div align=center>
+[![Status](https://img.shields.io/badge/status-alpha-yellow?style=for-the-badge)](https://github.com/pereiraoc/caelestia-shell-pereiraoc-patch)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge)](LICENSE)
+[![Based on](https://img.shields.io/badge/based%20on-caelestia--shell-9ccbfb?style=for-the-badge)](https://github.com/caelestia-dots/shell)
 
-![GitHub last commit](https://img.shields.io/github/last-commit/caelestia-dots/shell?style=for-the-badge&labelColor=101418&color=9ccbfb)
-![GitHub Repo stars](https://img.shields.io/github/stars/caelestia-dots/shell?style=for-the-badge&labelColor=101418&color=b9c8da)
-![GitHub repo size](https://img.shields.io/github/repo-size/caelestia-dots/shell?style=for-the-badge&labelColor=101418&color=d3bfe6)
-[![Ko-Fi donate](https://img.shields.io/badge/donate-kofi?style=for-the-badge&logo=ko-fi&logoColor=ffffff&label=ko-fi&labelColor=101418&color=f16061&link=https%3A%2F%2Fko-fi.com%2Fsoramane)](https://ko-fi.com/soramane)
-[![Discord invite](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Finvites%2FBGDCFCmMBk%3Fwith_counts%3Dtrue&query=approximate_member_count&style=for-the-badge&logo=discord&logoColor=ffffff&label=discord&labelColor=101418&color=96f1f1&link=https%3A%2F%2Fdiscord.gg%2FBGDCFCmMBk)](https://discord.gg/BGDCFCmMBk)
+---
 
-</div>
+## 🎯 Sobre Este Fork
 
-https://github.com/user-attachments/assets/0840f496-575c-4ca6-83a8-87bb01a85c5f
+Este é um fork personalizado do [Caelestia Shell](https://github.com/caelestia-dots/shell) criado para adicionar **autenticação biométrica e por PIN no lock screen**.
 
-## Components
+### ✨ Novos Recursos
 
--   Widgets: [`Quickshell`](https://quickshell.outfoxxed.me)
--   Window manager: [`Hyprland`](https://hyprland.org)
--   Dots: [`caelestia`](https://github.com/caelestia-dots)
+- **🔐 Autenticação Facial (Howdy)**: Reconhecimento facial via câmera
+- **🔢 Autenticação por PIN**: Teclado numérico para entrada rápida de código
+- **🎨 Seletor Visual**: Botões para escolher entre Face, PIN ou Senha
+- **🔄 Fallback Inteligente**: Sempre mantém senha tradicional como backup
+- **⚡ Rate Limiting**: Proteção contra brute force com lockout temporário
+- **📊 Feedback Visual**: Animações e indicadores durante autenticação
 
-## Installation
+### 🆚 Diferenças do Upstream
 
-> [!NOTE]
-> This repo is for the desktop shell of the caelestia dots. If you want installation instructions
-> for the entire dots, head to [the main repo](https://github.com/caelestia-dots/caelestia) instead.
+| Recurso | Upstream | Este Fork |
+|---------|----------|-----------|
+| Lock Screen Auth | Senha + Fingerprint | Senha + Face (Howdy) + PIN |
+| Auth Method Selector | Não | ✅ Botões visuais |
+| PIN Keyboard | Não | ✅ Teclado numérico |
+| Face Auth Feedback | Não | ✅ Indicador visual |
+| Rate Limiting | Básico | ✅ Avançado + lockout |
 
-### Arch linux
+---
 
-> [!NOTE]
-> If you want to make your own changes/tweaks to the shell do NOT edit the files installed by the AUR
-> package. Instead, follow the instructions in the [manual installation section](#manual-installation).
+## 📸 Screenshots
 
-The shell is available from the AUR as `caelestia-shell`. You can install it with an AUR helper
-like [`yay`](https://github.com/Jguer/yay) or manually downloading the PKGBUILD and running `makepkg -si`.
+> 🚧 Em desenvolvimento - screenshots serão adicionados em breve
 
-A package following the latest commit also exists as `caelestia-shell-git`. This is bleeding edge
-and likely to be unstable/have bugs. Regular users are recommended to use the stable package
-(`caelestia-shell`).
+---
 
-### Nix
+## 📦 Instalação
 
-You can run the shell directly via `nix run`:
+### Pré-requisitos
 
-```sh
-nix run github:caelestia-dots/shell
+**Dependências do Caelestia Shell original**:
+```bash
+# Ver lista completa em:
+# https://github.com/caelestia-dots/shell#manual-installation
 ```
 
-Or add it to your system configuration:
+**Dependências Adicionais deste Fork**:
+```bash
+# Howdy (reconhecimento facial)
+paru -S howdy-git
 
-```nix
-{
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+# V4L Utils (acesso à câmera)
+sudo pacman -S v4l-utils
 
-    caelestia-shell = {
-      url = "github:caelestia-dots/shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
-}
+# Python OpenCV (detecção facial)
+sudo pacman -S python-opencv
 ```
 
-The package is available as `caelestia-shell.packages.<system>.default`, which can be added to your
-`environment.systemPackages`, `users.users.<username>.packages`, `home.packages` if using home-manager,
-or a devshell. The shell can then be run via `caelestia-shell`.
+### Instalação Manual
 
-> [!TIP]
-> The default package does not have the CLI enabled by default, which is required for full funcionality.
-> To enable the CLI, use the `with-cli` package.
+```bash
+# 1. Clonar este patch
+cd ~/.config/quickshell
+git clone https://github.com/pereiraoc/caelestia-shell-pereiraoc-patch.git caelestia
 
-For home-manager, you can also use the Caelestia's home manager module (explained in [configuring](https://github.com/caelestia-dots/shell?tab=readme-ov-file#home-manager-module)) that installs and configures the shell and the CLI.
-
-### Manual installation
-
-Dependencies:
-
--   [`caelestia-cli`](https://github.com/caelestia-dots/cli)
--   [`quickshell-git`](https://quickshell.outfoxxed.me) - this has to be the git version, not the latest tagged version
--   [`ddcutil`](https://github.com/rockowitz/ddcutil)
--   [`brightnessctl`](https://github.com/Hummer12007/brightnessctl)
--   [`app2unit`](https://github.com/Vladimir-csp/app2unit)
--   [`libcava`](https://github.com/LukashonakV/cava)
--   [`networkmanager`](https://networkmanager.dev)
--   [`lm-sensors`](https://github.com/lm-sensors/lm-sensors)
--   [`fish`](https://github.com/fish-shell/fish-shell)
--   [`aubio`](https://github.com/aubio/aubio)
--   [`libpipewire`](https://pipewire.org)
--   `glibc`
--   `qt6-declarative`
--   `gcc-libs`
--   [`material-symbols`](https://fonts.google.com/icons)
--   [`caskaydia-cove-nerd`](https://www.nerdfonts.com/font-downloads)
--   [`swappy`](https://github.com/jtheoof/swappy)
--   [`libqalculate`](https://github.com/Qalculate/libqalculate)
--   [`bash`](https://www.gnu.org/software/bash)
--   `qt6-base`
--   `qt6-declarative`
-
-Build dependencies:
-
--   [`cmake`](https://cmake.org)
--   [`ninja`](https://github.com/ninja-build/ninja)
-
-To install the shell manually, install all dependencies and clone this repo to `$XDG_CONFIG_HOME/quickshell/caelestia`.
-Then simply build and install using `cmake`.
-
-```sh
-cd $XDG_CONFIG_HOME/quickshell
-git clone https://github.com/caelestia-dots/shell.git caelestia
-
+# 2. Build e instalação
 cd caelestia
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
 cmake --build build
 sudo cmake --install build
+
+# 3. Configurar Howdy
+sudo howdy add  # Adicionar seu rosto
+sudo howdy test # Testar reconhecimento
+
+# 4. Reiniciar shell
+killall quickshell
+XDG_DATA_DIRS=$HOME/.local/share:$XDG_DATA_DIRS quickshell -c caelestia --daemonize
 ```
 
-> [!TIP]
-> You can customise the installation location via the `cmake` flags `INSTALL_LIBDIR`, `INSTALL_QMLDIR` and
-> `INSTALL_QSCONFDIR` for the libraries (the beat detector), QML plugin and Quickshell config directories
-> respectively. If changing the library directory, remember to set the `CAELESTIA_LIB_DIR` environment
-> variable to the custom directory when launching the shell.
->
-> e.g. installing to `~/.config/quickshell/caelestia` for easy local changes:
->
-> ```sh
-> mkdir -p ~/.config/quickshell/caelestia
-> cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/ -DINSTALL_QSCONFDIR=~/.config/quickshell/caelestia
-> cmake --build build
-> sudo cmake --install build
-> sudo chown -R $USER ~/.config/quickshell/caelestia
-> ```
+### Instalação via caelestia-arch-setup
 
-## Usage
+Se você usa o [caelestia-arch-setup](https://github.com/pereiraoc/caelestia-arch-setup):
 
-The shell can be started via the `caelestia shell -d` command or `qs -c caelestia`.
-If the entire caelestia dots are installed, the shell will be autostarted on login
-via an `exec-once` in the hyprland config.
-
-### Shortcuts/IPC
-
-All keybinds are accessible via Hyprland [global shortcuts](https://wiki.hyprland.org/Configuring/Binds/#dbus-global-shortcuts).
-If using the entire caelestia dots, the keybinds are already configured for you.
-Otherwise, [this file](https://github.com/caelestia-dots/caelestia/blob/main/hypr/hyprland/keybinds.conf#L1-L39)
-contains an example on how to use global shortcuts.
-
-All IPC commands can be accessed via `caelestia shell ...`. For example
-
-```sh
-caelestia shell mpris getActive trackTitle
+```bash
+# Script de instalação automática (em breve)
+bash scripts/stage3/35-caelestia-fork-install.sh
 ```
 
-The list of IPC commands can be shown via `caelestia shell -s`:
+---
 
-```
-$ caelestia shell -s
-target drawers
-  function toggle(drawer: string): void
-  function list(): string
-target notifs
-  function clear(): void
-target lock
-  function lock(): void
-  function unlock(): void
-  function isLocked(): bool
-target mpris
-  function playPause(): void
-  function getActive(prop: string): string
-  function next(): void
-  function stop(): void
-  function play(): void
-  function list(): string
-  function pause(): void
-  function previous(): void
-target picker
-  function openFreeze(): void
-  function open(): void
-target wallpaper
-  function set(path: string): void
-  function get(): string
-  function list(): string
-```
+## ⚙️ Configuração
 
-### PFP/Wallpapers
+### Configuração Básica
 
-The profile picture for the dashboard is read from the file `~/.face`, so to set
-it you can copy your image to there or set it via the dashboard.
-
-The wallpapers for the wallpaper switcher are read from `~/Pictures/Wallpapers`
-by default. To change it, change the wallpapers path in `~/.config/caelestia/shell.json`.
-
-To set the wallpaper, you can use the command `caelestia wallpaper`. Use `caelestia wallpaper -h` for more info about
-the command.
-
-## Updating
-
-If installed via the AUR package, simply update your system (e.g. using `yay`).
-
-If installed manually, you can update by running `git pull` in `$XDG_CONFIG_HOME/quickshell/caelestia`.
-
-```sh
-cd $XDG_CONFIG_HOME/quickshell/caelestia
-git pull
-```
-
-## Configuring
-
-All configuration options should be put in `~/.config/caelestia/shell.json`. This file is _not_ created by
-default, you must create it manually.
-
-### Example configuration
-
-> [!NOTE]
-> The example configuration only includes recommended configuration options. For more advanced customisation
-> such as modifying the size of individual items or changing constants in the code, there are some other
-> options which can be found in the source files in the `config` directory.
-
-<details><summary>Example</summary>
+Edite `~/.config/caelestia/shell.json`:
 
 ```json
 {
-    "appearance": {
-        "anim": {
-            "durations": {
-                "scale": 1
-            }
-        },
-        "font": {
-            "family": {
-                "clock": "Rubik",
-                "material": "Material Symbols Rounded",
-                "mono": "CaskaydiaCove NF",
-                "sans": "Rubik"
-            },
-            "size": {
-                "scale": 1
-            }
-        },
-        "padding": {
-            "scale": 1
-        },
-        "rounding": {
-            "scale": 1
-        },
-        "spacing": {
-            "scale": 1
-        },
-        "transparency": {
-            "enabled": false,
-            "base": 0.85,
-            "layers": 0.4
-        }
-    },
-    "general": {
-        "apps": {
-            "terminal": ["foot"],
-            "audio": ["pavucontrol"],
-            "playback": ["mpv"],
-            "explorer": ["thunar"]
-        },
-        "battery": {
-            "warnLevels": [
-                {
-                    "level": 20,
-                    "title": "Low battery",
-                    "message": "You might want to plug in a charger",
-                    "icon": "battery_android_frame_2"
-                },
-                {
-                    "level": 10,
-                    "title": "Did you see the previous message?",
-                    "message": "You should probably plug in a charger <b>now</b>",
-                    "icon": "battery_android_frame_1"
-                },
-                {
-                    "level": 5,
-                    "title": "Critical battery level",
-                    "message": "PLUG THE CHARGER RIGHT NOW!!",
-                    "icon": "battery_android_alert",
-                    "critical": true
-                }
-            ],
-            "criticalLevel": 3
-        },
-        "idle": {
-            "lockBeforeSleep": true,
-            "inhibitWhenAudio": true,
-            "timeouts": [
-                {
-                    "timeout": 180,
-                    "idleAction": "lock"
-                },
-                {
-                    "timeout": 300,
-                    "idleAction": "dpms off",
-                    "returnAction": "dpms on"
-                },
-                {
-                    "timeout": 600,
-                    "idleAction": ["systemctl", "suspend-then-hibernate"]
-                }
-            ]
-        }
-    },
-    "background": {
-        "desktopClock": {
-            "enabled": false,
-            "scale": 1.0,
-            "position": "bottom-right",
-            "shadow": {
-                "enabled": true,
-                "opacity": 0.7,
-                "blur": 0.4
-            },
-            "background": {
-                "enabled": false,
-                "opacity": 0.7,
-                "blur": true
-            },
-            "invertColors": false
-        },
-        "enabled": true,
-        "visualiser": {
-            "blur": false,
-            "enabled": false,
-            "autoHide": true,
-            "rounding": 1,
-            "spacing": 1
-        }
-    },
-    "bar": {
-        "clock": {
-            "showIcon": true
-        },
-        "dragThreshold": 20,
-        "entries": [
-            {
-                "id": "logo",
-                "enabled": true
-            },
-            {
-                "id": "workspaces",
-                "enabled": true
-            },
-            {
-                "id": "spacer",
-                "enabled": true
-            },
-            {
-                "id": "activeWindow",
-                "enabled": true
-            },
-            {
-                "id": "spacer",
-                "enabled": true
-            },
-            {
-                "id": "tray",
-                "enabled": true
-            },
-            {
-                "id": "clock",
-                "enabled": true
-            },
-            {
-                "id": "statusIcons",
-                "enabled": true
-            },
-            {
-                "id": "power",
-                "enabled": true
-            }
-        ],
-        "persistent": true,
-        "popouts": {
-            "activeWindow": true,
-            "statusIcons": true,
-            "tray": true
-        },
-        "scrollActions": {
-            "brightness": true,
-            "workspaces": true,
-            "volume": true
-        },
-        "showOnHover": true,
-        "status": {
-            "showAudio": false,
-            "showBattery": true,
-            "showBluetooth": true,
-            "showKbLayout": false,
-            "showMicrophone": false,
-            "showNetwork": true,
-            "showLockStatus": true
-        },
-        "tray": {
-            "background": false,
-            "compact": false,
-            "iconSubs": [],
-            "recolour": false
-        },
-        "workspaces": {
-            "activeIndicator": true,
-            "activeLabel": "󰮯",
-            "activeTrail": false,
-            "label": "  ",
-            "occupiedBg": false,
-            "occupiedLabel": "󰮯",
-            "perMonitorWorkspaces": true,
-            "showWindows": true,
-            "shown": 5,
-            "specialWorkspaceIcons": [
-                {
-                    "name": "steam",
-                    "icon": "sports_esports"
-                }
-            ]
-        },
-        "excludedScreens": [""],
-        "activeWindow": {
-            "inverted": false
-        }
-    },
-    "border": {
-        "rounding": 25,
-        "thickness": 10
-    },
-    "dashboard": {
-        "enabled": true,
-        "dragThreshold": 50,
-        "mediaUpdateInterval": 500,
-        "showOnHover": true
-    },
-    "launcher": {
-        "actionPrefix": ">",
-        "actions": [
-            {
-                "name": "Calculator",
-                "icon": "calculate",
-                "description": "Do simple math equations (powered by Qalc)",
-                "command": ["autocomplete", "calc"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Scheme",
-                "icon": "palette",
-                "description": "Change the current colour scheme",
-                "command": ["autocomplete", "scheme"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Wallpaper",
-                "icon": "image",
-                "description": "Change the current wallpaper",
-                "command": ["autocomplete", "wallpaper"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Variant",
-                "icon": "colors",
-                "description": "Change the current scheme variant",
-                "command": ["autocomplete", "variant"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Transparency",
-                "icon": "opacity",
-                "description": "Change shell transparency",
-                "command": ["autocomplete", "transparency"],
-                "enabled": false,
-                "dangerous": false
-            },
-            {
-                "name": "Random",
-                "icon": "casino",
-                "description": "Switch to a random wallpaper",
-                "command": ["caelestia", "wallpaper", "-r"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Light",
-                "icon": "light_mode",
-                "description": "Change the scheme to light mode",
-                "command": ["setMode", "light"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Dark",
-                "icon": "dark_mode",
-                "description": "Change the scheme to dark mode",
-                "command": ["setMode", "dark"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Shutdown",
-                "icon": "power_settings_new",
-                "description": "Shutdown the system",
-                "command": ["systemctl", "poweroff"],
-                "enabled": true,
-                "dangerous": true
-            },
-            {
-                "name": "Reboot",
-                "icon": "cached",
-                "description": "Reboot the system",
-                "command": ["systemctl", "reboot"],
-                "enabled": true,
-                "dangerous": true
-            },
-            {
-                "name": "Logout",
-                "icon": "exit_to_app",
-                "description": "Log out of the current session",
-                "command": ["loginctl", "terminate-user", ""],
-                "enabled": true,
-                "dangerous": true
-            },
-            {
-                "name": "Lock",
-                "icon": "lock",
-                "description": "Lock the current session",
-                "command": ["loginctl", "lock-session"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Sleep",
-                "icon": "bedtime",
-                "description": "Suspend then hibernate",
-                "command": ["systemctl", "suspend-then-hibernate"],
-                "enabled": true,
-                "dangerous": false
-            },
-            {
-                "name": "Settings",
-                "icon": "settings",
-                "description": "Configure the shell",
-                "command": ["caelestia", "shell", "controlCenter", "open"],
-                "enabled": true,
-                "dangerous": false
-            }
-        ],
-        "dragThreshold": 50,
-        "vimKeybinds": false,
-        "enableDangerousActions": false,
-        "maxShown": 7,
-        "maxWallpapers": 9,
-        "specialPrefix": "@",
-        "useFuzzy": {
-            "apps": false,
-            "actions": false,
-            "schemes": false,
-            "variants": false,
-            "wallpapers": false
-        },
-        "showOnHover": false,
-        "hiddenApps": []
-    },
-    "lock": {
-        "recolourLogo": false
-    },
-    "notifs": {
-        "actionOnClick": false,
-        "clearThreshold": 0.3,
-        "defaultExpireTimeout": 5000,
-        "expandThreshold": 20,
-        "openExpanded": false,
-        "expire": false
-    },
-    "osd": {
-        "enabled": true,
-        "enableBrightness": true,
-        "enableMicrophone": false,
-        "hideDelay": 2000
-    },
-    "paths": {
-        "mediaGif": "root:/assets/bongocat.gif",
-        "sessionGif": "root:/assets/kurukuru.gif",
-        "wallpaperDir": "~/Pictures/Wallpapers"
-    },
-    "services": {
-        "audioIncrement": 0.1,
-        "brightnessIncrement": 0.1,
-        "maxVolume": 1.0,
-        "defaultPlayer": "Spotify",
-        "gpuType": "",
-        "playerAliases": [{ "from": "com.github.th_ch.youtube_music", "to": "YT Music" }],
-        "weatherLocation": "",
-        "useFahrenheit": false,
-        "useTwelveHourClock": false,
-        "smartScheme": true,
-        "visualiserBars": 45
-    },
-    "session": {
-        "dragThreshold": 30,
-        "enabled": true,
-        "vimKeybinds": false,
-        "commands": {
-            "logout": ["loginctl", "terminate-user", ""],
-            "shutdown": ["systemctl", "poweroff"],
-            "hibernate": ["systemctl", "hibernate"],
-            "reboot": ["systemctl", "reboot"]
-        }
-    },
-    "sidebar": {
-        "dragThreshold": 80,
-        "enabled": true
-    },
-    "utilities": {
-        "enabled": true,
-        "maxToasts": 4,
-        "toasts": {
-            "audioInputChanged": true,
-            "audioOutputChanged": true,
-            "capsLockChanged": true,
-            "chargingChanged": true,
-            "configLoaded": true,
-            "dndChanged": true,
-            "gameModeChanged": true,
-            "kbLayoutChanged": true,
-            "kbLimit": true,
-            "numLockChanged": true,
-            "vpnChanged": true,
-            "nowPlaying": false
-        },
-        "vpn": {
-            "enabled": false,
-            "provider": [
-                {
-                    "name": "wireguard",
-                    "interface": "your-connection-name",
-                    "displayName": "Wireguard (Your VPN)"
-                }
-            ]
-        }
+  "lock": {
+    "recolourLogo": false,
+    "enableFprint": true,
+    "maxFprintTries": 3,
+    "auth": {
+      "enableFaceAuth": true,
+      "enablePinAuth": true,
+      "defaultMethod": "face",
+      "faceAuthTimeout": 5000,
+      "maxFaceRetries": 3,
+      "pinLength": 4,
+      "pinAutoSubmit": true,
+      "rateLimitDelay": 2000,
+      "lockoutAfterTries": 5,
+      "lockoutDuration": 30000
     }
+  }
 }
 ```
 
-</details>
+### Opções de Configuração
 
-### Home Manager Module
+#### Face Authentication
+- `enableFaceAuth`: Habilitar reconhecimento facial (padrão: `true`)
+- `faceAuthTimeout`: Timeout em ms (padrão: `5000`)
+- `maxFaceRetries`: Tentativas antes de fallback (padrão: `3`)
 
-For NixOS users, a home manager module is also available.
+#### PIN Authentication
+- `enablePinAuth`: Habilitar autenticação por PIN (padrão: `true`)
+- `pinLength`: Tamanho do PIN (4-8 dígitos, padrão: `4`)
+- `pinAutoSubmit`: Auto-enviar quando atingir pinLength (padrão: `true`)
 
-<details><summary><code>home.nix</code></summary>
+#### Security
+- `rateLimitDelay`: Delay entre tentativas falhas em ms (padrão: `2000`)
+- `lockoutAfterTries`: Tentativas antes de lockout (padrão: `5`)
+- `lockoutDuration`: Duração do lockout em ms (padrão: `30000`)
 
-```nix
-programs.caelestia = {
-  enable = true;
-  systemd = {
-    enable = false; # if you prefer starting from your compositor
-    target = "graphical-session.target";
-    environment = [];
-  };
-  settings = {
-    bar.status = {
-      showBattery = false;
-    };
-    paths.wallpaperDir = "~/Images";
-  };
-  cli = {
-    enable = true; # Also add caelestia-cli to path
-    settings = {
-      theme.enableGtk = false;
-    };
-  };
-};
+#### Default Method
+- `defaultMethod`: Método padrão ao abrir lock screen
+  - `"face"`: Face authentication (padrão)
+  - `"pin"`: PIN numpad
+  - `"password"`: Senha tradicional
+
+---
+
+## 🚀 Uso
+
+### Lock Screen
+
+**Trancar sessão**:
+```bash
+# Via atalho Hyprland
+Super + L
+
+# Via comando
+loginctl lock-session
+
+# Via IPC
+caelestia shell lock lock
 ```
 
-The module automatically adds Caelestia shell to the path with **full functionality**. The CLI is not required, however you have the option to enable and configure it.
+### Métodos de Autenticação
 
-</details>
+#### 1. Face Recognition
+1. Lock screen aparece
+2. Clique no botão "Face Recognition" (ou aguarde, se for padrão)
+3. Posicione seu rosto na câmera
+4. Aguarde reconhecimento (~2s)
+5. Unlock automático se reconhecido
 
-## FAQ
+#### 2. PIN
+1. Lock screen aparece
+2. Clique no botão "PIN"
+3. Digite seu PIN no teclado numérico
+4. Pressione Enter (ou auto-submit se configurado)
+5. Unlock se PIN correto
 
-### Need help or support?
+#### 3. Password (Fallback)
+1. Pressione qualquer tecla alfabética
+2. Digite sua senha tradicional
+3. Pressione Enter
+4. Unlock se senha correta
 
-You can join the community Discord server for assistance and discussion:  
-https://discord.gg/BGDCFCmMBk
+### Atalhos de Teclado
 
-### My screen is flickering, help pls!
+- `F`: Mudar para Face authentication
+- `P`: Mudar para PIN authentication
+- `Enter`: Tentar autenticação
+- `Backspace`: Apagar último dígito (PIN) ou caractere (senha)
+- `Ctrl+Backspace`: Limpar tudo
+- `Esc`: Cancelar tentativa atual
 
-Try disabling VRR in the hyprland config. You can do this by adding the following to `~/.config/caelestia/hypr-user.conf`:
+---
 
-```conf
-misc {
-    vrr = 0
-}
+## 🔒 Segurança
+
+### Considerações Importantes
+
+⚠️ **Howdy não é tão seguro quanto senha**:
+- Pode ser enganado por fotos em alguns casos
+- Depende de iluminação e ângulo
+- Use como conveniência, não como única linha de defesa
+
+✅ **Práticas Recomendadas**:
+- Sempre mantenha senha forte como fallback
+- Adicione múltiplos modelos faciais (diferentes ângulos/iluminação)
+- Configure `motion_detection` no Howdy para evitar fotos estáticas
+- Use PIN como backup quando câmera não disponível
+- **Não use para**: unlock de LUKS, disk encryption
+
+### Rate Limiting
+
+Após falhas sucessivas:
+- **3 tentativas**: Delay de 2s
+- **5 tentativas**: Lockout de 30s
+- **Logs**: Todas tentativas em `/var/log/auth.log`
+
+### Logs
+
+```bash
+# Ver tentativas de autenticação
+journalctl -u sddm --since today | grep "pam_python\|howdy"
+
+# Ver lockouts
+journalctl --since today | grep "lock screen"
 ```
 
-### I want to make my own changes to the hyprland config!
+---
 
-You can add your custom hyprland configs to `~/.config/caelestia/hypr-user.conf`.
+## 🐛 Troubleshooting
 
-### I want to make my own changes to other stuff!
+### Howdy não funciona
 
-See the [manual installation](https://github.com/caelestia-dots/shell?tab=readme-ov-file#manual-installation) section
-for the corresponding repo.
+```bash
+# 1. Verificar câmera
+ls /dev/video*
 
-### I want to disable XXX feature!
+# 2. Testar Howdy
+sudo howdy test
 
-Please read the [configuring](https://github.com/caelestia-dots/shell?tab=readme-ov-file#configuring) section in the readme.
-If there is no corresponding option, make feature request.
+# 3. Verificar config
+sudo cat /lib/security/howdy/config.ini | grep device_path
 
-### How do I make my colour scheme change with my wallpaper?
-
-Set a wallpaper via the launcher or `caelestia wallpaper` and set the scheme to the dynamic scheme via the launcher
-or `caelestia scheme set`. e.g.
-
-```sh
-caelestia wallpaper -f <path/to/file>
-caelestia scheme set -n dynamic
+# 4. Checar logs
+sudo journalctl -xe | grep howdy
 ```
 
-### My wallpapers aren't showing up in the launcher!
+### PIN não aceita
 
-The launcher pulls wallpapers from `~/Pictures/Wallpapers` by default. You can change this in the config. Additionally,
-the launcher only shows an odd number of wallpapers at one time. If you only have 2 wallpapers, consider getting more
-(or just putting one).
+- Verifique que está usando sua senha do sistema (não um PIN separado)
+- PIN é apenas um método de entrada, valida contra senha PAM
+- Para usar PIN dedicado, configure keyring (futuro)
 
-## Credits
+### Lock screen não aparece
 
-Thanks to the Hyprland discord community (especially the homies in #rice-discussion) for all the help and suggestions
-for improving these dots!
+```bash
+# Reiniciar shell
+killall quickshell
+XDG_DATA_DIRS=$HOME/.local/share:$XDG_DATA_DIRS quickshell -c caelestia --daemonize
 
-A special thanks to [@outfoxxed](https://github.com/outfoxxed) for making Quickshell and the effort put into fixing issues
-and implementing various feature requests.
+# Verificar erros
+journalctl --user -u quickshell -f
+```
 
-Another special thanks to [@end_4](https://github.com/end-4) for his [config](https://github.com/end-4/dots-hyprland)
-which helped me a lot with learning how to use Quickshell.
+### Camera access denied
 
-Finally another thank you to all the configs I took inspiration from (only one for now):
+```bash
+# Adicionar user ao grupo video
+sudo usermod -aG video $USER
 
--   [Axenide/Ax-Shell](https://github.com/Axenide/Ax-Shell)
+# Logout e login novamente
+```
 
-## Stonks 📈
+---
 
-<a href="https://www.star-history.com/#caelestia-dots/shell&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=caelestia-dots/shell&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=caelestia-dots/shell&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=caelestia-dots/shell&type=Date" />
- </picture>
-</a>
+## 📝 Desenvolvimento
+
+### Build Local
+
+```bash
+# Desenvolvimento
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+
+# Watch mode (rebuild on changes)
+while inotifywait -r -e modify,create,delete modules/ components/; do
+  cmake --build build
+  killall quickshell
+  XDG_DATA_DIRS=$HOME/.local/share:$XDG_DATA_DIRS quickshell -c caelestia --daemonize
+done
+```
+
+### Estrutura de Arquivos (Novos)
+
+```
+modules/lock/
+├── AuthMethodSelector.qml     # Botões Face/PIN/Password
+├── PinKeyboard.qml            # Teclado numérico
+├── PinInputField.qml          # Display do PIN (dots)
+├── FaceAuthIndicator.qml      # Indicador de face scanning
+├── AuthFeedback.qml           # Mensagens de erro/sucesso
+└── AuthConfig.qml             # Configurações de autenticação
+```
+
+### Roadmap
+
+**v0.1.0-alpha** (Em andamento):
+- [x] Fork do repositório
+- [x] Planejamento detalhado
+- [ ] AuthMethodSelector component
+- [ ] PinKeyboard component
+- [ ] Face authentication integration
+- [ ] Rate limiting & lockout
+- [ ] Documentação básica
+
+**v0.2.0-beta**:
+- [ ] GUI para configurações
+- [ ] Fingerprint real (fprintd)
+- [ ] Smart card support
+- [ ] PIN dedicado (keyring)
+
+**v1.0.0**:
+- [ ] Testes completos
+- [ ] Performance otimizada
+- [ ] Documentação completa
+- [ ] Integração CI/CD
+
+Ver [PLANNING.md](PLANNING.md) para roadmap detalhado.
+
+---
+
+## 🤝 Contribuição
+
+Contribuições são bem-vindas! Este é um projeto pessoal, mas aceito PRs.
+
+### Como Contribuir
+
+1. Fork este repositório
+2. Crie branch: `git checkout -b feature/minha-feature`
+3. Commit: `git commit -m "feat: minha feature"`
+4. Push: `git push origin feature/minha-feature`
+5. Abra Pull Request
+
+### Convenções
+
+- **Commits**: Semantic commits (feat/fix/docs/style/refactor/test/chore)
+- **QML**: PascalCase para componentes, camelCase para properties
+- **Código**: Seguir estilo do Caelestia upstream
+- **Testes**: Adicionar testes para novos recursos
+
+---
+
+## 📚 Documentação
+
+- **[PLANNING.md](PLANNING.md)**: Plano detalhado de implementação
+- **[HOWDY_SETUP.md](HOWDY_SETUP.md)**: Guia de setup do Howdy (em breve)
+- **[CHANGELOG.md](CHANGELOG.md)**: Histórico de mudanças (em breve)
+- **[Upstream Docs](https://github.com/caelestia-dots/shell)**: Documentação original do Caelestia
+
+---
+
+## 🙏 Créditos
+
+### Base
+- **[Caelestia Shell](https://github.com/caelestia-dots/shell)** by [@soramane](https://github.com/soramane)
+- **[Quickshell](https://quickshell.outfoxxed.me)** by [@outfoxxed](https://github.com/outfoxxed)
+
+### Autenticação
+- **[Howdy](https://github.com/boltgolt/howdy)** - Linux face authentication
+
+### Inspiração
+- **Windows Hello**: Face + PIN UI/UX
+- **macOS Touch ID**: Biometric fallback patterns
+- **Android Smart Lock**: Multiple auth methods
+
+---
+
+## 📄 Licença
+
+GPLv3 - Ver [LICENSE](LICENSE) para detalhes.
+
+Este fork mantém a mesma licença do upstream.
+
+---
+
+## 📞 Contato
+
+**Mantenedor**: @pereiraoc  
+**Projeto Principal**: [caelestia-arch-setup](https://github.com/pereiraoc/caelestia-arch-setup)  
+**Upstream**: [caelestia-dots/shell](https://github.com/caelestia-dots/shell)
+
+---
+
+## ⭐ Star History
+
+Se este fork foi útil, considere dar uma estrela!
+
+---
+
+<div align="center">
+
+**Made with ❤️ for Arch Linux + Hyprland**
+
+</div>
