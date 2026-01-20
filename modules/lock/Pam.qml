@@ -17,12 +17,37 @@ Scope {
     property string fprintState
     property string buffer
 
+    // Auth method management
+    property string currentMode: "face"
+    property bool faceEnabled: true
+    property bool pinEnabled: true
+    property int faceFailedAttempts: 0
+    property int pinFailedAttempts: 0
+    property int passwordFailedAttempts: 0
+
     signal flashMsg
 
     function handleKey(event: KeyEvent): void {
         if (passwd.active || state === "max")
             return;
 
+        // PIN mode: only accept numbers
+        if (currentMode === "pin") {
+            if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
+                buffer += event.text;
+            } else if (event.key === Qt.Key_Backspace) {
+                if (event.modifiers & Qt.ControlModifier) {
+                    buffer = "";
+                } else {
+                    buffer = buffer.slice(0, -1);
+                }
+            } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                passwd.start();
+            }
+            return;
+        }
+
+        // Password mode: accept all characters
         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
             passwd.start();
         } else if (event.key === Qt.Key_Backspace) {
@@ -32,7 +57,6 @@ Scope {
                 buffer = buffer.slice(0, -1);
             }
         } else if (" abcdefghijklmnopqrstuvwxyz1234567890`~!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?".includes(event.text.toLowerCase())) {
-            // No illegal characters (you are insane if you use unicode in your password)
             buffer += event.text;
         }
     }
@@ -59,8 +83,30 @@ Scope {
         }
 
         onCompleted: res => {
-            if (res === PamResult.Success)
+            if (res === PamResult.Success) {
+                // Reset all counters on successful unlock
+                root.faceFailedAttempts = 0;
+                root.pinFailedAttempts = 0;
+                root.passwordFailedAttempts = 0;
+                root.faceEnabled = Config.lock.auth.enableFaceAuth;
+                root.pinEnabled = Config.lock.auth.enablePinAuth;
                 return root.lock.unlock();
+            }
+
+            // Track failures by method
+            if (root.currentMode === "pin") {
+                root.pinFailedAttempts++;
+                if (root.pinFailedAttempts >= Config.lock.auth.maxPinRetries) {
+                    root.pinEnabled = false;
+                }
+            } else if (root.currentMode === "password") {
+                root.passwordFailedAttempts++;
+                if (root.passwordFailedAttempts >= Config.lock.auth.maxPasswordRetries) {
+                    // Total lockout after 30 password failures
+                    root.faceEnabled = false;
+                    root.pinEnabled = false;
+                }
+            }
 
             if (res === PamResult.Error)
                 root.state = "error";
@@ -82,7 +128,14 @@ Scope {
         property int errorTries
 
         function checkAvail(): void {
-            if (!available || !Config.lock.enableFprint || !root.lock.secure) {
+            // Use fprint for face auth when in face mode
+            if (!available || !Config.lock.auth.enableFaceAuth || !root.lock.secure) {
+                abort();
+                return;
+            }
+
+            // Only start if in face mode
+            if (root.currentMode !== "face") {
                 abort();
                 return;
             }
@@ -99,8 +152,21 @@ Scope {
             if (!available)
                 return;
 
-            if (res === PamResult.Success)
+            if (res === PamResult.Success) {
+                // Reset all counters on successful unlock
+                root.faceFailedAttempts = 0;
+                root.pinFailedAttempts = 0;
+                root.passwordFailedAttempts = 0;
+                root.faceEnabled = Config.lock.auth.enableFaceAuth;
+                root.pinEnabled = Config.lock.auth.enablePinAuth;
                 return root.lock.unlock();
+            }
+
+            // Track face auth failures
+            root.faceFailedAttempts++;
+            if (root.faceFailedAttempts >= Config.lock.auth.maxFaceRetries) {
+                root.faceEnabled = false;
+            }
 
             if (res === PamResult.Error) {
                 root.fprintState = "error";
@@ -110,11 +176,8 @@ Scope {
                     errorRetry.restart();
                 }
             } else if (res === PamResult.MaxTries) {
-                // Isn't actually the real max tries as pam only reports completed
-                // when max tries is reached.
                 tries++;
                 if (tries < Config.lock.maxFprintTries) {
-                    // Restart if not actually real max tries
                     root.fprintState = "fail";
                     start();
                 } else {
@@ -175,6 +238,8 @@ Scope {
                 root.state = "";
                 root.fprintState = "";
                 root.lockMessage = "";
+                // Set default mode on lock
+                root.currentMode = Config.lock.auth.defaultMethod;
             }
         }
 
@@ -187,6 +252,13 @@ Scope {
         target: Config.lock
 
         function onEnableFprintChanged(): void {
+            fprint.checkAvail();
+        }
+    }
+
+    // Watch for mode changes
+    onCurrentModeChanged: {
+        if (currentMode === "face") {
             fprint.checkAvail();
         }
     }
