@@ -37,10 +37,12 @@ Este patch do Caelestia Shell adiciona suporte para autenticação via reconheci
 - [ ] Validação via PAM contra senha do usuário
 - [ ] Suporte para PINs salvos em keyring (futuro)
 
-### RF4: Fallback e Segurança
-- [ ] Sempre manter senha tradicional como fallback
-- [ ] Rate limiting: delay progressivo após falhas
-- [ ] Lockout temporário após N tentativas (configurável)
+### RF4: Fallback e Segurança Inteligente
+- [ ] Três métodos sempre disponíveis: Face (default), PIN, Senha
+- [ ] PIN: 10 falhas → desabilita PIN até próximo unlock bem-sucedido
+- [ ] Face: 5 falhas → desabilita Face até próximo unlock bem-sucedido
+- [ ] Senha: sempre disponível, lockout apenas após 30 falhas
+- [ ] Métodos desabilitados reativam após unlock por outro método
 - [ ] Log de tentativas falhas em journal
 - [ ] Modo de emergência: Ctrl+Alt+F2 sempre disponível
 
@@ -483,15 +485,19 @@ AuthConfig {
     enablePinAuth: true
     defaultAuthMethod: "face" // "face", "pin", "password"
     
+    // Face authentication
     faceAuthTimeout: 5000 // ms
-    maxFaceRetries: 3
+    maxFaceRetries: 5 // Desabilita Face após 5 falhas
     
+    // PIN authentication
     pinLength: 4 // 4-8
     pinAutoSubmit: true // Auto-submit quando length atingido
+    maxPinRetries: 10 // Desabilita PIN após 10 falhas
     
-    rateLimitDelay: 2000 // ms entre tentativas após falha
-    lockoutAfterTries: 5
-    lockoutDuration: 30000 // 30s
+    // Password authentication (sempre disponível)
+    maxPasswordRetries: 30 // Lockout apenas após 30 falhas
+    
+    // Note: Métodos desabilitados reativam após unlock bem-sucedido
 }
 ```
 
@@ -501,47 +507,70 @@ AuthConfig {
   "lock": {
     "recolourLogo": false,
     "enableFprint": true,
-    "maxFprintTries": 3,
     "auth": {
       "enableFaceAuth": true,
       "enablePinAuth": true,
       "defaultMethod": "face",
       "faceAuthTimeout": 5000,
-      "maxFaceRetries": 3,
+      "maxFaceRetries": 5,
       "pinLength": 4,
       "pinAutoSubmit": true,
-      "rateLimitDelay": 2000,
-      "lockoutAfterTries": 5,
-      "lockoutDuration": 30000
+      "maxPinRetries": 10,
+      "maxPasswordRetries": 30
     }
   }
 }
 ```
 
-**Lógica de Rate Limiting**:
+**Lógica de Desabilitação por Método**:
 ```qml
 // Em AuthManager.qml (novo)
-property int failedAttempts: 0
-property bool lockedOut: false
-
-Timer {
-    id: lockoutTimer
-    interval: Config.lock.auth.lockoutDuration
-    onTriggered: {
-        lockedOut = false
-        failedAttempts = 0
-    }
-}
-
-function onAuthFailed() {
-    failedAttempts++
+QtObject {
+    id: authState
     
-    if (failedAttempts >= Config.lock.auth.lockoutAfterTries) {
-        lockedOut = true
-        lockoutTimer.start()
-    } else {
-        // Rate limit delay
-        rateLimitTimer.start()
+    // Contadores por método
+    property int faceFailedAttempts: 0
+    property int pinFailedAttempts: 0
+    property int passwordFailedAttempts: 0
+    
+    // Estados de disponibilidade
+    property bool faceEnabled: true
+    property bool pinEnabled: true
+    property bool passwordEnabled: true  // Sempre true até 30 falhas
+    
+    function onFaceAuthFailed() {
+        faceFailedAttempts++
+        if (faceFailedAttempts >= Config.lock.auth.maxFaceRetries) {
+            faceEnabled = false
+            // Face desabilitado até unlock por outro método
+        }
+    }
+    
+    function onPinAuthFailed() {
+        pinFailedAttempts++
+        if (pinFailedAttempts >= Config.lock.auth.maxPinRetries) {
+            pinEnabled = false
+            // PIN desabilitado até unlock por outro método
+        }
+    }
+    
+    function onPasswordAuthFailed() {
+        passwordFailedAttempts++
+        if (passwordFailedAttempts >= Config.lock.auth.maxPasswordRetries) {
+            passwordEnabled = false
+            // Lockout total apenas após 30 falhas na senha
+        }
+    }
+    
+    function onUnlockSuccess(method) {
+        // Reativa todos os métodos após unlock bem-sucedido
+        faceFailedAttempts = 0
+        pinFailedAttempts = 0
+        passwordFailedAttempts = 0
+        
+        faceEnabled = Config.lock.auth.enableFaceAuth
+        pinEnabled = Config.lock.auth.enablePinAuth
+        passwordEnabled = true
     }
 }
 ```
@@ -549,9 +578,11 @@ function onAuthFailed() {
 **Testes**:
 - [ ] Configurações carregam de shell.json
 - [ ] Valores default funcionam se não configurado
-- [ ] Rate limiting funciona
-- [ ] Lockout após N tentativas
-- [ ] Lockout reset após duração
+- [ ] Face desabilita após 5 falhas
+- [ ] PIN desabilita após 10 falhas
+- [ ] Senha só bloqueia após 30 falhas
+- [ ] Métodos reativam após unlock bem-sucedido
+- [ ] Pelo menos 1 método sempre disponível
 
 ---
 
@@ -577,24 +608,31 @@ function onAuthFailed() {
    - [ ] Digita PIN correto
    - [ ] Unlock imediato
 
-3. **Fallback - Face Fail → Password**:
-   - [ ] Howdy falha 3x
-   - [ ] Exibe opção de senha
-   - [ ] Senha funciona
+3. **Auto-desabilitação - Face**:
+   - [ ] Howdy falha 5x
+   - [ ] Botão Face fica desabilitado (grayed out)
+   - [ ] PIN e Senha continuam disponíveis
+   - [ ] Unlock via PIN → Face reativa
 
-4. **Fallback - PIN Fail → Password**:
-   - [ ] PIN incorreto 3x
-   - [ ] Exibe opção de senha
-   - [ ] Senha funciona
+4. **Auto-desabilitação - PIN**:
+   - [ ] PIN incorreto 10x
+   - [ ] Botão PIN fica desabilitado (grayed out)
+   - [ ] Face e Senha continuam disponíveis
+   - [ ] Unlock via Face → PIN reativa
 
-5. **Edge Cases**:
-   - [ ] Câmera não disponível → auto-select PIN
-   - [ ] Howdy não instalado → auto-select PIN
-   - [ ] Timeout em face auth → retry ou fallback
-   - [ ] Lockout após N tentativas
+5. **Lockout Total - Senha**:
+   - [ ] Senha incorreta 30x
+   - [ ] Todos métodos bloqueados temporariamente
+   - [ ] Apenas TTY disponível (Ctrl+Alt+F2)
+
+6. **Edge Cases**:
+   - [ ] Câmera não disponível → Face disabled, default para PIN
+   - [ ] Howdy não instalado → Face disabled, default para PIN
+   - [ ] Timeout em face auth → conta como falha
+   - [ ] Todos métodos desabilitados → força TTY
    - [ ] Múltiplos monitores (lock em todos)
 
-6. **Performance**:
+7. **Performance**:
    - [ ] Renderização < 16ms (60fps)
    - [ ] Face auth latência < 2s
    - [ ] PIN input responsivo (< 50ms)
@@ -691,14 +729,22 @@ XDG_DATA_DIRS=$HOME/.local/share:$XDG_DATA_DIRS quickshell -c caelestia --daemon
 
 ### Ameaças e Mitigações
 
-| Ameaça | Mitigação |
-|--------|-----------|
-| Brute force PIN | Rate limiting + lockout |
-| Photo spoofing (Howdy) | Liveness detection (Howdy config) + fallback |
+| Ameaça | Mitigação (Nova Estratégia) |
+|--------|------------------------------|
+| Brute force PIN | Auto-desabilita após 10 falhas, fallback para Face/Senha |
+| Brute force Face | Auto-desabilita após 5 falhas, fallback para PIN/Senha |
+| Photo spoofing (Howdy) | Liveness detection + auto-desabilita após falhas |
+| Denial of Service | Métodos se desabilitam individualmente, sempre mantém alternativas |
 | Replay attack | PAM session tokens únicos |
-| Timing attack | Constant-time string comparison |
+| Timing attack | Constant-time string comparison no PAM |
 | Privilege escalation | PAM policies isoladas |
-| Denial of Service | Lockout temporário, não permanente |
+
+**Filosofia de Segurança**:
+- ✅ **Não há lockout temporal**: User não espera countdown frustrante
+- ✅ **Auto-desabilitação inteligente**: Cada método se desabilita após N falhas
+- ✅ **Sempre há alternativa**: PIN falha → Face e Senha disponíveis
+- ✅ **Lockout total apenas em abuso extremo**: 30 falhas na senha
+- ✅ **Reativação automática**: Unlock bem-sucedido reativa todos os métodos
 
 ### Howdy Security
 - **Liveness Detection**: Configurar em `/lib/security/howdy/config.ini`

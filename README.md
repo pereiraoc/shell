@@ -126,23 +126,34 @@ Edite `~/.config/caelestia/shell.json`:
 #### Face Authentication
 - `enableFaceAuth`: Habilitar reconhecimento facial (padrão: `true`)
 - `faceAuthTimeout`: Timeout em ms (padrão: `5000`)
-- `maxFaceRetries`: Tentativas antes de fallback (padrão: `3`)
+- `maxFaceRetries`: Falhas antes de desabilitar Face (padrão: `5`)
+
+**Comportamento**: Após 5 falhas, Face é desabilitado até próximo unlock bem-sucedido.
 
 #### PIN Authentication
 - `enablePinAuth`: Habilitar autenticação por PIN (padrão: `true`)
 - `pinLength`: Tamanho do PIN (4-8 dígitos, padrão: `4`)
 - `pinAutoSubmit`: Auto-enviar quando atingir pinLength (padrão: `true`)
+- `maxPinRetries`: Falhas antes de desabilitar PIN (padrão: `10`)
 
-#### Security
-- `rateLimitDelay`: Delay entre tentativas falhas em ms (padrão: `2000`)
-- `lockoutAfterTries`: Tentativas antes de lockout (padrão: `5`)
-- `lockoutDuration`: Duração do lockout em ms (padrão: `30000`)
+**Comportamento**: Após 10 falhas, PIN é desabilitado até próximo unlock bem-sucedido.
+
+#### Password Authentication
+- `maxPasswordRetries`: Falhas antes de lockout total (padrão: `30`)
+
+**Comportamento**: Senha sempre disponível. Lockout total apenas após 30 falhas.
 
 #### Default Method
 - `defaultMethod`: Método padrão ao abrir lock screen
   - `"face"`: Face authentication (padrão)
   - `"pin"`: PIN numpad
   - `"password"`: Senha tradicional
+
+**Lógica de Auto-Desabilitação**:
+- Face desabilitado → Default muda para PIN (se disponível) ou Password
+- PIN desabilitado → Default muda para Face (se disponível) ou Password
+- Ambos desabilitados → Default muda para Password
+- Unlock bem-sucedido → Todos métodos reativam e default volta ao configurado
 
 ---
 
@@ -211,22 +222,50 @@ caelestia shell lock lock
 - Use PIN como backup quando câmera não disponível
 - **Não use para**: unlock de LUKS, disk encryption
 
-### Rate Limiting
+### Estratégia de Auto-Desabilitação
 
-Após falhas sucessivas:
-- **3 tentativas**: Delay de 2s
-- **5 tentativas**: Lockout de 30s
-- **Logs**: Todas tentativas em `/var/log/auth.log`
+**Filosofia**: Sem lockout temporal frustrante. Métodos se auto-desabilitam após abuse, mas sempre mantém alternativas.
 
-### Logs
+#### Face Authentication
+- **5 falhas**: Face desabilitado temporariamente
+- **Reativação**: Unlock bem-sucedido via PIN ou Senha
+- **Feedback**: Botão Face fica grayed out com mensagem clara
 
-```bash
-# Ver tentativas de autenticação
-journalctl -u sddm --since today | grep "pam_python\|howdy"
+#### PIN Authentication
+- **10 falhas**: PIN desabilitado temporariamente  
+- **Reativação**: Unlock bem-sucedido via Face ou Senha
+- **Feedback**: Botão PIN fica grayed out com mensagem clara
 
-# Ver lockouts
-journalctl --since today | grep "lock screen"
+#### Password (Senha Tradicional)
+- **Sempre disponível**: Último recurso
+- **30 falhas**: Lockout total (todos métodos bloqueados)
+- **Escape**: TTY sempre disponível (Ctrl+Alt+F2)
+
+### Cenários de Falha
+
 ```
+Cenário 1: Face falha 5x
+  → Face desabilitado
+  → PIN e Senha disponíveis
+  → User usa PIN → Unlock → Face reativa
+
+Cenário 2: PIN falha 10x
+  → PIN desabilitado
+  → Face e Senha disponíveis
+  → User usa Face → Unlock → PIN reativa
+
+Cenário 3: Face falha 5x, PIN falha 10x
+  → Ambos desabilitados
+  → Apenas Senha disponível
+  → User usa Senha → Unlock → Ambos reativam
+
+Cenário 4: Senha falha 30x
+  → Lockout total
+  → Apenas TTY disponível (Ctrl+Alt+F2)
+  → Login via TTY → Todos métodos reativam
+```
+
+**Vantagem**: User nunca fica esperando countdown. Sempre há alternativa disponível.
 
 ---
 
