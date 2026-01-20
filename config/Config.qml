@@ -352,6 +352,17 @@ Singleton {
                 heightMult: lock.sizes.heightMult,
                 ratio: lock.sizes.ratio,
                 centerWidth: lock.sizes.centerWidth
+            },
+            auth: {
+                enableFaceAuth: lock.auth.enableFaceAuth,
+                enablePinAuth: lock.auth.enablePinAuth,
+                faceEnabled: lock.auth.faceEnabled,
+                pinEnabled: lock.auth.pinEnabled,
+                defaultMethod: lock.auth.defaultMethod,
+                userPin: lock.auth.userPin,
+                maxFaceRetries: lock.auth.maxFaceRetries,
+                maxPinRetries: lock.auth.maxPinRetries,
+                maxPasswordRetries: lock.auth.maxPasswordRetries
             }
         };
     }

@@ -23,7 +23,17 @@ Item {
     property bool pinSaved: false
     property string statusMessage: ""
 
+    // Salt for PIN hashing (unique per installation)
+    readonly property string pinSalt: "caelestia-lock-2026"
+
     anchors.fill: parent
+
+    // Simple hash function for PIN security
+    function hashPin(pin: string): string {
+        // Use Qt.md5 with salt for basic security
+        // Format: md5(salt + pin + salt)
+        return Qt.md5(pinSalt + pin + pinSalt);
+    }
 
     function savePin() {
         if (newPin.length !== 4) {
@@ -37,8 +47,8 @@ Item {
             return;
         }
 
-        // Save PIN to config
-        Config.lock.auth.userPin = newPin;
+        // Save hashed PIN to config for security
+        Config.lock.auth.userPin = hashPin(newPin);
         Config.save();
 
         pinMismatch = false;

@@ -27,11 +27,19 @@ Scope {
 
     signal flashMsg
 
+    // Salt for PIN hashing - must match SecurityPane.qml
+    readonly property string pinSalt: "caelestia-lock-2026"
+
+    // Hash function for PIN verification - must match SecurityPane.qml
+    function hashPin(pin: string): string {
+        return Qt.md5(pinSalt + pin + pinSalt);
+    }
+
     function verifyPin(): void {
-        const configuredPin = Config.lock.auth.userPin;
+        const storedPinHash = Config.lock.auth.userPin;
         
         // If no PIN configured, show error
-        if (!configuredPin || configuredPin === "") {
+        if (!storedPinHash || storedPinHash === "") {
             root.state = "error";
             root.lockMessage = qsTr("No PIN configured. Please set a PIN in Security settings.");
             root.buffer = "";
@@ -40,8 +48,10 @@ Scope {
             return;
         }
 
-        // Check if PIN matches
-        if (root.buffer === configuredPin) {
+        // Hash the entered PIN and compare with stored hash
+        const enteredPinHash = hashPin(root.buffer);
+        
+        if (enteredPinHash === storedPinHash) {
             // PIN correct - unlock
             root.faceFailedAttempts = 0;
             root.pinFailedAttempts = 0;
