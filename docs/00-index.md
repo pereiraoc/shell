@@ -1,6 +1,6 @@
 # 📚 Índice da Documentação
 
-**Última Atualização**: 2026-01-22
+**Última Atualização**: 2026-01-23
 
 ---
 
@@ -24,7 +24,8 @@ docs/
     ├── 28-help-modal.md
     ├── 29-apps-integration.md
     ├── 30-launcher-customization.md
-    └── 31-theme-customization.md
+    ├── 31-theme-customization.md
+    └── 32-gpu-mode-selector.md
 ```
 
 ---

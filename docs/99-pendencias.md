@@ -1,7 +1,7 @@
 # 📋 Pendências e Tarefas
 
-**Última Atualização**: 2026-01-22  
-**Progresso**: 1/13 tarefas concluídas (8%)
+**Última Atualização**: 2026-01-23  
+**Progresso**: 1/14 tarefas concluídas (7%)
 
 ---
 
@@ -10,8 +10,8 @@
 | Status | Quantidade |
 |--------|------------|
 | ✅ Concluídas | 1 |
-| ⏱️ Pendentes | 12 |
-| **TOTAL** | **13** |
+| ⏱️ Pendentes | 13 |
+| **TOTAL** | **14** |
 
 ---
 
@@ -62,6 +62,7 @@
 | # | Tarefa | Tempo | Plano |
 |---|--------|-------|-------|
 | 31 | Tema preto/amarelo customizável | 10-15h | [31-theme-customization.md](plan-and-implementation/31-theme-customization.md) |
+| 32 | GPU Mode Selector (supergfxctl) ⭐ | 6-8h | [32-gpu-mode-selector.md](plan-and-implementation/32-gpu-mode-selector.md) |
 
 ---
 
@@ -69,19 +70,20 @@
 
 ### Alta Prioridade
 1. ✅ Lock Screen (feito)
-2. System Tray (22) - afeta usabilidade
-3. Workspace Grouping (24) - melhora workflow
+2. **GPU Mode Selector (32) - resolve problema HDMI lag** ⭐
+3. System Tray (22) - afeta usabilidade
+4. Workspace Grouping (24) - melhora workflow
 
 ### Média Prioridade
-4. Gaps Configuration (25) - QoL
-5. Help Modal (28) - ajuda usuários
-6. Apps Integration (29) - facilita acesso
+5. Gaps Configuration (25) - QoL
+6. Help Modal (28) - ajuda usuários
+7. Apps Integration (29) - facilita acesso
 
 ### Baixa Prioridade
-7. Shortcuts Widget (26)
-8. Games Widget (27)
-9. Launcher Customization (30)
-10. Theme Customization (31)
+8. Shortcuts Widget (26)
+9. Games Widget (27)
+10. Launcher Customization (30)
+11. Theme Customization (31)
 
 ---
 

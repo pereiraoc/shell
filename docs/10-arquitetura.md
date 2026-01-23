@@ -1,6 +1,6 @@
 # 🏗️ Arquitetura do Caelestia Shell - Pereiraoc Patch
 
-**Última Atualização**: 2026-01-22
+**Última Atualização**: 2026-01-23
 
 ---
 
@@ -280,6 +280,7 @@ O patch **não adiciona** novas dependências do Quickshell/Qt. Usa apenas:
 - ⏱️ Feedback visual de Face auth
 
 ### Versão 0.2.0 (Futuro)
+- 🔮 GPU Mode Selector (supergfxctl integration) - **PLANEJADO** ⭐
 - 🔮 Suporte a fingerprint reader (fprintd)
 - 🔮 PIN dedicado (via keyring)
 - 🔮 Customizações adicionais (ver 99-pendencias.md)
@@ -298,6 +299,9 @@ Para detalhes de implementação de cada feature, veja:
 
 ### Lock Screen (Implementado)
 - **21-lock-screen-auth-selector.md**: Plano completo do seletor de autenticação
+
+### GPU Management (Planejado)
+- **32-gpu-mode-selector.md**: Integração com supergfxctl para switching Intel/Hybrid/Dedicated
 
 ### Outras Customizações (Planejadas)
 - **22-tray-system-icons.md**: Corrigir tray (Steam/Spotify)
