@@ -204,6 +204,8 @@ Item {
     AnimatedImage {
         id: bongocat
 
+        visible: false // Disabled - set to true in shell.json if you want the cat animation
+
         anchors.top: controls.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -212,7 +214,7 @@ Item {
         anchors.bottomMargin: Appearance.padding.large
         anchors.margins: Appearance.padding.large * 2
 
-        playing: Players.active?.isPlaying ?? false
+        playing: visible && (Players.active?.isPlaying ?? false)
         speed: Audio.beatTracker.bpm / 300
         source: Paths.absolutePath(Config.paths.mediaGif)
         asynchronous: true

@@ -37,6 +37,9 @@ Item {
     property real borderRounding: Config.border.rounding ?? 1
     property real borderThickness: Config.border.thickness ?? 1
 
+    property int gapsInner: Config.hyprland?.gaps?.inner ?? 5
+    property int gapsOuter: Config.hyprland?.gaps?.outer ?? 20
+
     property bool desktopClockEnabled: Config.background.desktopClock.enabled ?? false
     property real desktopClockScale: Config.background.desktopClock.scale ?? 1
     property string desktopClockPosition: Config.background.desktopClock.position ?? "bottom-right"
@@ -90,6 +93,12 @@ Item {
 
         Config.border.rounding = root.borderRounding;
         Config.border.thickness = root.borderThickness;
+
+        // Save Hyprland gaps config for persistence
+        if (Config.hyprland?.gaps) {
+            Config.hyprland.gaps.inner = root.gapsInner;
+            Config.hyprland.gaps.outer = root.gapsOuter;
+        }
 
         Config.save();
     }
@@ -177,6 +186,7 @@ Item {
                         scalesSection.expanded &&
                         transparencySection.expanded &&
                         borderSection.expanded &&
+                        gapsSection.expanded &&
                         backgroundSection.expanded
 
                 RowLayout {
@@ -206,6 +216,7 @@ Item {
                             scalesSection.expanded = shouldExpand;
                             transparencySection.expanded = shouldExpand;
                             borderSection.expanded = shouldExpand;
+                            gapsSection.expanded = shouldExpand;
                             backgroundSection.expanded = shouldExpand;
                         }
                     }
@@ -245,6 +256,11 @@ Item {
 
                 BorderSection {
                     id: borderSection
+                    rootPane: sidebarFlickable.rootPane
+                }
+
+                GapsSection {
+                    id: gapsSection
                     rootPane: sidebarFlickable.rootPane
                 }
 

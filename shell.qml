@@ -7,7 +7,9 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
+import qs.config
 import Quickshell
+import QtQuick
 
 ShellRoot {
     Background {}
@@ -21,5 +23,20 @@ ShellRoot {
     BatteryMonitor {}
     IdleMonitors {
         lock: lock
+    }
+
+    // Apply persisted Hyprland settings on startup
+    Timer {
+        running: true
+        interval: 100
+        repeat: false
+        onTriggered: {
+            if (Config.hyprland?.gaps) {
+                const innerGap = Config.hyprland.gaps.inner ?? 5;
+                const outerGap = Config.hyprland.gaps.outer ?? 20;
+                Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_in", innerGap.toString()]);
+                Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_out", outerGap.toString()]);
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ import qs.modules.bar.popouts as BarPopouts
 import qs.modules.utilities as Utilities
 import qs.modules.utilities.toasts as Toasts
 import qs.modules.sidebar as Sidebar
+// import qs.modules.help as Help  // DISABLED FOR TESTING
 import Quickshell
 import QtQuick
 
@@ -133,4 +134,17 @@ Item {
         anchors.bottom: utilities.top
         anchors.right: parent.right
     }
+
+    // Help modal - keyboard shortcuts reference
+    // DISABLED FOR TESTING
+    // Help.HelpModal {
+    //     id: helpModal
+
+    //     parent: root
+    //     showing: root.visibilities.help
+
+    //     onShowingChanged: {
+    //         root.visibilities.help = showing;
+    //     }
+    // }
 }

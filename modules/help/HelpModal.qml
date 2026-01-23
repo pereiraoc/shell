@@ -8,35 +8,13 @@ import qs.config
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 
-Popup {
+Item {
     id: root
 
     property bool showing: false
 
-    anchors.centerIn: parent
-    width: Math.min(parent.width * 0.85, 1000)
-    height: Math.min(parent.height * 0.8, 800)
-
-    modal: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    focus: true
-
     visible: showing
-
-    onVisibleChanged: {
-        showing = visible;
-        if (visible) {
-            root.forceActiveFocus();
-        }
-    }
-
-    Component.onCompleted: {
-        if (visible) {
-            root.forceActiveFocus();
-        }
-    }
 
     readonly property var shortcuts: [
         { category: qsTr("Navigation"), items: [
@@ -83,24 +61,14 @@ Popup {
         ]}
     ]
 
-    background: StyledRect {
+    StyledRect {
+        anchors.centerIn: parent
+        implicitWidth: Math.min(parent.width * 0.85, 1000)
+        implicitHeight: Math.min(parent.height * 0.8, 800)
+
         color: Colours.palette.m3surfaceContainerHigh
         radius: Appearance.rounding.large
 
-        // Close button
-        IconButton {
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: Appearance.padding.normal
-
-            icon: "close"
-            type: IconButton.Text
-
-            onClicked: root.showing = false
-        }
-    }
-
-    contentItem: Item {
         StyledFlickable {
             id: flickable
 
@@ -238,13 +206,6 @@ Popup {
                     Layout.preferredHeight: Appearance.padding.large
                 }
             }
-        }
-    }
-
-    Keys.onPressed: event => {
-        if (event.key === Qt.Key_Escape) {
-            root.showing = false;
-            event.accepted = true;
         }
     }
 }

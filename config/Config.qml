@@ -26,6 +26,7 @@ Singleton {
     property alias sidebar: adapter.sidebar
     property alias services: adapter.services
     property alias paths: adapter.paths
+    property alias hyprland: adapter.hyprland
 
     // Public save function - call this to persist config changes
     function save(): void {
@@ -95,7 +96,17 @@ Singleton {
             utilities: serializeUtilities(),
             sidebar: serializeSidebar(),
             services: serializeServices(),
-            paths: serializePaths()
+            paths: serializePaths(),
+            hyprland: serializeHyprland()
+        };
+    }
+
+    function serializeHyprland(): var {
+        return {
+            gaps: {
+                inner: hyprland.gaps.inner,
+                outer: hyprland.gaps.outer
+            }
         };
     }
 
@@ -483,6 +494,7 @@ Singleton {
             property SidebarConfig sidebar: SidebarConfig {}
             property ServiceConfig services: ServiceConfig {}
             property UserPaths paths: UserPaths {}
+            property HyprlandConfig hyprland: HyprlandConfig {}
         }
     }
 }

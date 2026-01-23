@@ -3,6 +3,7 @@ import Quickshell.Io
 JsonObject {
     property bool enabled: true
     property bool showOnHover: true
+    property bool showMediaGif: false // Set to true to show animation in media player
     property int mediaUpdateInterval: 500
     property int dragThreshold: 50
     property Sizes sizes: Sizes {}

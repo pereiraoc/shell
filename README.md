@@ -7,6 +7,19 @@
 
 ---
 
+## 📚 Documentação
+
+**[👉 Acesse a Documentação Completa](docs/00-index.md)**
+
+A documentação completa do projeto está organizada em `docs/`:
+- **[00-index.md](docs/00-index.md)** - Índice e guia de navegação
+- **[10-arquitetura.md](docs/10-arquitetura.md)** - Arquitetura e modificações vs upstream
+- **[20-troubleshooting.md](docs/20-troubleshooting.md)** - Guia de solução de problemas
+- **[99-pendencias.md](docs/99-pendencias.md)** - Tarefas pendentes e roadmap
+- **[plan-and-implementation/](docs/plan-and-implementation/)** - Planos detalhados de cada feature
+
+---
+
 ## 🎯 Sobre Este Fork
 
 Este é um fork personalizado do [Caelestia Shell](https://github.com/caelestia-dots/shell) criado para adicionar **autenticação biométrica e por PIN no lock screen**.

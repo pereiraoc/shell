@@ -27,6 +27,31 @@ ColumnLayout {
 
     spacing: 0
 
+    // Get monitor index for this workspace (1-based), or 0 if not associated with any monitor
+    function getMonitorIndex(): int {
+        const wsObj = Hypr.workspaces.values.find(w => w.id === root.ws);
+        if (!wsObj || !wsObj.monitor) return 0;
+        
+        // Get the monitor object associated with this workspace
+        const wsMonitor = wsObj.monitor;
+        
+        // Find the index of this monitor among all monitors
+        const monitors = Quickshell.screens;
+        for (let i = 0; i < monitors.length; i++) {
+            const mon = Hypr.monitorFor(monitors[i]);
+            if (mon && mon.name === wsMonitor.name) {
+                return i + 1; // 1-based index
+            }
+        }
+        return 0;
+    }
+
+    // Convert number to Roman numeral
+    function toRoman(num: int): string {
+        const romans = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+        return num >= 1 && num <= 10 ? romans[num] : num.toString();
+    }
+
     StyledText {
         id: indicator
 
@@ -35,6 +60,12 @@ ColumnLayout {
 
         animate: true
         text: {
+            const monIdx = root.getMonitorIndex();
+            if (monIdx > 0) {
+                // Workspace is active on a monitor - show Roman numeral
+                return root.toRoman(monIdx);
+            }
+            // Not on any monitor - show original label (dot/circle behavior)
             const ws = Hypr.workspaces.values.find(w => w.id === root.ws);
             const wsName = !ws || ws.name == root.ws ? root.ws : ws.name[0];
             let displayName = wsName.toString();
@@ -62,40 +93,55 @@ ColumnLayout {
         visible: active
         active: root.hasWindows
 
-        sourceComponent: Column {
-            spacing: 0
+        sourceComponent: StyledRect {
+            id: windowsContainer
 
-            add: Transition {
-                Anim {
-                    properties: "scale"
-                    from: 0
-                    to: 1
-                    easing.bezierCurve: Appearance.anim.curves.standardDecel
-                }
-            }
+            // Visual grouping: subtle border around windows of this workspace
+            color: "transparent"
+            border.color: root.activeWsId === root.ws ? Colours.palette.m3primary : Colours.palette.m3outlineVariant
+            border.width: 1
+            radius: Appearance.rounding.small
 
-            move: Transition {
-                Anim {
-                    properties: "scale"
-                    to: 1
-                    easing.bezierCurve: Appearance.anim.curves.standardDecel
-                }
-                Anim {
-                    properties: "x,y"
-                }
-            }
+            implicitWidth: windowsColumn.implicitWidth + Appearance.padding.small * 2
+            implicitHeight: windowsColumn.implicitHeight + Appearance.padding.small
 
-            Repeater {
-                model: ScriptModel {
-                    values: Hypr.toplevels.values.filter(c => c.workspace?.id === root.ws)
+            Column {
+                id: windowsColumn
+                anchors.centerIn: parent
+                spacing: 0
+
+                add: Transition {
+                    Anim {
+                        properties: "scale"
+                        from: 0
+                        to: 1
+                        easing.bezierCurve: Appearance.anim.curves.standardDecel
+                    }
                 }
 
-                MaterialIcon {
-                    required property var modelData
+                move: Transition {
+                    Anim {
+                        properties: "scale"
+                        to: 1
+                        easing.bezierCurve: Appearance.anim.curves.standardDecel
+                    }
+                    Anim {
+                        properties: "x,y"
+                    }
+                }
 
-                    grade: 0
-                    text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
-                    color: Colours.palette.m3onSurfaceVariant
+                Repeater {
+                    model: ScriptModel {
+                        values: Hypr.toplevels.values.filter(c => c.workspace?.id === root.ws)
+                    }
+
+                    MaterialIcon {
+                        required property var modelData
+
+                        grade: 0
+                        text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
+                        color: Colours.palette.m3onSurfaceVariant
+                    }
                 }
             }
         }

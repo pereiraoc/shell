@@ -375,11 +375,12 @@ Item {
 
         AnimatedImage {
             anchors.centerIn: parent
+            visible: false // Disabled - set to true in shell.json if you want the cat animation
 
             width: visualiser.width * 0.75
             height: visualiser.height * 0.75
 
-            playing: Players.active?.isPlaying ?? false
+            playing: visible && (Players.active?.isPlaying ?? false)
             speed: Audio.beatTracker.bpm / 300
             source: Paths.absolutePath(Config.paths.mediaGif)
             asynchronous: true

@@ -4,6 +4,7 @@ JsonObject {
     property bool enabled: true
     property int dragThreshold: 30
     property bool vimKeybinds: false
+    property bool showGif: false // Set to true to show animation during session actions
     property Commands commands: Commands {}
 
     property Sizes sizes: Sizes {}
