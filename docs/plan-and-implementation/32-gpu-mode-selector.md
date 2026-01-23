@@ -53,20 +53,22 @@ Integrate supergfxctl GPU mode switching into Caelestia Shell Control Center, pr
 |------|-------------|--------------|-------------|----------|
 | **Integrated** | Intel iGPU only, NVIDIA off | Best | Basic | On battery, no external monitor |
 | **Hybrid** | Intel for display, NVIDIA for compute | Good | Medium | General use, occasional GPU tasks |
-| **Dedicated** | NVIDIA only, Intel off | Worst | Best | Docked with external monitor, gaming |
-| **VFIO** | NVIDIA for VM passthrough | N/A | N/A | Advanced users only (not in UI) |
+| **AsusMuxDgpu** | NVIDIA only, Intel off (MUX switch) | Worst | Best | Docked with external monitor, gaming |
+| **NvidiaNoModeset** | NVIDIA without KMS (X11 compat) | N/A | N/A | Troubleshooting only (not in UI) |
+
+**Note**: G14 uses "AsusMuxDgpu" instead of "Dedicated". Requires reboot to activate.
 
 ### Mode Switching Behavior
 
-| From | To | Requires Logout? | Instant? |
+| From | To | Requires Action | Instant? |
 |------|----|-----------------|---------| 
-| Any | **Integrated** | ❌ No | ✅ Yes (instant) |
-| Integrated | **Hybrid** | ✅ Yes | ❌ No |
-| Integrated | **Dedicated** | ✅ Yes | ❌ No |
-| Hybrid | **Dedicated** | ✅ Yes | ❌ No |
-| Dedicated | **Hybrid** | ✅ Yes | ❌ No |
+| Any | **Integrated** | Logout | ❌ No |
+| Integrated | **Hybrid** | Logout | ❌ No |
+| Any | **AsusMuxDgpu** | **Reboot** | ❌ No |
+| AsusMuxDgpu | **Any** | **Reboot** | ❌ No |
+| Hybrid | **Integrated** | Logout | ❌ No |
 
-**Key Insight**: Only switching TO Integrated is instant. All other switches require logout/login.
+**Key Insight**: AsusMuxDgpu uses MUX switch (hardware), requires **reboot**. All other switches require logout.
 
 ---
 
@@ -246,12 +248,19 @@ Singleton {
         return str.charAt(0).toUpperCase() + str.slice(1)
     }
 
+    // Check if mode requires reboot
+    function requiresReboot(fromMode, toMode) {
+        // AsusMuxDgpu uses MUX switch, requires reboot
+        if (toMode === "asusmuxdgpu" || fromMode === "asusmuxdgpu") {
+            return true
+        }
+        return false
+    }
+    
     // Check if mode requires logout
     function requiresLogout(fromMode, toMode) {
-        if (toMode === "integrated") {
-            return false  // Switching to integrated is instant
-        }
-        return true  // All other switches require logout
+        // All switches require at least logout
+        return true
     }
 
     // Get user-friendly mode name
@@ -259,8 +268,8 @@ Singleton {
         switch(mode) {
             case "integrated": return "Integrated"
             case "hybrid": return "Hybrid"
-            case "dedicated": return "Dedicated"
-            case "vfio": return "VFIO"
+            case "asusmuxdgpu": return "Dedicated"
+            case "nvidianomodes": return "NoModeset"
             default: return "Unknown"
         }
     }
@@ -280,7 +289,7 @@ Singleton {
         switch(mode) {
             case "integrated": return "Intel only - Best battery"
             case "hybrid": return "Balanced - Good battery + GPU"
-            case "dedicated": return "NVIDIA only - Best performance"
+            case "asusmuxdgpu": return "NVIDIA only - Best performance (reboot required)"
             default: return ""
         }
     }
@@ -361,7 +370,7 @@ Rectangle {
             Layout.fillWidth: true
 
             Repeater {
-                model: ["integrated", "hybrid", "dedicated"]
+                model: ["integrated", "hybrid", "asusmuxdgpu"]
 
                 Button {
                     id: modeButton
@@ -584,9 +593,9 @@ property Gpu gpu: Gpu {}
 supergfxctl -g
 
 # Test mode switching (from terminal)
-supergfxctl -m Integrated  # Should be instant
-supergfxctl -m Hybrid      # Requires logout
-supergfxctl -m Dedicated   # Requires logout
+supergfxctl -m Integrated   # Requires logout
+supergfxctl -m Hybrid       # Requires logout
+supergfxctl -m AsusMuxDgpu  # Requires REBOOT (MUX switch)
 
 # Check service status
 systemctl status supergfxd.service
