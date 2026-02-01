@@ -20,6 +20,29 @@ Widget na barra superior com botões de atalhos configuráveis (ex: vaults do Ob
 - Painel no Control Center para gerenciar shortcuts
 - Persistência em `shell.json`
 
+### Arquitetura
+
+```mermaid
+flowchart TB
+    subgraph Config [Config]
+        ShortcutsConfig[ShortcutsConfig]
+        ShortcutsList[shortcuts list]
+        ShortcutsConfig --> ShortcutsList
+    end
+    
+    subgraph Bar [Bar]
+        ShortcutsWidget[Shortcuts.qml]
+    end
+    
+    subgraph ControlCenter [Control Center]
+        ShortcutsPane[ShortcutsPane]
+    end
+    
+    Config --> ShortcutsWidget
+    Config --> ShortcutsPane
+    ShortcutsPane -->|edit| Config
+```
+
 ---
 
 ## 🎨 Visualização

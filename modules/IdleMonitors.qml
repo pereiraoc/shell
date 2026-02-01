@@ -6,12 +6,23 @@ import qs.services
 import Caelestia.Internal
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Services.UPower
 
 Scope {
     id: root
 
     required property Lock lock
     readonly property bool enabled: !Config.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying)
+    readonly property var activeTimeouts: {
+        const ac = Config.general.idle.timeoutsOnAC
+        const bat = Config.general.idle.timeoutsOnBattery
+        const legacy = Config.general.idle.timeouts
+        if (ac && ac.length > 0 && bat && bat.length > 0)
+            return UPower.onBattery ? bat : ac
+        if (legacy && legacy.length > 0)
+            return legacy
+        return (bat && bat.length > 0) ? bat : (ac && ac.length > 0 ? ac : [])
+    }
 
     function handleIdleAction(action: var): void {
         if (!action)
@@ -37,7 +48,7 @@ Scope {
     }
 
     Variants {
-        model: Config.general.idle.timeouts
+        model: root.activeTimeouts
 
         IdleMonitor {
             required property var modelData

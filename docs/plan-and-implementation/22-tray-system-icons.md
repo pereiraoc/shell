@@ -55,6 +55,35 @@ qdbus org.kde.StatusNotifierWatcher /StatusNotifierWatcher \
 **snixembed** = SNI + XEmbed  
 Bridge que converte sinais XEmbed → SNI
 
+### Arquitetura do Fluxo
+
+```mermaid
+flowchart LR
+    subgraph XEmbed [Apps XEmbed]
+        Steam[Steam]
+        Spotify[Spotify]
+        Discord[Discord]
+    end
+    
+    subgraph Bridge [Bridge]
+        Snixembed[snixembed]
+    end
+    
+    subgraph SNI [SNI]
+        Watcher[StatusNotifierWatcher]
+    end
+    
+    subgraph Tray [Caelestia]
+        Bar[Tray Bar]
+    end
+    
+    Steam --> Snixembed
+    Spotify --> Snixembed
+    Discord --> Snixembed
+    Snixembed --> Watcher
+    Watcher --> Bar
+```
+
 ---
 
 ## 🛠️ Solução Proposta

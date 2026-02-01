@@ -1,9 +1,9 @@
 # 🗂️ Workspace Visual Grouping - Agrupar Janelas na Barra
 
 **ID**: 24  
-**Status**: ⏱️ Planejado  
+**Status**: ✅ Implementado  
 **Complexidade**: 🟡 Média  
-**Tempo Estimado**: 3-4h
+**Tempo Estimado**: 3-4h (concluído)
 
 ---
 
@@ -63,6 +63,39 @@ Agora fica claro: Firefox/Terminal/VSCode estão no WS 1
 - ✅ Espaçamento maior entre workspaces
 - ✅ Remover ícone pacman (󰮯)
 - ✅ Highlight do workspace ativo
+
+### Arquitetura
+
+```mermaid
+flowchart TB
+    subgraph Bar [Bar]
+        Workspaces[Workspaces]
+    end
+    
+    subgraph Workspace [Workspace.qml]
+        StyledRect[StyledRect container]
+        WindowButtons[WindowButton Repeater]
+        StyledRect --> WindowButtons
+    end
+    
+    subgraph Config [Config]
+        BarConfig[BarConfig]
+    end
+    
+    Workspaces --> Workspace
+    BarConfig -->|remove pacman icon| Workspace
+    StyledRect -->|border per workspace| WindowButtons
+```
+
+### Fluxo Visual
+
+```mermaid
+flowchart LR
+    Before[Janelas misturadas]
+    After[Container por workspace]
+    
+    Before -->|StyledRect + border| After
+```
 
 ---
 

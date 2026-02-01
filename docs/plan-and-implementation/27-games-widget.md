@@ -20,6 +20,39 @@ Widget na barra com jogos Steam favoritos, permitindo launch rápido.
 - Painel no Control Center para selecionar favoritos
 - Ícones via Steam CDN
 
+### Arquitetura
+
+```mermaid
+flowchart TB
+    subgraph Steam [Steam]
+        AcfFiles[.acf files]
+    end
+    
+    subgraph Script [Script]
+        ListScript[list-steam-games.sh]
+    end
+    
+    subgraph Config [Config]
+        GamesConfig[GamesConfig]
+        Favorites[favoriteGames]
+        GamesConfig --> Favorites
+    end
+    
+    subgraph Bar [Bar]
+        GamesWidget[Games.qml]
+    end
+    
+    subgraph ControlCenter [Control Center]
+        GamesPane[GamesPane]
+    end
+    
+    AcfFiles --> ListScript
+    ListScript --> GamesPane
+    GamesPane -->|select favorites| Config
+    Config --> GamesWidget
+    GamesWidget -->|launch| Steam
+```
+
 ---
 
 ## 🔍 Listar Jogos Steam

@@ -39,40 +39,72 @@ Adicionar seletor visual de método de autenticação no lock screen, permitindo
 
 ### Estrutura de Componentes
 
-```
-modules/lock/
-├── Lock.qml                    # Entry point (inalterado)
-├── LockSurface.qml            # Surface Wayland (inalterado)
-├── Pam.qml                    # PAM integration ✨ MODIFICADO
-├── Content.qml                # Layout principal (inalterado)
-├── Center.qml                 # Centro da tela ✨ MODIFICADO
-├── InputField.qml             # Input de senha (inalterado)
-└── AuthMethodSelector.qml     # ✨ NOVO - Seletor de métodos
+```mermaid
+flowchart TB
+    subgraph Lock [modules/lock]
+        LockQml[Lock.qml]
+        LockSurface[LockSurface.qml]
+        Pam[Pam.qml]
+        Content[Content.qml]
+        Center[Center.qml]
+        InputField[InputField.qml]
+        AuthSelector[AuthMethodSelector.qml]
+    end
+    
+    LockQml --> LockSurface
+    LockSurface --> Content
+    Content --> Center
+    Center --> AuthSelector
+    Center --> InputField
+    Pam --> InputField
 ```
 
 ### Fluxo de Autenticação
 
+```mermaid
+flowchart TB
+    Start[Lock Screen Appears]
+    Selector[AuthMethodSelector]
+    Face[Face Mode - Howdy/PAM]
+    PIN[PIN Mode - Numeric]
+    Password[Password Mode - Full text]
+    PAM[PAM Authentication]
+    Success[Success - Unlock]
+    Fail[Fail - Increment counter]
+    Disable[N Fails - Disable method]
+    Reenable[Unlock - Re-enable all]
+    
+    Start --> Selector
+    Selector --> Face
+    Selector --> PIN
+    Selector --> Password
+    Face --> PAM
+    PIN --> PAM
+    Password --> PAM
+    PAM --> Success
+    PAM --> Fail
+    Fail --> Disable
+    Success --> Reenable
 ```
-Lock Screen Appears
-       ↓
-AuthMethodSelector (default: Face)
-  [Face] [PIN] [Password]
-       ↓
-   User Selects Method
-       ↓
-┌──────────────┬─────────────┬──────────────┐
-│  Face Mode   │  PIN Mode   │ Password Mode│
-│  (Howdy/PAM) │ (Numeric)   │  (Full text) │
-└──────────────┴─────────────┴──────────────┘
-       ↓
-   PAM Authentication
-       ↓
-┌──────────────────────────────┐
-│ Success → Unlock             │
-│ Fail → Increment counter     │
-│ N Fails → Disable method     │
-│ Unlock → Re-enable all       │
-└──────────────────────────────┘
+
+### Fluxo de Desabilitação por Falhas
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant AuthSelector
+    participant Pam
+    participant Config
+
+    User->>AuthSelector: Seleciona Face
+    User->>Pam: Tenta unlock (falha)
+    Pam->>AuthSelector: Incrementa contador Face
+    Note over AuthSelector: Face falha 5x
+    AuthSelector->>AuthSelector: Desabilita botão Face
+    User->>AuthSelector: Seleciona PIN
+    User->>Pam: Unlock via PIN (sucesso)
+    Pam->>AuthSelector: Reativa todos os métodos
+    AuthSelector->>Config: Persiste estado
 ```
 
 ---

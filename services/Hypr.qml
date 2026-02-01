@@ -35,6 +35,16 @@ Singleton {
 
     property bool hadKeyboard
 
+    Timer {
+        id: postWakeRefresh
+        interval: 3500
+        repeat: false
+        onTriggered: () => {
+            Hyprland.refreshMonitors();
+            Hyprland.refreshWorkspaces();
+        }
+    }
+
     signal configReloaded
 
     function dispatch(request: string): void {
@@ -89,6 +99,7 @@ Singleton {
             if (n === "configreloaded") {
                 root.configReloaded();
                 root.reloadDynamicConfs();
+                postWakeRefresh.restart();
             } else if (["workspace", "moveworkspace", "activespecial", "focusedmon"].includes(n)) {
                 Hyprland.refreshWorkspaces();
                 Hyprland.refreshMonitors();
@@ -97,6 +108,7 @@ Singleton {
                 Hyprland.refreshWorkspaces();
             } else if (n.includes("mon")) {
                 Hyprland.refreshMonitors();
+                postWakeRefresh.restart();
             } else if (n.includes("workspace")) {
                 Hyprland.refreshWorkspaces();
             } else if (n.includes("window") || n.includes("group") || ["pin", "fullscreen", "changefloatingmode", "minimize"].includes(n)) {

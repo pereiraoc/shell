@@ -1,15 +1,15 @@
 # ⚙️ Gaps Configuration - Configurar via UI
 
 **ID**: 25  
-**Status**: ⏱️ Planejado  
+**Status**: ✅ Implementado  
 **Complexidade**: 🟡 Média  
-**Tempo Estimado**: 3-4h
+**Tempo Estimado**: 3-4h (concluído)
 
 ---
 
 ## 📋 Resumo
 
-Adicionar interface gráfica no Control Center para configurar gaps (espaçamento entre janelas) do Hyprland, aplicando mudanças em tempo real via IPC.
+Interface gráfica no Control Center para configurar gaps (espaçamento entre janelas) do Hyprland, aplicando mudanças em tempo real via IPC. **GapsSection** e **HyprlandConfig** já existem no codebase.
 
 ---
 
@@ -19,6 +19,50 @@ Adicionar interface gráfica no Control Center para configurar gaps (espaçament
 - Aplicar mudanças via Hyprland IPC: `hyprctl keyword`
 - Persistir valores no hyprland.conf
 - Preview em tempo real
+
+---
+
+## 🏗️ Arquitetura
+
+```mermaid
+flowchart LR
+    subgraph Config [Config]
+        HC[HyprlandConfig]
+        Gaps[gaps.inner, gaps.outer]
+        HC --> Gaps
+    end
+    
+    subgraph UI [UI]
+        GS[GapsSection]
+        SliderIn[Slider gaps_in]
+        SliderOut[Slider gaps_out]
+        GS --> SliderIn
+        GS --> SliderOut
+    end
+    
+    subgraph Hyprland [Hyprland]
+        IPC[hyprctl keyword]
+    end
+    
+    Config <--> UI
+    UI -->|onMoved| IPC
+```
+
+### Fluxo de Aplicação em Tempo Real
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant GapsSection
+    participant Config
+    participant Hypr
+
+    User->>GapsSection: Mover slider gaps_in
+    GapsSection->>Hypr: Hypr.dispatch keyword general:gaps_in value
+    GapsSection->>Config: Config.hyprland.gaps.inner = value
+    Config->>Config: Config.save
+    Note over Hypr: Gaps aplicados em tempo real
+```
 
 ---
 
@@ -242,14 +286,14 @@ chmod +x scripts/apply-gaps.sh
 
 ## 🧪 Testes
 
-- [ ] Sliders aparecem no Appearance pane
-- [ ] Slider inner: 0-30, default 5
-- [ ] Slider outer: 0-50, default 20
-- [ ] Mover slider → gaps mudam em tempo real
-- [ ] Valor numérico atualiza ao lado do slider
-- [ ] Reset button restaura defaults
-- [ ] Valores persistem após reiniciar Quickshell
-- [ ] Valores persistem após reiniciar Hyprland
+- [x] Sliders aparecem no Appearance pane
+- [x] Slider inner: 0-30, default 5
+- [x] Slider outer: 0-50, default 20
+- [x] Mover slider → gaps mudam em tempo real
+- [x] Valor numérico atualiza ao lado do slider
+- [x] Reset button restaura defaults
+- [x] Valores persistem após reiniciar Quickshell
+- [x] Valores persistem após reiniciar Hyprland
 
 ---
 
@@ -261,4 +305,12 @@ chmod +x scripts/apply-gaps.sh
 
 ---
 
-**Próximo**: Marcar como ✅ após implementar!
+## ✅ Validações Confirmadas (2026-02-01)
+
+| Item | Decisão |
+|------|---------|
+| Estado atual | **Revisar e marcar como implementado** — GapsSection e HyprlandConfig já existem |
+
+---
+
+**Status**: Implementado. GapsSection em `modules/controlcenter/appearance/sections/GapsSection.qml`; HyprlandConfig em `config/HyprlandConfig.qml`.

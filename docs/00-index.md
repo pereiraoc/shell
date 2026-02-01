@@ -14,6 +14,7 @@ docs/
 ├── 99-pendencias.md             # Lista de tarefas (aponta para plan-and-implementation)
 │
 └── plan-and-implementation/     # Planos detalhados e autocontidos
+    ├── 00-sequencia-implementacao.md  # Ordem recomendada de implementação
     ├── 21-lock-screen-auth-selector.md
     ├── 22-tray-system-icons.md
     ├── 23-assets-customization.md
@@ -40,7 +41,8 @@ docs/
 ### Para Implementar uma Feature
 
 1. **[99-pendencias.md](99-pendencias.md)** - Veja a lista de tarefas
-2. **[plan-and-implementation/2X-nome.md](plan-and-implementation/)** - Abra o plano específico
+2. **[00-sequencia-implementacao.md](plan-and-implementation/00-sequencia-implementacao.md)** - Ordem recomendada (dependências e prioridades)
+3. **[plan-and-implementation/2X-nome.md](plan-and-implementation/)** - Abra o plano específico
 3. Siga o plano (é autocontido, tem tudo que precisa)
 4. Ao concluir, atualize **[10-arquitetura.md](10-arquitetura.md)** com visão alto nível
 5. Atualize **[99-pendencias.md](99-pendencias.md)** marcando como concluído

@@ -16,21 +16,18 @@ JsonObject {
     component Idle: JsonObject {
         property bool lockBeforeSleep: true
         property bool inhibitWhenAudio: true
-        property list<var> timeouts: [
-            {
-                timeout: 180,
-                idleAction: "lock"
-            },
-            {
-                timeout: 300,
-                idleAction: "dpms off",
-                returnAction: "dpms on"
-            },
-            {
-                timeout: 600,
-                idleAction: ["systemctl", "suspend-then-hibernate"]
-            }
+        // AC (tomada): lock 10min, sem dpms, sem suspend
+        property list<var> timeoutsOnAC: [
+            { timeout: 600, idleAction: "lock" }
         ]
+        // Bateria: lock 5min, dpms 30min, suspend 1hr
+        property list<var> timeoutsOnBattery: [
+            { timeout: 300, idleAction: "lock" },
+            { timeout: 1800, idleAction: "dpms off", returnAction: "dpms on" },
+            { timeout: 3600, idleAction: ["systemctl", "suspend-then-hibernate"] }
+        ]
+        // Fallback se timeoutsOnAC/timeoutsOnBattery não definidos (compatibilidade)
+        property list<var> timeouts: []
     }
 
     component Battery: JsonObject {

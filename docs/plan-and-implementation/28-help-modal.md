@@ -16,7 +16,8 @@ Modal com lista de atalhos de teclado disponíveis no sistema.
 ## 🎯 Objetivos
 
 - Modal popup com lista categorizada de shortcuts
-- Atalho para abrir: Super+? ou F1
+- Atalho para abrir: Super+F1
+- Atalho para fechar: Super+F1
 - Botão no Control Center ou barra
 
 ---
@@ -51,9 +52,36 @@ Modal com lista de atalhos de teclado disponíveis no sistema.
 
 ---
 
+## 🏗️ Arquitetura
+
+```mermaid
+flowchart LR
+    subgraph Source [Fonte única]
+        MD[keyboard-shortcuts.md]
+    end
+    
+    subgraph Config [Config opcional]
+        HC[HelpConfig.qml]
+    end
+    
+    subgraph UI [UI]
+        HM[HelpModal.qml]
+    end
+    
+    MD -->|parse ou sync| HC
+    HC --> HM
+    MD -.->|alternativa: parse direto| HM
+```
+
+---
+
 ## 📂 Estrutura
 
-### 1. `config/HelpConfig.qml`
+### 1. Fonte única: `keyboard-shortcuts.md`
+
+**Validação (2026-02-01)**: Usar `docs/advanced/keyboard-shortcuts.md` (ou equivalente no caelestia-shell-pereiraoc-patch) como **fonte única de verdade** para o conteúdo dos atalhos. Help Modal (28) e Help Dashboard Tab (36) devem ler desse arquivo ou de estrutura derivada dele.
+
+### 2. `config/HelpConfig.qml` (opcional — ou parse do .md)
 
 \`\`\`qml
 component HelpConfig: JsonObject {
@@ -85,7 +113,7 @@ component HelpConfig: JsonObject {
 }
 \`\`\`
 
-### 2. `modules/help/HelpModal.qml`
+### 3. `modules/help/HelpModal.qml`
 
 \`\`\`qml
 Popup {
@@ -147,7 +175,7 @@ Popup {
 }
 \`\`\`
 
-### 3. Shortcut para Abrir
+### 4. Shortcut para Abrir
 
 \`\`\`qml
 // Em modules/Shortcuts.qml ou shell.qml
@@ -186,6 +214,14 @@ HelpModal {
 - [ ] Shortcuts listados corretamente
 - [ ] Scroll funciona
 - [ ] Fechar com X ou Esc
+
+---
+
+## ✅ Validações Confirmadas (2026-02-01)
+
+| Item | Decisão |
+|------|---------|
+| Fonte de shortcuts | **keyboard-shortcuts.md** (arquivo em docs) como fonte única |
 
 ---
 

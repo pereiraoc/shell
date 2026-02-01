@@ -1,9 +1,9 @@
 # 🎨 Assets Customization - Trocar GIFs
 
 **ID**: 23  
-**Status**: ✅ GIFs Removidos / ⏱️ Config Pendente  
+**Status**: ⏱️ Quase feito — falta remover GIFs / Config UI pendente  
 **Complexidade**: 🟢 Baixa  
-**Tempo Estimado**: 30min (config UI)
+**Tempo Estimado**: 30min (remover GIFs) + 30min (config UI, opcional)
 
 ---
 
@@ -15,9 +15,42 @@
 
 ## 🎯 Status Atual
 
-- ✅ `kurukuru.gif` foi **removido**
-- ✅ `bongocat.gif` foi **removido**
+- ⏱️ `kurukuru.gif` e `bongocat.gif` ainda em `assets/` — **falta remover**
 - ⏱️ (Opcional) Adicionar config UI para assets customizáveis
+
+---
+
+## 🏗️ Arquitetura
+
+```mermaid
+flowchart TB
+    subgraph Config [Config]
+        UserPaths[UserPaths.qml]
+        SessionGif[sessionGif]
+        MediaGif[mediaGif]
+        UserPaths --> SessionGif
+        UserPaths --> MediaGif
+    end
+    
+    subgraph UI [UI]
+        Content[Content.qml - Session]
+        Media[Media.qml - Dashboard]
+    end
+    
+    subgraph Assets [Assets]
+        SessionAsset[assets/session.gif]
+        MediaAsset[assets/media.gif]
+    end
+    
+    Config --> Content
+    Config --> Media
+    SessionGif --> SessionAsset
+    MediaGif --> MediaAsset
+    Content -->|AnimatedImage| SessionAsset
+    Media -->|AnimatedImage| MediaAsset
+```
+
+**Status atual**: GIFs kurukuru e bongocat foram removidos. Config UI para customização pendente.
 
 ---
 

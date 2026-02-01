@@ -20,6 +20,47 @@ Permitir edição de ícones e nomes de aplicações no launcher, salvando overr
 - Picker de ícones
 - Persistência automática
 
+### Arquitetura
+
+```mermaid
+flowchart TB
+    subgraph System [System]
+        UsrApps[/usr/share/applications]
+    end
+    
+    subgraph User [User Overrides]
+        LocalApps[~/.local/share/applications]
+    end
+    
+    subgraph UI [UI]
+        LauncherPane[LauncherPane]
+        IconPicker[IconPickerDialog]
+        LauncherPane --> IconPicker
+    end
+    
+    UsrApps -->|read| LauncherPane
+    LauncherPane -->|write override| LocalApps
+    IconPicker -->|save icon| LocalApps
+```
+
+### Fluxo de Edição
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant LauncherPane
+    participant IconPicker
+    participant FS as .desktop file
+
+    User->>LauncherPane: Seleciona app
+    User->>LauncherPane: Edita nome
+    LauncherPane->>FS: Cria override em ~/.local
+    User->>LauncherPane: Clica Change Icon
+    LauncherPane->>IconPicker: Abre picker
+    User->>IconPicker: Escolhe ícone
+    IconPicker->>FS: Atualiza Icon= no .desktop
+```
+
 ---
 
 ## 🔍 Desktop Entries

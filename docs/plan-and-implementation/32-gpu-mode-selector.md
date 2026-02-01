@@ -70,6 +70,47 @@ Integrate supergfxctl GPU mode switching into Caelestia Shell Control Center, pr
 
 **Key Insight**: AsusMuxDgpu uses MUX switch (hardware), requires **reboot**. All other switches require logout.
 
+### Arquitetura de Componentes
+
+```mermaid
+flowchart TB
+    subgraph Taskbar [Taskbar Pane]
+        GMS[GpuModeSelector]
+    end
+    
+    subgraph Service [Service]
+        GpuSvc[GpuModeService]
+    end
+    
+    subgraph External [External]
+        Supergfxctl[supergfxctl CLI]
+    end
+    
+    GMS --> GpuSvc
+    GpuSvc -->|query| Supergfxctl
+    GpuSvc -->|switch| Supergfxctl
+```
+
+### Fluxo de Troca de Modo
+
+```mermaid
+sequenceDiagram
+    participant UI as GpuModeSelector
+    participant Svc as GpuModeService
+    participant Proc as Process
+
+    UI->>Svc: switchMode(targetMode)
+    Svc->>Svc: requiresLogout?
+    alt Requer logout
+        Svc->>UI: show logout dialog
+        UI->>Svc: user confirms
+    end
+    Svc->>Proc: supergfxctl -m targetMode
+    Proc-->>Svc: exit 0
+    Svc->>UI: modeChanged
+    Svc->>UI: notification
+```
+
 ---
 
 ## 📦 Files to Create/Modify
@@ -78,14 +119,14 @@ Integrate supergfxctl GPU mode switching into Caelestia Shell Control Center, pr
 
 | File | Purpose | Lines (est.) |
 |------|---------|--------------|
-| `modules/control-center/GpuModeSelector.qml` | Main UI component | ~200 |
+| `modules/controlcenter/taskbar/GpuModeSelector.qml` | Main UI component | ~200 |
 | `services/GpuModeService.qml` | Wraps supergfxctl commands | ~150 |
 
 ### Files to Modify
 
 | File | Changes | Complexity |
 |------|---------|-----------|
-| `modules/control-center/SystemSection.qml` | Add GpuModeSelector below BatteryProfile | +10 lines | Low |
+| `modules/controlcenter/taskbar/TaskbarPane.qml` | Add GpuModeSelector (junto a Status Icons) | +15 lines | Low |
 | `config/ControlCenterConfig.qml` | Add `gpu` section with default mode | +8 lines | Low |
 | `docs/10-arquitetura.md` | Document new component | +30 lines | Low |
 | `docs/99-pendencias.md` | Mark task 32 as completed | +10 lines | Low |
@@ -96,15 +137,13 @@ Integrate supergfxctl GPU mode switching into Caelestia Shell Control Center, pr
 
 ### Visual Layout
 
-Insert in Control Center → System section, below Battery/Power Profile:
+**Placement (validado 2026-02-01)**: Dentro do pane **taskbar** do Control Center (junto a Status Icons, Workspaces, etc.), em nova SectionContainer "GPU Mode".
 
 ```
 ┌─────────────────────────────────────────┐
-│  System                                 │
+│  Taskbar                                │
 ├─────────────────────────────────────────┤
-│                                         │
-│  🔋 Power Profile                       │
-│  [ Balanced ]  [ Performance ]  [Save]  │
+│  Status Icons | Workspaces | ...        │
 │                                         │
 │  🎮 GPU Mode                            │
 │  [ Integrated ]  [ Hybrid ]  [Dedicated]│
@@ -302,7 +341,7 @@ Singleton {
 
 ### Step 2: Create GpuModeSelector Component
 
-**File**: `modules/control-center/GpuModeSelector.qml`
+**File**: `modules/controlcenter/taskbar/GpuModeSelector.qml`
 
 ```qml
 import QtQuick
@@ -522,27 +561,28 @@ Rectangle {
 
 ---
 
-### Step 3: Integrate into Control Center
+### Step 3: Integrate into Taskbar Pane
 
-**File**: `modules/control-center/SystemSection.qml`
+**File**: `modules/controlcenter/taskbar/TaskbarPane.qml`
 
-Find the location where BatteryProfile/PowerProfile is added, and add after it:
+Add GpuModeSelector em nova SectionContainer, após Status Icons ou em coluna apropriada (ex: rightColumnLayout ou nova seção):
 
 ```qml
-// Existing code (example):
-BatteryProfile {
-    id: batteryProfile
-    // ...
-}
-
-// ADD THIS:
-GpuModeSelector {
-    id: gpuModeSelector
+// ADD: SectionContainer for GPU Mode (junto a Status Icons / Workspaces)
+SectionContainer {
     Layout.fillWidth: true
-    Layout.topMargin: Appearance.spacing.normal
-    
-    // Only show if supergfxctl is available
-    visible: gpuModeSelector.available
+    alignTop: true
+
+    StyledText {
+        text: qsTr("GPU Mode")
+        font.pointSize: Appearance.font.size.normal
+    }
+
+    GpuModeSelector {
+        id: gpuModeSelector
+        Layout.fillWidth: true
+        visible: gpuModeSelector.available
+    }
 }
 ```
 
@@ -655,8 +695,8 @@ Add section:
 
 #### Componente
 ```
-Control Center → System Section
-├── BatteryProfile (existente)
+Control Center → Taskbar Pane
+├── Status Icons, Workspaces, etc. (existentes)
 └── GpuModeSelector (novo)
     ├── GpuModeService (backend)
     └── Mode buttons (UI)
@@ -670,13 +710,13 @@ Control Center → System Section
 
 #### Arquivos
 - `services/GpuModeService.qml`: Singleton service
-- `modules/control-center/GpuModeSelector.qml`: UI component
+- `modules/controlcenter/taskbar/GpuModeSelector.qml`: UI component
 - `config/ControlCenterConfig.qml`: Config section
 ```
 
 ### Update: `99-pendencias.md`
 
-Mark task 32 as completed:
+**Ao concluir** a implementação, marcar task 32 como concluída usando este template:
 
 ```markdown
 ### 32. GPU Mode Selector (supergfxctl)
@@ -696,14 +736,14 @@ Mark task 32 as completed:
 
 ## 🎯 Success Criteria
 
-- [x] GpuModeService queries current mode correctly
-- [x] GpuModeSelector displays current mode
-- [x] Buttons switch modes via supergfxctl
-- [x] Logout warning dialog appears when necessary
-- [x] Notifications shown on success/failure
-- [x] Graceful degradation when supergfxctl not available
-- [x] Consistent with Caelestia design language
-- [x] Documentation updated
+- [ ] GpuModeService queries current mode correctly
+- [ ] GpuModeSelector displays current mode
+- [ ] Buttons switch modes via supergfxctl
+- [ ] Logout warning dialog appears when necessary
+- [ ] Notifications shown on success/failure
+- [ ] Graceful degradation when supergfxctl not available
+- [ ] Consistent with Caelestia design language
+- [ ] Documentation updated
 
 ---
 
@@ -736,6 +776,17 @@ Since this is new files + minimal modifications to existing files, merge conflic
 - [HDMI Lag Investigation](../../caelestia-arch-setup/development/investigation/hdmi-lag-investigation/00-summary.md)
 - [Solutions Research](../../caelestia-arch-setup/development/investigation/hdmi-lag-investigation/02-stable-solutions-research.md)
 - [Implementation Plan](../../caelestia-arch-setup/development/investigation/hdmi-lag-investigation/04-implementation-plan.md)
+
+---
+
+---
+
+## ✅ Validações Confirmadas (2026-02-01)
+
+| Item | Decisão |
+|------|---------|
+| Onde inserir GpuModeSelector | Dentro do pane **taskbar** (junto a Battery/status toggles) |
+| Paths | Padronizar para `controlcenter` (sem hífen) |
 
 ---
 
