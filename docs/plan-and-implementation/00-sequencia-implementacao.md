@@ -15,7 +15,6 @@ flowchart TB
     end
     
     subgraph Fase1 [Fase 1 - Quick Wins]
-        P22[22 System Tray]
         P24[24 Workspace Grouping]
         P32[32 GPU Mode Selector]
     end
@@ -45,6 +44,10 @@ flowchart TB
         P31[31 Theme Customization]
     end
     
+    subgraph Futuro [Futuro - Avaliar por Último]
+        P22[22 System Tray]
+    end
+    
     CUtils --> P29
     CUtils --> P31
     P29 --> P37
@@ -61,11 +64,10 @@ flowchart TB
 
 | Ordem | Plano | Tempo | Motivo |
 |-------|-------|-------|--------|
-| 1 | **22** System Tray | 1-2h | Snixembed (config externa); impacto imediato em usabilidade |
-| 2 | ~~**24** Workspace Visual Grouping~~ | ~~3-4h~~ | ✅ Implementado |
-| 3 | **32** GPU Mode Selector | 6-8h | Resolve HDMI lag; prioridade alta do usuário |
+| 1 | ~~**24** Workspace Visual Grouping~~ | ~~3-4h~~ | ✅ Implementado |
+| 2 | **32** GPU Mode Selector | 6-8h | Resolve HDMI lag; prioridade alta do usuário |
 
-**Total Fase 1**: ~10-14h
+**Total Fase 1**: ~6-8h
 
 ---
 
@@ -124,24 +126,24 @@ flowchart TB
 
 | # | Plano | Fase | Tempo est. |
 |---|-------|------|-------------|
-| 1 | 22 System Tray | 1 | 1-2h |
-| 2 | ~~24 Workspace Grouping~~ | 1 | ~~3-4h~~ ✅ |
-| 3 | 32 GPU Mode Selector | 1 | 6-8h |
-| 4 | 29 Configuration | 2 | 4-6h |
-| 5 | 28 Help Modal | 2 | 2-3h |
-| 6 | 36 Help Dashboard Tab | 2 | 3-4h |
-| 7 | 35 Face Reading Retry | 3 | 2-4h |
-| 8 | 26 Shortcuts Widget | 3 | 6-8h |
-| 9 | 27 Games Widget | 3 | 8-10h |
-| 10 | Investigação 34 | 4 | 2-4h |
-| 11 | 34 Notification Manager | 4 | 12-16h |
-| 12 | Investigação 37 | 4 | 2-4h |
-| 13 | 37 Software Manager | 4 | 15-23h |
-| 14 | 30 Launcher Customization | 5 | 6-8h |
-| 15 | 33 Weather Multi-Locations | 5 | 6-8h |
-| 16 | 31 Theme Customization | 5 | 10-15h |
+| 1 | ~~24 Workspace Grouping~~ | 1 | ~~3-4h~~ ✅ |
+| 2 | ~~32 GPU Mode Selector~~ | 1 | ~~6-8h~~ ✅ |
+| 3 | 29 Configuration | 2 | 4-6h |
+| 4 | 28 Help Modal | 2 | 2-3h |
+| 5 | 36 Help Dashboard Tab | 2 | 3-4h |
+| 6 | 35 Face Reading Retry | 3 | 2-4h |
+| 7 | 26 Shortcuts Widget | 3 | 6-8h |
+| 8 | 27 Games Widget | 3 | 8-10h |
+| 9 | Investigação 34 | 4 | 2-4h |
+| 10 | 34 Notification Manager | 4 | 12-16h |
+| 11 | Investigação 37 | 4 | 2-4h |
+| 12 | 37 Software Manager | 4 | 15-23h |
+| 13 | 30 Launcher Customization | 5 | 6-8h |
+| 14 | 33 Weather Multi-Locations | 5 | 6-8h |
+| 15 | 31 Theme Customization | 5 | 10-15h |
+| 17 | **22 System Tray** (avaliar por último) | Futuro | A definir |
 
-**Total estimado**: ~88-127h
+**Total estimado**: ~88-127h (+ 22 no futuro)
 
 ---
 
@@ -164,3 +166,4 @@ flowchart TB
 - **Antecipar 35**: Face Reading Retry pode subir para Fase 2 (complementa Lock Screen)
 - **Adiar 31**: Theme Customization é complexo; pode ficar para v0.3.0+
 - **Priorizar 32**: Se HDMI lag for crítico, 32 pode ser o primeiro da Fase 1
+- **22 System Tray**: Feature complexa de implementar; avaliar por último no futuro

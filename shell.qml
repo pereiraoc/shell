@@ -8,7 +8,9 @@ import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
 import qs.config
+import qs.services
 import Quickshell
+import Quickshell.Hyprland
 import QtQuick
 
 ShellRoot {
@@ -23,6 +25,45 @@ ShellRoot {
     BatteryMonitor {}
     IdleMonitors {
         lock: lock
+    }
+
+    // HDMI hotplug workaround - force complete refresh when screens change
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            console.log("[Hotplug] Screens changed, scheduling complete refresh");
+            hotplugRefresh.restart();
+        }
+    }
+
+    Timer {
+        id: hotplugRefresh
+        interval: 500
+        repeat: false
+        onTriggered: {
+            console.log("[Hotplug] Refreshing Hyprland state");
+            Hyprland.refreshMonitors();
+            Hyprland.refreshWorkspaces();
+            
+            // Clear and rebuild Visibilities maps to fix stale monitor references
+            console.log("[Hotplug] Clearing Visibilities maps");
+            Visibilities.screens.clear();
+            Visibilities.bars.clear();
+            
+            // Second timer to let Variants recreate instances
+            hotplugRefresh2.restart();
+        }
+    }
+    
+    Timer {
+        id: hotplugRefresh2
+        interval: 200
+        repeat: false
+        onTriggered: {
+            console.log("[Hotplug] Phase 2 - triggering visibility reload via focusedmon");
+            // Dispatch a focus event to trigger bindings refresh
+            Hyprland.dispatch("focusmonitor eDP-1");
+        }
     }
 
     // Apply persisted Hyprland settings on startup

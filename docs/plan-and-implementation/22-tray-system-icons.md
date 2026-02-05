@@ -1,9 +1,10 @@
 # 🔔 System Tray - Corrigir Ícones (Steam/Spotify)
 
 **ID**: 22  
-**Status**: ⏱️ Planejado  
-**Complexidade**: 🟢 Baixa  
-**Tempo Estimado**: 1-2h
+**Status**: ⏳ Postergado — avaliar por último no futuro  
+**Data**: 2026-02-01  
+**Complexidade**: 🔴 Alta (feature cancerígena de implementar)  
+**Tempo Estimado**: A definir
 
 ---
 
@@ -452,13 +453,13 @@ Atualizar `docs/20-troubleshooting.md` e `README.md`
 
 ## ✅ Checklist de Conclusão
 
-- [ ] snixembed instalado
-- [ ] Adicionado ao autostart do Hyprland
-- [ ] Testado com Steam
-- [ ] Testado com Spotify
-- [ ] Testado com Discord
-- [ ] Documentação atualizada
-- [ ] Adicionado ao script de instalação (caelestia-arch-setup)
+- [x] snixembed instalado (via stage2/20-ui-caelestia-firefox.sh)
+- [x] Adicionado ao autostart do Hyprland (exec-once = snixembed)
+- [ ] Testado com Steam (validação manual pelo usuário)
+- [ ] Testado com Spotify (validação manual pelo usuário)
+- [ ] Testado com Discord (validação manual pelo usuário)
+- [x] Documentação atualizada (docs/07-troubleshooting.md)
+- [x] Adicionado ao script de instalação (caelestia-arch-setup)
 
 ---
 
@@ -478,4 +479,72 @@ Atualizar `docs/20-troubleshooting.md` e `README.md`
 
 ---
 
-**Próximo**: Após testar, marcar como ✅ no `99-pendencias.md`!
+---
+
+## ✅ Notas de Implementação (2026-02-01)
+
+### Revisão pós-investigação: snixembed removido
+
+**Investigação** (findings abaixo):
+- **Spotify** usa SNI nativamente no Wayland — funcionava antes sem snixembed; snixembed assumia StatusNotifierWatcher antes do Quickshell e quebrava o Spotify.
+- **Steam** está com tray desativado (`+open_steam_url 0`) para evitar crashes do Quickshell.
+- **snixembed** não é usado por nenhuma outra parte da arquitetura — apenas para tray (XEmbed→SNI).
+
+**Decisão**: Remover snixembed. Não é necessário para este setup (Spotify SNI nativo, Steam tray desativado) e estava interferindo.
+
+**Implementado**:
+1. **Removido** snixembed-git do `stage2/20-ui-caelestia-firefox.sh`
+2. **Removido** `exec-once = snixembed` do template hyprland.conf
+3. **Documentação** atualizada em `docs/07-troubleshooting.md` com arquitetura correta e solução (Quickshell como watcher)
+
+**Para instalações existentes**: Remover `exec-once = snixembed` do hyprland.conf e fazer logout/login.
+
+**Se snixembed for necessário no futuro** (apps XEmbed): usar `exec-once = sleep 5 && snixembed` para Quickshell iniciar primeiro. Janela de 5s após login é tradeoff aceitável.
+
+---
+
+## Findings / Troubleshooting (2026-02-01)
+
+*Findings referentes a erros descobertos durante investigação — para posteridade.*
+
+### Achados da investigação
+
+**Tray no código (caelestia-shell-pereiraoc-patch)**:
+- **Tray.qml** e **TrayItem.qml** existem e são idênticos ao Caelestia oficial
+- **BarConfig.qml**: tray está `enabled: true` nas entries
+- **Tray.qml** usa `SystemTray.items` (Quickshell.Services.SystemTray)
+- Nenhuma remoção ou desabilitação do tray foi encontrada no patch
+
+**Fluxo SNI (StatusNotifierItem)**:
+1. **Quickshell** registra `org.kde.StatusNotifierWatcher` no D-Bus (watcher.cpp)
+2. **snixembed** converte XEmbed→SNI e chama `RegisterStatusNotifierItem` no watcher
+3. **SystemTray** (Quickshell) lê itens do watcher e expõe em `SystemTray.items`
+4. **Tray.qml** exibe `SystemTray.items` via Repeater
+
+**Ordem de startup (crítica)**:
+- **Quickshell** precisa iniciar primeiro para registrar o StatusNotifierWatcher
+- **snixembed** precisa iniciar depois para registrar Steam/Spotify
+- Se `exec-once` estiver na ordem errada ou algum processo travar, o fluxo quebra
+
+### Causa raiz: patch de incubação síncrona (quickshell-patched)
+
+O **patch de incubação síncrona** em `boundcomponent.cpp` e `lazyloader.cpp` bloqueia o event loop durante o startup do QML. Isso impede que os callbacks D-Bus do StatusNotifierHost sejam processados antes do Tray ler o modelo — `SystemTray.items` fica vazio. O patch existe para resolver crashes em incubação QML; reverter reintroduz os crashes.
+
+### Comandos de diagnóstico
+
+```bash
+# Quem possui org.kde.StatusNotifierWatcher?
+qdbus org.kde.StatusNotifierWatcher /StatusNotifierWatcher 2>/dev/null && echo "Watcher ativo" || echo "Watcher inativo"
+
+# Itens registrados no watcher
+busctl --user call org.kde.StatusNotifierWatcher /StatusNotifierWatcher org.freedesktop.DBus.Properties Get ss org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems
+
+# Logs do Quickshell (erros SNI)
+tail -100 /run/user/$(id -u)/quickshell/by-id/*/log.qslog 2>/dev/null | strings | grep -i -E "statusnotifier|sni|tray"
+```
+
+### Referências técnicas
+
+- Plano 22: este documento
+- Quickshell StatusNotifier: `quickshell-patched/src/services/status_notifier/`
+- Caelestia Tray: `modules/bar/components/Tray.qml`, `TrayItem.qml`

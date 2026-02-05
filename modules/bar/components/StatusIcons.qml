@@ -166,67 +166,32 @@ StyledRect {
 
         // Bluetooth section
         WrappedLoader {
-            Layout.preferredHeight: implicitHeight
-
             name: "bluetooth"
             active: Config.bar.status.showBluetooth
 
-            sourceComponent: ColumnLayout {
-                spacing: Appearance.spacing.smaller / 2
-
-                // Bluetooth icon
-                MaterialIcon {
-                    animate: true
-                    text: {
-                        if (!Bluetooth.defaultAdapter?.enabled)
-                            return "bluetooth_disabled";
-                        if (Bluetooth.devices.values.some(d => d.connected))
-                            return "bluetooth_connected";
-                        return "bluetooth";
-                    }
-                    color: root.colour
+            sourceComponent: MaterialIcon {
+                animate: true
+                text: {
+                    if (!Bluetooth.defaultAdapter?.enabled)
+                        return "bluetooth_disabled";
+                    if (Bluetooth.devices.values.some(d => d.connected))
+                        return "bluetooth_connected";
+                    return "bluetooth";
                 }
-
-                // Connected bluetooth devices
-                Repeater {
-                    model: ScriptModel {
-                        values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected)
-                    }
-
-                    MaterialIcon {
-                        id: device
-
-                        required property BluetoothDevice modelData
-
-                        animate: true
-                        text: Icons.getBluetoothIcon(modelData?.icon)
-                        color: root.colour
-                        fill: 1
-
-                        SequentialAnimation on opacity {
-                            running: device.modelData?.state !== BluetoothDeviceState.Connected
-                            alwaysRunToEnd: true
-                            loops: Animation.Infinite
-
-                            Anim {
-                                from: 1
-                                to: 0
-                                duration: Appearance.anim.durations.large
-                                easing.bezierCurve: Appearance.anim.curves.standardAccel
-                            }
-                            Anim {
-                                from: 0
-                                to: 1
-                                duration: Appearance.anim.durations.large
-                                easing.bezierCurve: Appearance.anim.curves.standardDecel
-                            }
-                        }
-                    }
-                }
+                color: root.colour
             }
+        }
 
-            Behavior on Layout.preferredHeight {
-                Anim {}
+        // GPU Mode icon
+        WrappedLoader {
+            name: "gpumode"
+            active: GpuModeService.available
+
+            sourceComponent: MaterialIcon {
+                animate: true
+                text: "memory"
+                color: root.colour
+                fill: 1
             }
         }
 

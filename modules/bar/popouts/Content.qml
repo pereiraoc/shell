@@ -108,6 +108,11 @@ Item {
         }
 
         Popout {
+            name: "gpumode"
+            sourceComponent: GpuMode {}
+        }
+
+        Popout {
             name: "audio"
             sourceComponent: Audio {
                 wrapper: root.wrapper

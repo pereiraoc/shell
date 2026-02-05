@@ -57,13 +57,14 @@
 
 ---
 
+---
+
 ## ⏱️ Pendentes
 
 ### Fase 1: Quick Wins (Rápidas - 1-2h)
 
 | # | Tarefa | Tempo | Plano |
 |---|--------|-------|-------|
-| 22 | System Tray (Steam/Spotify) | 1-2h | [22-tray-system-icons.md](plan-and-implementation/22-tray-system-icons.md) |
 | 23 | Remover GIFs (kurukuru/bongocat) — quase feito | ~30min | [23-assets-customization.md](plan-and-implementation/23-assets-customization.md) |
 | ~~24~~ | ~~Remover ícone pacman + Agrupar workspaces~~ | ~~3-4h~~ | ~~[24-workspace-visual-grouping.md](plan-and-implementation/24-workspace-visual-grouping.md)~~ ✅ |
 
@@ -95,6 +96,14 @@
 | 31 | Tema preto/amarelo customizável | 10-15h | [31-theme-customization.md](plan-and-implementation/31-theme-customization.md) |
 | 32 | GPU Mode Selector (supergfxctl) ⭐ | 6-8h | [32-gpu-mode-selector.md](plan-and-implementation/32-gpu-mode-selector.md) |
 
+### Futuro: Avaliar por Último
+
+| # | Tarefa | Tempo | Plano |
+|---|--------|-------|-------|
+| 22 | System Tray (Steam/Spotify) — **postergado** | A definir | [22-tray-system-icons.md](plan-and-implementation/22-tray-system-icons.md) |
+
+*Feature complexa de implementar; avaliar por último no futuro.*
+
 ---
 
 ## 🎯 Priorização Sugerida
@@ -104,7 +113,6 @@
 2. ✅ Gaps Configuration (25) (feito)
 3. ✅ Workspace Grouping (24) (feito)
 4. **GPU Mode Selector (32) - resolve problema HDMI lag** ⭐
-5. System Tray (22) - afeta usabilidade
 
 ### Média Prioridade
 6. Help Modal (28) - ajuda usuários
@@ -120,6 +128,7 @@
 14. Weather multi-locations (33)
 15. Face Reading Retry (35)
 16. Software Manager (37) - atualizar/remover apps do PC
+17. **System Tray (22) - avaliar por último** (feature complexa)
 
 ---
 
@@ -129,7 +138,7 @@ Para uma ordem de implementação pensada em dependências e prioridades, ver:
 
 **[00-sequencia-implementacao.md](plan-and-implementation/00-sequencia-implementacao.md)**
 
-Resumo: Fase 1 (22, 24, 32) → Fase 2 (29, 28, 36) → Fase 3 (35, 26, 27) → Fase 4 (investigação + 34, 37) → Fase 5 (30, 33, 31).
+Resumo: Fase 1 (23, 32) → Fase 2 (29, 28, 36) → Fase 3 (35, 26, 27) → Fase 4 (investigação + 34, 37) → Fase 5 (30, 33, 31) → Futuro (22).
 
 ---
 
