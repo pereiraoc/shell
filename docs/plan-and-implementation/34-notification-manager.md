@@ -119,13 +119,59 @@ Adicionar pane `{ id: "notifications", label: "notifications", icon: "notificati
 
 ---
 
-## ✅ Validações Confirmadas (2026-02-01)
+## ✅ Validações Confirmadas (2026-02-05)
 
 | Item | Decisão |
 |------|---------|
-| Investigação prévia | **Criar tarefa de investigação** antes de implementar |
+| Histórico | ✅ Já existe! `Notifs.qml` persiste em `${Paths.state}/notifs.json` |
+| Storage | `FileView` + `storage.setText()` (linhas 88-102) |
+| NotificationServer | Quickshell.Services.Notifications (linhas 62-81) |
+| Config list | Usar `list<string>` para blockedApps |
 
-**Passo 0 (obrigatório)**: Investigar estrutura do Quickshell Notifications (NotificationServer, PersistentProperties, storage.setText) antes de implementar. Documentar achados em doc de investigação.
+### 🔬 Investigação Concluída (2026-02-05)
+
+**Estrutura atual do Notifs.qml:**
+
+```qml
+// services/Notifs.qml (339 linhas)
+property list<Notif> list: []
+readonly property list<Notif> notClosed: list.filter(n => !n.closed)
+readonly property list<Notif> popups: list.filter(n => n.popup)
+property alias dnd: props.dnd
+
+// Persistência existente (linhas 36-55):
+Timer {
+    id: saveTimer
+    interval: 1000
+    onTriggered: storage.setText(JSON.stringify(root.notClosed.map(n => ({
+        time: n.time,
+        id: n.id,
+        summary: n.summary,
+        body: n.body,
+        appIcon: n.appIcon,
+        appName: n.appName,
+        // ... mais campos
+    }))))
+}
+
+// FileView para persistência (linhas 88-102):
+FileView {
+    id: storage
+    path: `${Paths.state}/notifs.json`
+    onLoaded: { /* parse JSON */ }
+}
+```
+
+**Achados importantes:**
+1. ✅ Histórico **já existe** — persiste `notClosed` em `notifs.json`
+2. ✅ `appName` disponível para filtro de blockedApps
+3. ✅ `appIcon` disponível para iconOverrides
+4. ⚠️ Histórico atual só persiste `notClosed` (não fechadas) — pode precisar ajuste para histórico completo
+
+**Implementação simplificada:**
+- Para blockedApps: adicionar check em `onNotification` (linha 74)
+- Para iconOverrides: modificar lógica de ícone no delegate
+- Histórico: já funciona, pode expandir para N últimas
 
 ---
 

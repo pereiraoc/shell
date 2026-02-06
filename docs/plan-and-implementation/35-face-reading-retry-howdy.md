@@ -152,3 +152,23 @@ StyledText {
 - **Estado atual**: Pam.qml tem `faceFailedAttempts`, `maxFaceRetries`. Após max, `faceEnabled = false` (desabilita permanentemente).
 - **LockConfig**: `config/LockConfig.qml` — `maxFaceRetries`
 - **Arquitetura**: `docs/10-arquitetura.md` — Face: 5 falhas → disabled
+
+---
+
+## ✅ Validações Confirmadas (2026-02-05)
+
+| Item | Decisão |
+|------|---------|
+| Estado atual | `Pam.qml:22` — `faceEnabled`, `faceFailedAttempts` já existem |
+| Comportamento atual | Linha 217-218: após maxFaceRetries, `faceEnabled = false` (permanente) |
+| Mudança necessária | Trocar `faceEnabled = false` por `faceScanPaused = true` |
+| Referência | `modules/lock/Pam.qml` — linhas 216-218 |
+
+### Código atual a modificar (linha 216-218):
+
+```qml
+root.faceFailedAttempts++;
+if (root.faceFailedAttempts >= Config.lock.auth.maxFaceRetries) {
+    root.faceEnabled = false;  // ← Mudar para faceScanPaused = true
+}
+```

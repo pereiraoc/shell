@@ -185,7 +185,7 @@ StyledRect {
         // GPU Mode icon
         WrappedLoader {
             name: "gpumode"
-            active: GpuModeService.available
+            active: Config.bar.status.showGpuMode && GpuModeService.available
 
             sourceComponent: MaterialIcon {
                 animate: true

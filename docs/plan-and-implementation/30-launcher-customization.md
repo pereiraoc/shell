@@ -198,31 +198,46 @@ Popup {
 
 ### Sistema de Overrides
 
+> **IMPORTANTE**: QML não tem `new File()`. Usar `FileView` do Quickshell.
+
 \`\`\`qml
-// Em LauncherPane.qml ou novo file CustomizationManager.qml
+// Em services/AppCustomization.qml (novo singleton)
+
+pragma Singleton
+import Quickshell
+import Quickshell.Io
+import QtQuick
+import qs.config
 
 QtObject {
-    id: customizationManager
+    id: root
     
-    // Storage file
-    readonly property string overridesFile: 
-        Paths.home + "/.local/share/caelestia/app-overrides.json"
+    readonly property string overridesPath: Paths.data + "/app-overrides.json"
+    property var overrides: ({})
     
-    // Load overrides
-    property var overrides: {
-        var file = new File(overridesFile)
-        if (file.exists()) {
-            return JSON.parse(file.read())
+    // FileView para ler/escrever JSON
+    FileView {
+        id: overridesFile
+        path: Qt.resolvedUrl("file://" + root.overridesPath)
+        
+        onTextChanged: {
+            if (text) {
+                try {
+                    root.overrides = JSON.parse(text)
+                } catch (e) {
+                    console.error("Failed to parse overrides:", e)
+                    root.overrides = {}
+                }
+            }
         }
-        return {}
     }
     
     function getCustomName(appId) {
-        return overrides[appId]?.name || ""
+        return overrides[appId]?.name ?? ""
     }
     
     function getCustomIcon(appId) {
-        return overrides[appId]?.icon || ""
+        return overrides[appId]?.icon ?? ""
     }
     
     function saveCustomName(appId, name) {
@@ -240,18 +255,42 @@ QtObject {
     }
     
     function saveOverrides() {
-        var file = new File(overridesFile)
-        file.write(JSON.stringify(overrides, null, 2))
+        overridesFile.setText(JSON.stringify(overrides, null, 2))
     }
     
-    function createDesktopOverride(appId) {
-        // Copiar .desktop original para ~/.local/share/applications/
-        // Modificar Name e Icon
-        var script = Paths.scriptPath("create-desktop-override.sh")
-        Quickshell.exec([script, appId, 
-                        overrides[appId].name, 
-                        overrides[appId].icon])
+    function removeCustomization(appId) {
+        delete overrides[appId]
+        saveOverrides()
+        // Remover .desktop override
+        removeProcess.command = ["rm", "-f", 
+            Paths.home + "/.local/share/applications/" + appId + ".desktop"]
+        removeProcess.running = true
     }
+    
+    Process {
+        id: removeProcess
+    }
+    
+    // Process para criar override via script
+    property var createProcess: null
+    
+    function createDesktopOverride(appId) {
+        if (createProcess) createProcess.destroy()
+        
+        createProcess = Qt.createQmlObject(\`
+            import Quickshell
+            Process {
+                command: ["bash", Paths.scriptPath("create-desktop-override.sh"),
+                          "\${appId}",
+                          "\${overrides[appId]?.name ?? ''}",
+                          "\${overrides[appId]?.icon ?? ''}"]
+            }
+        \`, root, "createProcess")
+        
+        createProcess.running = true
+    }
+    
+    Component.onCompleted: overridesFile.reload()
 }
 \`\`\`
 
@@ -295,6 +334,17 @@ echo "Override created: \$USER_DIR/\${APP_ID}.desktop"
 - [ ] Launcher mostra nome/ícone customizado
 - [ ] Reset restaura original
 - [ ] Persistência funciona após reiniciar
+
+---
+
+## ✅ Validações Confirmadas (2026-02-05)
+
+| Item | Decisão |
+|------|---------|
+| File I/O | Usar `FileView` + `setText()` (não existe `new File()` em QML) |
+| Process | Usar `Process` + `StdioCollector` para scripts |
+| Referência | `config/Config.qml:442` — padrão FileView |
+| Overrides path | `~/.local/share/caelestia/app-overrides.json` |
 
 ---
 

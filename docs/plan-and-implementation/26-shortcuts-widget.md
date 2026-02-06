@@ -62,25 +62,22 @@ Barra Superior:
 
 ### 1. `config/ShortcutsConfig.qml`
 
+> **Padrão**: Usar `list<var>` com objetos JS (igual a `LauncherConfig.actions`)
+
 \`\`\`qml
 component ShortcutsConfig: JsonObject {
-    component Shortcut: JsonObject {
-        property string name: ""
-        property string icon: "link"
-        property string command: ""
-        property string workingDirectory: ""
-    }
-    
-    property list<Shortcut> shortcuts: [
-        Shortcut {
-            name: "Vault Personal"
-            icon: "folder"
-            command: "obsidian obsidian://open?vault=Personal"
+    property list<var> shortcuts: [
+        {
+            name: "Vault Personal",
+            icon: "folder",
+            command: "obsidian obsidian://open?vault=Personal",
+            workingDirectory: ""
         },
-        Shortcut {
-            name: "Vault Work"
-            icon: "work"
-            command: "obsidian obsidian://open?vault=Work"
+        {
+            name: "Vault Work",
+            icon: "work",
+            command: "obsidian obsidian://open?vault=Work",
+            workingDirectory: ""
         }
     ]
 }
@@ -191,6 +188,16 @@ ColumnLayout {
 - [ ] Editar shortcut existente
 - [ ] Remover shortcut
 - [ ] Persistência funciona
+
+---
+
+## ✅ Validações Confirmadas (2026-02-05)
+
+| Item | Decisão |
+|------|---------|
+| Config list | Usar `list<var>` com objetos JS (padrão do codebase) |
+| Execução | `Quickshell.execDetached()` (confirmado em shell.qml:78) |
+| Referência | `config/LauncherConfig.qml:32` — padrão idêntico para `actions` |
 
 ---
 

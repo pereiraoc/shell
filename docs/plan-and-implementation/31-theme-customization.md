@@ -57,7 +57,7 @@ flowchart LR
     
     subgraph Process [Process]
         Py[generate-m3-palette.py]
-        CUtils[CUtils.writeFile]
+        FV[FileView.setText]
     end
     
     subgraph Output [Output]
@@ -68,8 +68,8 @@ flowchart LR
     
     Primary -->|Process async| Py
     Py --> Palette
-    Palette --> CUtils
-    CUtils --> Scheme
+    Palette --> FV
+    FV --> Scheme
     Palette --> Colours
 ```
 
@@ -85,26 +85,70 @@ flowchart LR
 
 ### 1. `services/ThemeGenerator.qml` (Novo)
 
+> **IMPORTANTE**: Usar `FileView` do Quickshell para I/O (não CUtils).
+
 \`\`\`qml
+pragma Singleton
+import Quickshell
+import Quickshell.Io
+import QtQuick
+import qs.services
+import qs.config
+
 QtObject {
     id: root
     
     // Input: cor primária
-    property color primaryColor: "#ffc107"  // Amarelo
+    property color primaryColor: "#ffc107"
+    property var generatedPalette: null
+    property bool generating: false
     
-    // Output: paleta M3 gerada
-    property var palette: generatePalette(primaryColor)
-    
-    function generatePalette(primary) {
-        // Usar Process + StdioCollector + callback (Quickshell não tem execSync)
-        // Padrão: igual ao Nmcli.qml — Process async, onExited lê stdout
+    // FileView para salvar scheme.json
+    FileView {
+        id: schemeFile
+        path: Qt.resolvedUrl("file://" + Paths.config + "/scheme.json")
     }
     
-    function applyPalette(palette) {
-        // Usar CUtils.writeFile (plugin Caelestia) — Quickshell/QML não tem File nativo
-        // CUtils.writeFile(Qt.resolvedUrl("file://" + Paths.config + "/scheme.json"), JSON.stringify(palette, null, 2))
-        // Reload Colours service
-        Colours.load(JSON.stringify(palette), false)
+    // Process para gerar paleta via Python
+    Process {
+        id: generateProcess
+        command: ["python3", Paths.scriptPath("generate-m3-palette.py"), root.primaryColor.toString()]
+        
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.generatedPalette = JSON.parse(text)
+                    root.generating = false
+                } catch (e) {
+                    console.error("Failed to parse palette:", e)
+                    root.generating = false
+                }
+            }
+        }
+        
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                console.error("generate-m3-palette.py failed with code:", exitCode)
+                root.generating = false
+            }
+        }
+    }
+    
+    function generatePalette(color) {
+        primaryColor = color
+        generating = true
+        generateProcess.command = ["python3", Paths.scriptPath("generate-m3-palette.py"), color.toString()]
+        generateProcess.running = true
+    }
+    
+    function applyPalette() {
+        if (!generatedPalette) return
+        
+        // Salvar em scheme.json
+        schemeFile.setText(JSON.stringify(generatedPalette, null, 2))
+        
+        // Aplicar imediatamente via Colours service
+        Colours.load(JSON.stringify(generatedPalette), false)
     }
 }
 \`\`\`
@@ -207,17 +251,18 @@ ColumnLayout {
 
 ## 🔧 Implementação
 
-### Passo 0: CUtils.readFile e CUtils.writeFile (pré-requisito)
+### Pré-requisito: Python lib
 
-- Adicionar `readFile(path)` e `writeFile(path, content)` no plugin Caelestia (ver plano 29 para writeFile)
-- Reutilizável por planos 29, 31, etc.
+\`\`\`bash
+pip install material-color-utilities-python
+\`\`\`
 
 ### Fase 1: Gerador de Paleta (4-5h)
 
 1. Instalar lib: `pip install material-color-utilities-python`
-2. Criar `generate-m3-palette.py`
-3. Testar geração via CLI
-4. Criar `ThemeGenerator.qml` — usar **Process** + StdioCollector + callback (não execSync)
+2. Criar `scripts/generate-m3-palette.py`
+3. Testar geração via CLI: `python3 scripts/generate-m3-palette.py "#ffc107"`
+4. Criar `services/ThemeGenerator.qml` — usar **Process** + **StdioCollector** + **FileView**
 
 ### Fase 2: UI (3-4h)
 
@@ -228,9 +273,9 @@ ColumnLayout {
 
 ### Fase 3: Persistência (2-3h)
 
-1. Salvar em `scheme.json`
+1. Salvar em `scheme.json` via `FileView.setText()`
 2. Reload automático
-3. Aplicar ao sistema
+3. Aplicar ao sistema via `Colours.load()`
 
 ### Fase 4: Polish (1-2h)
 
@@ -272,16 +317,20 @@ Mudar `Colours.palette.*` pode não atualizar tudo
 
 ---
 
-## ✅ Validações Confirmadas (2026-02-01)
+## ✅ Validações Confirmadas (2026-02-05)
 
 | Item | Decisão |
 |------|---------|
-| execSync / File | Adicionar **CUtils.readFile** e **CUtils.writeFile** no plugin; Process apenas para scripts Python |
+| File I/O | Usar `FileView` + `setText()` (padrão Quickshell) |
+| Script Python | `Process` + `StdioCollector` para rodar generate-m3-palette.py |
+| Referência | `config/Config.qml:442` — padrão FileView |
+| Colours reload | `Colours.load(json, false)` para aplicar imediatamente |
 
-**APIs inexistentes**: `Quickshell.execSync` não existe; QML não tem `new File()` nativo. Usar:
-- **CUtils.readFile(path)** — para ler scheme.json e outros arquivos
-- **CUtils.writeFile(path, content)** — para salvar scheme.json
-- **Process** + StdioCollector + callback — para rodar script Python (generate-m3-palette.py)
+**APIs confirmadas**:
+- `FileView.setText(content)` — salvar scheme.json
+- `FileView.text()` — ler scheme.json
+- `Process` + `StdioCollector` — rodar script Python
+- `Colours.load(json, false)` — aplicar paleta (ver `services/Colours.qml`)
 
 ---
 

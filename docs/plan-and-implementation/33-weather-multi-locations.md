@@ -179,3 +179,14 @@ No lock screen, o Weather exibe apenas a **primeira localização** da lista (ou
 - **Fonte**: [21-caelestia-custom-v3.md](../../../caelestia-arch-setup/development/docs/21-caelestia-custom-v3.md) — V3-09
 - **Estado atual**: `services/Weather.qml` usa `Config.services.weatherLocation` (string única)
 - **ServiceConfig**: `config/ServiceConfig.qml` — `weatherLocation: ""`
+
+---
+
+## ✅ Validações Confirmadas (2026-02-05)
+
+| Item | Decisão |
+|------|---------|
+| Config list | Usar `list<var>` com objetos JS: `{ name: string, coords: "lat,lon" }` |
+| Service refactor | Adicionar `currentLocationIndex`, `locations`, `currentLocation` |
+| Referência | `config/ServiceConfig.qml` — estender com `weatherLocations` |
+| Lock screen | Usa apenas primeira localização (sem navegação) |

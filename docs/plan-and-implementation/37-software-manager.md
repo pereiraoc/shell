@@ -175,3 +175,53 @@ Antes de implementar, documentar em `docs/investigation/software-manager-sources
 - Flatpak: https://docs.flatpak.org/
 - Snap: https://snapcraft.io/docs
 - gnome-software: https://wiki.gnome.org/Apps/Software
+
+---
+
+## ✅ Validações Confirmadas (2026-02-05)
+
+| Item | Decisão |
+|------|---------|
+| pacman -Qe | ✅ Funciona — lista pacotes explícitos (formato: `nome versão`) |
+| pacman -Qdt | ✅ Funciona — lista órfãos (formato: `nome versão`) |
+| flatpak list | ✅ Funciona — `--app --columns=application,name` |
+| Process pattern | Usar `Process` + `StdioCollector` (padrão do codebase) |
+
+### 🔬 Investigação Parcial (2026-02-05)
+
+**Comandos testados:**
+
+```bash
+# Pacman - pacotes explícitos
+$ pacman -Qe | head -5
+alsa-utils 1.2.15.2-1
+asusctl 6.2.0-0.1
+base 3-2
+base-devel 1-2
+bluez 5.85-1
+
+# Pacman - órfãos
+$ pacman -Qdt | head -5
+asciidoc 10.2.1-3
+autoconf-archive 1:2024.10.16-4
+bc 1.08.2-1
+boost 1.89.0-4
+ccache-ext 3-1
+
+# Flatpak - apps
+$ flatpak list --app --columns=application,name | head -5
+app.polychromatic.controller    Polychromatic
+com.discordapp.Discord  Discord
+md.obsidian.Obsidian    Obsidian
+org.freedesktop.Piper   Piper
+org.openrgb.OpenRGB     OpenRGB
+```
+
+**Parsing:**
+- **pacman**: Split por espaço: `[nome, versão]`
+- **flatpak**: Split por tab: `[application_id, nome]`
+
+**Pendente investigar:**
+- [ ] AUR (pamac/yay) — depende de qual helper está instalado
+- [ ] Snap — verificar se instalado no sistema
+- [ ] AppImage — scan de diretórios

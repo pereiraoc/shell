@@ -29,6 +29,7 @@ Item {
     property bool showNetwork: Config.bar.status.showNetwork ?? true
     property bool showBluetooth: Config.bar.status.showBluetooth ?? true
     property bool showBattery: Config.bar.status.showBattery ?? true
+    property bool showGpuMode: Config.bar.status.showGpuMode ?? true
     property bool showLockStatus: Config.bar.status.showLockStatus ?? true
     property bool trayBackground: Config.bar.tray.background ?? false
     property bool trayCompact: Config.bar.tray.compact ?? false
@@ -71,6 +72,7 @@ Item {
         Config.bar.status.showNetwork = root.showNetwork;
         Config.bar.status.showBluetooth = root.showBluetooth;
         Config.bar.status.showBattery = root.showBattery;
+        Config.bar.status.showGpuMode = root.showGpuMode;
         Config.bar.status.showLockStatus = root.showLockStatus;
         Config.bar.tray.background = root.trayBackground;
         Config.bar.tray.compact = root.trayCompact;
@@ -223,6 +225,14 @@ Item {
                                 propertyName: "showBattery",
                                 onToggled: function(checked) {
                                     root.showBattery = checked;
+                                    root.saveConfig();
+                                }
+                            },
+                            {
+                                label: qsTr("GPU Mode"),
+                                propertyName: "showGpuMode",
+                                onToggled: function(checked) {
+                                    root.showGpuMode = checked;
                                     root.saveConfig();
                                 }
                             },

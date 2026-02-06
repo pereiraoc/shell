@@ -101,11 +101,56 @@ Pane {
 
 ---
 
-## ✅ Validações Confirmadas (2026-02-01)
+## ✅ Validações Confirmadas (2026-02-05)
 
 | Item | Decisão |
 |------|---------|
-| Fonte de shortcuts | **keyboard-shortcuts.md** (arquivo em docs) como fonte única — compartilhado com Help Modal (28) |
+| Tabs.qml | 4 tabs atuais: Dashboard, Media, Performance, Weather (linhas 32-50) |
+| Content.qml | 4 panes com índices 0-3 (linhas 85-109) |
+| HelpModal.qml | ✅ Já existe com shortcuts hardcoded (212 linhas) |
+| Reutilização | Extrair `shortcuts` property para componente compartilhado |
+
+### Estratégia de Implementação
+
+**Opção recomendada**: Extrair shortcuts para `utils/ShortcutsData.qml` singleton:
+
+```qml
+// utils/ShortcutsData.qml
+pragma Singleton
+import QtQuick
+
+QtObject {
+    readonly property var shortcuts: [
+        { category: qsTr("Navigation"), items: [...] },
+        { category: qsTr("Window Management"), items: [...] },
+        // ... (copiar de HelpModal.qml)
+    ]
+}
+```
+
+Depois usar em:
+- `modules/help/HelpModal.qml` — `model: ShortcutsData.shortcuts`
+- `modules/dashboard/Help.qml` — `model: ShortcutsData.shortcuts`
+
+### Modificações em Tabs.qml (linha ~50):
+
+```qml
+// Após Tab "Weather":
+Tab {
+    iconName: "help"
+    text: qsTr("Help")
+}
+```
+
+### Modificações em Content.qml (linha ~109):
+
+```qml
+// Após Pane index: 3:
+Pane {
+    index: 4
+    sourceComponent: Help {}
+}
+```
 
 ---
 

@@ -1,56 +1,52 @@
 # 🔧 Configuration - Painel Configurável
 
 **ID**: 29  
-**Status**: ⏱️ Planejado  
+**Status**: ⏱️ Pronto para Implementação  
 **Complexidade**: 🟡 Média  
-**Tempo Estimado**: 8-12h
+**Tempo Estimado**: 6-8h (revisado)
 
 ---
 
 ## 📋 Resumo
 
-Painel **"Configuration"** no Control Center totalmente configurável: seções e botões editáveis (nome, ícone, comando) para ferramentas do sistema (Audio, Display, Hardware, etc.), com export/import da configuração. Migra a lista hardcoded atual para dados em `shell.json`.
+Painel **"Configuration"** no Control Center totalmente configurável: seções e botões editáveis (nome, ícone, comando) para ferramentas do sistema (Audio, Display, Hardware, etc.), com export/import da configuração. Migra a lista hardcoded atual de `AppsPane.qml` para dados persistentes em `shell.json`.
 
-**Renomeação (2026-02)**: A seção anteriormente chamada "Apps" passa a se chamar **"Configuration"** — reflete melhor o propósito (configuráveis do sistema, não gerenciamento de pacotes).
+**Renomeação**: A seção "Apps" passa a se chamar **"Configuration"** — reflete melhor o propósito (ferramentas de configuração do sistema, não gerenciamento de pacotes).
 
 ---
 
 ## 🎯 Objetivos
 
 - Painel categorizado (Audio, Display, System, Hardware, Share) com dados em Config
-- Botões editáveis: adicionar, editar, remover seções e apps
-- Sem filtro `command -v` na primeira versão (mostrar todos os apps configurados; usuário remove manualmente)
-- Export: apenas backup em path fixo (configuration-backup.json via CUtils.writeFile)
-- Import: carregar de arquivo (Process async) ou colar do clipboard
-- Pendência documentada: mapear comandos para "Keyboard config" e "Mouse config"
+- Botões editáveis: adicionar, editar, remover seções e botões
+- Sem filtro `command -v` (mostrar todos os apps configurados; usuário remove manualmente)
+- Export: backup em path fixo via `FileView.setText()`
+- Import: carregar de arquivo (Process async) ou do clipboard
+- Pendência: mapear comandos para "Keyboard config" e "Mouse config"
 
 ---
 
-## ✅ Confirmações Técnicas (verificadas no codebase)
+## ✅ Validações Técnicas (2026-02-05)
 
 | Item | Status | Fonte |
 |------|--------|-------|
-| `Quickshell.clipboardText` (leitura e escrita) | ✅ | `qmlglobal.hpp` - READ/WRITE |
-| `Quickshell.execDetached(command)` para launch | ✅ | Usado em AppsPane.qml atual |
-| FileDialog retorna path via `accepted(path)` | ✅ | `components/filedialog/FileDialog.qml`, `DialogButtons.qml` |
-| Config usa serializeConfig() manual + JsonAdapter para load | ✅ | `Config.qml` - save via Timer+setText, load via JsonAdapter |
-| JsonAdapter suporta `list<var>` em JsonObject aninhado | ✅ | `jsonadapter.cpp` linha 247 - else branch; LauncherConfig.actions similar |
-| ControlCenterConfig existe e é minimal | ✅ | Apenas `sizes`; podemos adicionar `configuration` |
-| AppsPane atual: `appCategories` hardcoded, usa `modelData.apps` | ✅ | Migrar para `modelData.buttons`; renomear pane para "Configuration" |
+| `Quickshell.clipboardText` READ/WRITE | ✅ | `qmlglobal.hpp` linha 124 |
+| `Quickshell.execDetached(command)` | ✅ | AppsPane.qml linha 166 |
+| `FileView.setText(text)` para salvar | ✅ | `fileview.hpp` linha 324; Config.qml usa |
+| FileDialog `accepted(path)` signal | ✅ | `FileDialog.qml` linha 17 |
+| StyledTextField componente | ✅ | `components/controls/StyledTextField.qml` |
+| Process + StdioCollector pattern | ✅ | `SystemUsage.qml`, `Nmcli.qml` |
+| WirelessPasswordDialog como modelo | ✅ | 513 linhas, bom exemplo de dialog modal |
+| Toaster.toast() funciona | ✅ | Plugin C++, usado em Config.qml |
+| ControlCenterConfig existe | ✅ | Apenas `sizes`; adicionar `configuration` |
+| Config.save() trigger | ✅ | Chama saveTimer que serializa e salva |
 
----
+### ❌ Removidos do Plano Original
 
-## ⚠️ Pontos de Atenção / Vulnerabilidades
-
-| Item | Risco | Mitigação |
-|------|-------|-----------|
-| **Quickshell NÃO tem execSync** | **CRÍTICO** | Quickshell só tem `execDetached` e `Process` (async). Import de arquivo deve usar `Process` + `StdioCollector` + callback (padrão Nmcli). Ver Passo 8. |
-| Clipboard vazio no Wayland sem foco | N/A | Export apenas para backup (path fixo); não usa clipboard |
-| Import de JSON malformado | Médio | try/catch + Toaster.toast com erro; validar estrutura antes de aplicar |
-| Export para arquivo | Resolvido | Adicionar `CUtils.writeFile(path, content)` no plugin (Passo 0); usar path fixo para backup. |
-| FileDialog atual: seleciona arquivo existente, não "Save As" | N/A | Export usa path fixo; FileDialog apenas para Import |
-| `command -v`: sem execSync, seria Process async por botão | Alto | Omitir filtro de instalação na primeira versão; adicionar depois se necessário |
-| Edição inline: mutar `Config.controlCenter.configuration.sections` | Médio | Reatribuir cópia inteira; chamar `Config.save()` após edição |
+| Item | Motivo |
+|------|--------|
+| CUtils.writeFile | **NÃO NECESSÁRIO** - FileView.setText() já existe |
+| Passo 0 (plugin C++) | Removido - sem modificações em C++ necessárias |
 
 ---
 
@@ -67,10 +63,8 @@ flowchart LR
     
     subgraph UI [UI]
         CP[ConfigurationPane]
-        SED[SectionEditDialog]
-        AED[AppEditDialog]
-        CP --> SED
-        CP --> AED
+        ED[EditDialog]
+        CP --> ED
     end
     
     subgraph Storage [Storage]
@@ -110,26 +104,13 @@ flowchart LR
 }
 ```
 
-### Formato JSON para Export/Import (standalone)
+### Formato JSON para Export/Import
 
 ```json
 {
   "version": 1,
   "configuration": {
-    "sections": [
-      {
-        "name": "Audio",
-        "icon": "graphic_eq",
-        "buttons": [
-          {
-            "name": "qpwgraph",
-            "icon": "cable",
-            "command": ["qpwgraph"],
-            "description": "PipeWire Graph Manager"
-          }
-        ]
-      }
-    ]
+    "sections": [...]
   }
 }
 ```
@@ -140,146 +121,497 @@ flowchart LR
 
 | Arquivo | Ação |
 |---------|------|
-| `plugin/src/Caelestia/cutils.hpp` | Adicionar `Q_INVOKABLE bool writeFile(const QUrl& path, const QString& content)` |
-| `plugin/src/Caelestia/cutils.cpp` | Implementar `writeFile` (~20 linhas) |
-| `config/ControlCenterConfig.qml` | Adicionar `property ConfigurationConfig configuration: ConfigurationConfig {}` |
-| `config/ConfigurationConfig.qml` | Criar (novo) - `property list<var> sections` |
-| `config/Config.qml` | Adicionar `serializeControlCenter()` incluir `configuration`, garantir adapter parse |
-| `modules/controlcenter/PaneRegistry.qml` | Renomear pane `apps` → `configuration` (id, label) |
-| `modules/controlcenter/configuration/ConfigurationPane.qml` | Renomear de apps/AppsPane; ler de Config, UI edição, Export/Import |
-| `modules/controlcenter/configuration/SectionEditDialog.qml` | Criar (novo) |
-| `modules/controlcenter/configuration/AppEditDialog.qml` | Criar (novo) |
-| `docs/99-pendencias.md` | Adicionar item "Keyboard/Mouse config commands" |
+| `config/ConfigurationConfig.qml` | **CRIAR** - JsonObject com `sections: list<var>` |
+| `config/ControlCenterConfig.qml` | Adicionar `configuration: ConfigurationConfig {}` |
+| `config/Config.qml` | Adicionar em `serializeControlCenter()` |
+| `modules/controlcenter/PaneRegistry.qml` | Mudar id/label de "apps" para "configuration" |
+| `modules/controlcenter/configuration/ConfigurationPane.qml` | **CRIAR** (renomear de apps/) |
+| `modules/controlcenter/configuration/EditDialog.qml` | **CRIAR** - Dialog genérico para edição |
 
 ---
 
 ## 📋 Passo a Passo de Implementação
 
-### Passo 0: CUtils.writeFile (pré-requisito, ~30min)
+### Passo 1: ConfigurationConfig.qml (~30min)
 
-1. Em `plugin/src/Caelestia/cutils.hpp`: adicionar `Q_INVOKABLE bool writeFile(const QUrl& path, const QString& content) const;`
-2. Em `plugin/src/Caelestia/cutils.cpp`: implementar:
-   - Validar `path.isLocalFile()` (como em `copyFile`)
-   - `QDir().mkpath(QFileInfo(path.toLocalFile()).absolutePath())` para criar diretório se não existir
-   - `QFile::open(WriteOnly)` + `file.write(content.toUtf8())`
-   - Retornar `true` em sucesso, `false` em falha
-3. Função reutilizável para outros exports (tema, shortcuts, etc.)
+Criar `config/ConfigurationConfig.qml`:
 
-### Passo 1: ConfigurationConfig.qml (1h)
+```qml
+import Quickshell.Io
 
-1. Criar `config/ConfigurationConfig.qml`:
-   - `import Quickshell.Io`
-   - `JsonObject { property list<var> sections: [...] }`
-   - Valor default: migrar `appCategories` atual de `AppsPane.qml` (Audio, Display, System, Hardware, Share) com os mesmos botões
-2. Cada seção: `{ name, icon, buttons: [{ name, icon, command, description }] }`
-3. Cada botão: `command` é `list<string>` (array para execDetached)
-
-### Passo 2: Integrar ConfigurationConfig em ControlCenterConfig (30min)
-
-1. Em `ControlCenterConfig.qml`: adicionar `property ConfigurationConfig configuration: ConfigurationConfig {}`
-2. Em `Config.qml`:
-   - Em `serializeControlCenter()`: incluir `configuration: { sections: Config.controlCenter.configuration.sections }`
-   - O JsonAdapter já faz parse automático quando a chave `configuration` existir no JSON sob `controlCenter`
-3. Garantir que `Config.controlCenter` no adapter tenha a property `configuration` populada pelo parse
-
-### Passo 3: Migrar para ConfigurationPane e ler de Config (1h)
-
-1. Renomear `apps/AppsPane.qml` → `configuration/ConfigurationPane.qml`; atualizar PaneRegistry para `component: "configuration/ConfigurationPane.qml"`
-2. Em `ConfigurationPane.qml`:
-   - Remover `readonly property var appCategories`
-   - Usar `model: Config.controlCenter.configuration.sections` no Repeater externo
-   - **Mudar delegate interno**: `model: categoryDelegate.modelData.apps` → `model: categoryDelegate.modelData.buttons` (estrutura usa `buttons`, não `apps`)
-   - Manter layout e comportamento de clique (execDetached)
-2. **Omitir** filtro `command -v` na primeira versão (exigiria Process async por botão; adicionar em follow-up se necessário)
-
-### Passo 4: SectionEditDialog.qml (1–2h)
-
-1. Criar `modules/controlcenter/configuration/SectionEditDialog.qml`
-2. Props: `section: var` (objeto a editar), `onAccepted: function(editedSection)`, `onRejected`
-3. Campos: nome (StyledTextField), ícone (MaterialIcon name ou StyledTextField)
-4. Botões: OK (emitir editedSection), Cancel
-5. **Verificar padrão** em LauncherPane e AppearancePane antes de implementar; usar Popup ou StyledWindow conforme o padrão encontrado
-
-### Passo 5: AppEditDialog.qml (1–2h)
-
-1. Criar `modules/controlcenter/configuration/AppEditDialog.qml`
-2. Props: `button: var`, `onAccepted: function(editedButton)`, `onRejected`
-3. Campos: name, icon, command (string que será split por espaço em array), description
-4. Validação: command não vazio
-5. Botões: OK, Cancel
-
-### Passo 6: UI de edição no ConfigurationPane (2–3h)
-
-1. Header do painel:
-   - Botão "Export to backup" (path fixo configuration-backup.json via CUtils.writeFile) (ícone `save` ou `backup`)
-   - Botão "Import" (FileDialog + Process async para arquivo; clipboard) (ícone `folder_open` ou `download`)
-   - Botão "Adicionar seção" (ícone `add`)
-2. Por seção:
-   - Ícone "editar" (chamar SectionEditDialog)
-   - Ícone "adicionar app" (abrir AppEditDialog com button vazio, ao confirmar: push em `section.buttons`)
-   - Ícone "remover seção" (confirmar e splice da lista)
-3. Por botão:
-   - Ícone "editar" (AppEditDialog)
-   - Ícone "remover" (splice do array buttons)
-4. Após qualquer mutação: reatribuir a lista inteira para garantir que Config detecte a mudança:
-   - `var copy = JSON.parse(JSON.stringify(Config.controlCenter.configuration.sections));`
-   - Modificar `copy` (push, splice, etc.)
-   - `Config.controlCenter.configuration.sections = copy;`
-   - `Config.save()`
-
-### Fluxo Export/Import
-
-```mermaid
-sequenceDiagram
-    participant UI as ConfigurationPane
-    participant Config as Config
-    participant CUtils as CUtils.writeFile
-    participant Process as Process
-
-    Note over UI,Process: Export
-    UI->>Config: Config.controlCenter.configuration.sections
-    UI->>CUtils: writeFile(path, JSON.stringify(obj))
-    CUtils-->>UI: ok
-
-    Note over UI,Process: Import (arquivo)
-    UI->>Process: cat path
-    Process-->>UI: stdout
-    UI->>Config: Config.controlCenter.configuration.sections = parsed
-    UI->>Config: Config.save()
+JsonObject {
+    property list<var> sections: [
+        {
+            name: qsTr("Audio"),
+            icon: "graphic_eq",
+            buttons: [
+                { name: "qpwgraph", icon: "cable", command: ["qpwgraph"], description: qsTr("PipeWire Graph Manager") },
+                { name: "EasyEffects", icon: "tune", command: ["easyeffects"], description: qsTr("Audio Effects & Equalizer") },
+                { name: "PulseAudio Volume", icon: "volume_up", command: ["pavucontrol"], description: qsTr("Volume Control") }
+            ]
+        },
+        {
+            name: qsTr("Display"),
+            icon: "monitor",
+            buttons: [
+                { name: "nwg-displays", icon: "desktop_windows", command: ["nwg-displays"], description: qsTr("Monitor Configuration") },
+                { name: "Font Scaling", icon: "text_fields", command: ["font-scaling-manager"], description: qsTr("Font Size & DPI") }
+            ]
+        },
+        {
+            name: qsTr("System"),
+            icon: "settings",
+            buttons: [
+                { name: "System Monitor", icon: "monitoring", command: ["gnome-system-monitor"], description: qsTr("Resource Monitor") },
+                { name: "Logs", icon: "article", command: ["gnome-logs"], description: qsTr("System Logs") },
+                { name: "Disk Usage", icon: "storage", command: ["baobab"], description: qsTr("Disk Usage Analyzer") }
+            ]
+        },
+        {
+            name: qsTr("Hardware"),
+            icon: "memory",
+            buttons: [
+                { name: "Qt Camera", icon: "videocam", command: ["qcam"], description: qsTr("Camera Viewer (V4L2)") },
+                { name: "Howdy Manager", icon: "face", command: ["howdy-manager"], description: qsTr("Facial Recognition") },
+                { name: "ROG Control", icon: "sports_esports", command: ["rog-control-center"], description: qsTr("ASUS ROG Settings") }
+            ]
+        },
+        {
+            name: qsTr("Sharing"),
+            icon: "share",
+            buttons: [
+                { name: "LocalSend", icon: "send", command: ["localsend_app"], description: qsTr("Local File Sharing") },
+                { name: "Snapdrop", icon: "language", command: ["xdg-open", "https://snapdrop.net"], description: qsTr("Web-based Sharing") }
+            ]
+        }
+    ]
+}
 ```
 
-### Passo 7: Export (1–2h)
+### Passo 2: Integrar em ControlCenterConfig (~15min)
 
-1. **Export para backup** (path fixo, via CUtils.writeFile do Passo 0) — única opção de export na primeira versão:
-   - Botão "Export to backup" ou similar
-   - `const obj = { version: 1, configuration: { sections: Config.controlCenter.configuration.sections } };`
-   - `const path = Paths.config + "/configuration-backup.json"; const ok = CUtils.writeFile(Qt.resolvedUrl("file://" + path), JSON.stringify(obj, null, 2));` (referência: CUtils.copyFile em Wrapper.qml)
-   - Toaster: sucesso ("Configuration saved to configuration-backup.json") ou erro
-   - Path: `~/.config/caelestia/configuration-backup.json` (ou `Paths.config + "/configuration-backup.json"`)
-2. **Extensão futura**: Export para clipboard ou FileDialog para escolher destino.
+Em `config/ControlCenterConfig.qml`:
+```qml
+import Quickshell.Io
 
-### Passo 8: Import (1–2h)
+JsonObject {
+    property Sizes sizes: Sizes {}
+    property ConfigurationConfig configuration: ConfigurationConfig {}
 
-1. **Import de clipboard**:
-   - Botão "Import from clipboard"
-   - `const text = Quickshell.clipboardText`
-   - `const parsed = JSON.parse(text)`
-   - Validar: `parsed.configuration?.sections` é array
-   - `Config.controlCenter.configuration.sections = parsed.configuration.sections`
-   - `Config.save()`
-   - Toaster: "Apps config imported"
-2. **Import de arquivo** (usar Process async — Quickshell não tem execSync):
-   - FileDialog: `title: "Select configuration backup"`, `filters: ["json"]` ou `["*"]`
-   - `onAccepted: path => { criar Process com command ["cat", path], stdout: StdioCollector, onExited: ler stdoutCollector.text, parse, validar, aplicar }`
-   - Padrão: igual ao `CommandProcess` em `Nmcli.qml` (Process + StdioCollector + callback em onExited)
-   - Mesma validação e aplicação do clipboard
-   - Tratar erro: JSON inválido, estrutura incorreta → Toaster com mensagem
+    component Sizes: JsonObject {
+        property real heightMult: 0.7
+        property real ratio: 16 / 9
+    }
+}
+```
 
-### Passo 9: Documentar pendência Keyboard/Mouse (15min)
+### Passo 3: Atualizar Config.qml - serializeControlCenter (~15min)
 
-1. Em `docs/99-pendencias.md`: adicionar item
-   - "Mapear comandos para Keyboard config (OpenRGB? gnome-control-center?) e Mouse config (Polychromatic? gnome-control-center?)"
-2. Na lista default de seções, incluir "Keyboard" e "Mouse" com `command: ["true"]` ou placeholder até definição
+```qml
+function serializeControlCenter(): var {
+    return {
+        sizes: {
+            heightMult: controlCenter.sizes.heightMult,
+            ratio: controlCenter.sizes.ratio
+        },
+        configuration: {
+            sections: controlCenter.configuration.sections
+        }
+    };
+}
+```
+
+### Passo 4: Atualizar PaneRegistry.qml (~10min)
+
+Mudar a entrada de "apps" para "configuration":
+```qml
+QtObject {
+    readonly property string id: "configuration"
+    readonly property string label: "configuration"
+    readonly property string icon: "build"
+    readonly property string component: "configuration/ConfigurationPane.qml"
+}
+```
+
+### Passo 5: Mover e adaptar ConfigurationPane.qml (~1h)
+
+1. Criar diretório `modules/controlcenter/configuration/`
+2. Copiar `apps/AppsPane.qml` → `configuration/ConfigurationPane.qml`
+3. Modificar:
+   - Remover `appCategories` hardcoded
+   - Usar `model: Config.controlCenter.configuration.sections`
+   - Mudar `modelData.apps` → `modelData.buttons`
+   - Adicionar botões de Edit no header
+
+Estrutura principal:
+```qml
+// Header com ações
+RowLayout {
+    MaterialIcon { text: "build" }
+    StyledText { text: qsTr("Configuration Tools") }
+    Item { Layout.fillWidth: true }
+    
+    // Export button
+    IconButton {
+        icon: "save"
+        onClicked: exportBackup()
+    }
+    
+    // Import button
+    IconButton {
+        icon: "folder_open"
+        onClicked: fileDialog.open()
+    }
+    
+    // Add section button
+    IconButton {
+        icon: "add"
+        onClicked: addSection()
+    }
+}
+
+// Categories
+Repeater {
+    model: Config.controlCenter.configuration.sections
+    
+    ColumnLayout {
+        // Section header with edit/delete
+        RowLayout {
+            MaterialIcon { text: modelData.icon }
+            StyledText { text: modelData.name }
+            Item { Layout.fillWidth: true }
+            
+            // Edit section
+            IconButton {
+                icon: "edit"
+                onClicked: editSection(index)
+            }
+            
+            // Add button to section
+            IconButton {
+                icon: "add"
+                onClicked: addButton(index)
+            }
+            
+            // Delete section
+            IconButton {
+                icon: "delete"
+                onClicked: deleteSection(index)
+            }
+        }
+        
+        // Buttons in section
+        Flow {
+            Repeater {
+                model: modelData.buttons
+                
+                StyledRect {
+                    // Button content + edit/delete icons on hover
+                }
+            }
+        }
+    }
+}
+```
+
+### Passo 6: EditDialog.qml (~1.5h)
+
+Dialog genérico para editar seção ou botão:
+
+```qml
+// Baseado em WirelessPasswordDialog.qml
+Item {
+    id: root
+    
+    property string mode: "section" // "section" ou "button"
+    property var itemData: null
+    property int sectionIndex: -1
+    property int buttonIndex: -1
+    
+    signal accepted(var editedItem)
+    signal rejected
+    
+    function openForSection(index, data) {
+        mode = "section"
+        sectionIndex = index
+        buttonIndex = -1
+        itemData = data ? JSON.parse(JSON.stringify(data)) : { name: "", icon: "folder" }
+        visible = true
+    }
+    
+    function openForButton(sectIndex, btnIndex, data) {
+        mode = "button"
+        sectionIndex = sectIndex
+        buttonIndex = btnIndex
+        itemData = data ? JSON.parse(JSON.stringify(data)) : { name: "", icon: "apps", command: [], description: "" }
+        visible = true
+    }
+    
+    // Background overlay
+    Rectangle {
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.5)
+        MouseArea { anchors.fill: parent; onClicked: root.rejected() }
+    }
+    
+    // Dialog content
+    StyledRect {
+        anchors.centerIn: parent
+        implicitWidth: 400
+        
+        ColumnLayout {
+            // Title
+            StyledText {
+                text: root.mode === "section" 
+                    ? (root.sectionIndex < 0 ? qsTr("Add Section") : qsTr("Edit Section"))
+                    : (root.buttonIndex < 0 ? qsTr("Add Button") : qsTr("Edit Button"))
+            }
+            
+            // Name field
+            ColumnLayout {
+                StyledText { text: qsTr("Name") }
+                StyledTextField {
+                    id: nameField
+                    text: root.itemData?.name ?? ""
+                    placeholderText: qsTr("Enter name")
+                }
+            }
+            
+            // Icon field
+            ColumnLayout {
+                StyledText { text: qsTr("Icon") }
+                RowLayout {
+                    MaterialIcon { text: iconField.text || "help" }
+                    StyledTextField {
+                        id: iconField
+                        text: root.itemData?.icon ?? ""
+                        placeholderText: qsTr("Material icon name")
+                    }
+                }
+            }
+            
+            // Button-specific fields
+            ColumnLayout {
+                visible: root.mode === "button"
+                
+                StyledText { text: qsTr("Command") }
+                StyledTextField {
+                    id: commandField
+                    text: root.itemData?.command?.join(" ") ?? ""
+                    placeholderText: qsTr("e.g., pavucontrol")
+                }
+                
+                StyledText { text: qsTr("Description") }
+                StyledTextField {
+                    id: descField
+                    text: root.itemData?.description ?? ""
+                    placeholderText: qsTr("Optional description")
+                }
+            }
+            
+            // Action buttons
+            RowLayout {
+                Item { Layout.fillWidth: true }
+                
+                StyledButton {
+                    text: qsTr("Cancel")
+                    onClicked: root.rejected()
+                }
+                
+                StyledButton {
+                    text: qsTr("Save")
+                    enabled: nameField.text.trim() !== ""
+                    onClicked: {
+                        const result = {
+                            name: nameField.text.trim(),
+                            icon: iconField.text.trim() || "apps"
+                        }
+                        if (root.mode === "button") {
+                            result.command = commandField.text.trim().split(/\s+/).filter(s => s)
+                            result.description = descField.text.trim()
+                        }
+                        root.accepted(result)
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+### Passo 7: Funções de mutação em ConfigurationPane (~1h)
+
+```qml
+// Helper para mutação segura
+function updateSections(mutator) {
+    const copy = JSON.parse(JSON.stringify(Config.controlCenter.configuration.sections))
+    mutator(copy)
+    Config.controlCenter.configuration.sections = copy
+    Config.save()
+}
+
+// Add section
+function addSection() {
+    editDialog.openForSection(-1, null)
+}
+
+// Edit section
+function editSection(index) {
+    editDialog.openForSection(index, Config.controlCenter.configuration.sections[index])
+}
+
+// Delete section (with confirmation)
+function deleteSection(index) {
+    // Simple confirmation via second click or inline
+    updateSections(sections => sections.splice(index, 1))
+    Toaster.toast(qsTr("Section removed"), "", "delete")
+}
+
+// Add button
+function addButton(sectionIndex) {
+    editDialog.openForButton(sectionIndex, -1, null)
+}
+
+// Edit button
+function editButton(sectionIndex, buttonIndex) {
+    editDialog.openForButton(sectionIndex, buttonIndex, 
+        Config.controlCenter.configuration.sections[sectionIndex].buttons[buttonIndex])
+}
+
+// Delete button
+function deleteButton(sectionIndex, buttonIndex) {
+    updateSections(sections => sections[sectionIndex].buttons.splice(buttonIndex, 1))
+}
+
+// Handle dialog result
+Connections {
+    target: editDialog
+    
+    function onAccepted(item) {
+        if (editDialog.mode === "section") {
+            if (editDialog.sectionIndex < 0) {
+                // New section
+                updateSections(sections => sections.push({ ...item, buttons: [] }))
+            } else {
+                // Edit existing
+                updateSections(sections => {
+                    sections[editDialog.sectionIndex].name = item.name
+                    sections[editDialog.sectionIndex].icon = item.icon
+                })
+            }
+        } else {
+            // Button
+            if (editDialog.buttonIndex < 0) {
+                // New button
+                updateSections(sections => 
+                    sections[editDialog.sectionIndex].buttons.push(item))
+            } else {
+                // Edit existing
+                updateSections(sections => 
+                    sections[editDialog.sectionIndex].buttons[editDialog.buttonIndex] = item)
+            }
+        }
+        editDialog.visible = false
+    }
+    
+    function onRejected() {
+        editDialog.visible = false
+    }
+}
+```
+
+### Passo 8: Export/Import (~1h)
+
+```qml
+// FileView para backup
+FileView {
+    id: backupFileView
+    path: "" // Set dynamically
+    
+    onSaved: Toaster.toast(qsTr("Backup saved"), backupPath, "save")
+    onSaveFailed: err => Toaster.toast(qsTr("Failed to save backup"), 
+        FileViewError.toString(err), "error", Toast.Error)
+}
+
+readonly property string backupPath: `${Paths.data}/configuration-backup.json`
+
+// Export
+function exportBackup() {
+    const obj = {
+        version: 1,
+        configuration: {
+            sections: Config.controlCenter.configuration.sections
+        }
+    }
+    backupFileView.path = backupPath
+    backupFileView.setText(JSON.stringify(obj, null, 2))
+}
+
+// FileDialog for Import
+FileDialog {
+    id: fileDialog
+    title: qsTr("Select configuration backup")
+    filters: ["*.json"]
+    
+    onAccepted: path => importFromFile(path)
+}
+
+// Import from file (using Process + StdioCollector)
+Process {
+    id: importProcess
+    
+    property string targetPath: ""
+    
+    stdout: StdioCollector {
+        onStreamFinished: {
+            try {
+                const parsed = JSON.parse(text)
+                applyImport(parsed)
+            } catch (e) {
+                Toaster.toast(qsTr("Invalid JSON"), e.message, "error", Toast.Error)
+            }
+        }
+    }
+}
+
+function importFromFile(path) {
+    importProcess.command = ["cat", path]
+    importProcess.running = true
+}
+
+// Import from clipboard
+function importFromClipboard() {
+    try {
+        const parsed = JSON.parse(Quickshell.clipboardText)
+        applyImport(parsed)
+    } catch (e) {
+        Toaster.toast(qsTr("Invalid clipboard content"), e.message, "error", Toast.Error)
+    }
+}
+
+// Apply imported config
+function applyImport(parsed) {
+    if (!parsed.configuration?.sections || !Array.isArray(parsed.configuration.sections)) {
+        Toaster.toast(qsTr("Invalid format"), qsTr("Missing sections array"), "error", Toast.Error)
+        return
+    }
+    
+    Config.controlCenter.configuration.sections = parsed.configuration.sections
+    Config.save()
+    Toaster.toast(qsTr("Configuration imported"), 
+        qsTr("%1 sections loaded").arg(parsed.configuration.sections.length), "download_done")
+}
+```
+
+### Passo 9: Limpar pasta antiga e testar (~15min)
+
+1. Remover `modules/controlcenter/apps/` (pasta antiga)
+2. Testar:
+   - Abrir Control Center → Configuration pane
+   - Clicar em botões (deve executar comandos)
+   - Adicionar/editar/remover seções e botões
+   - Export e Import
+   - Verificar persistência após restart
 
 ---
 
@@ -287,45 +619,37 @@ sequenceDiagram
 
 | Cenário | Ação | Resultado esperado |
 |---------|------|--------------------|
-| Apps instalados | Abrir painel Apps | Botões visíveis, clique abre app |
-| App não instalado (sem filtro) | - | Botão aparece; usuário remove manualmente |
-| Editar seção | Clicar editar, mudar nome, OK | Nome atualizado, Config.save() chamado |
-| Adicionar app | Clicar adicionar app, preencher, OK | Novo botão na seção |
-| Remover app | Clicar remover | Botão some, Config salvo |
-| Export backup | Clicar Export to backup | Arquivo configuration-backup.json criado, toast |
-| Import clipboard | Colar JSON válido, Import | Seções atualizadas |
-| Import arquivo | Selecionar .json válido | Idem |
-| Import JSON inválido | Colar lixo | Toast de erro, config inalterada |
+| Visualização inicial | Abrir Configuration pane | 5 seções com botões |
+| Executar app | Clicar em botão | App abre via execDetached |
+| Adicionar seção | Click + preencher | Nova seção aparece, persiste |
+| Editar seção | Click edit, mudar nome | Nome atualizado |
+| Remover seção | Click delete | Seção removida |
+| Adicionar botão | Click + na seção | Novo botão na seção |
+| Editar botão | Click edit no botão | Dados atualizados |
+| Remover botão | Click delete no botão | Botão removido |
+| Export | Click export | Arquivo criado em `~/.local/share/caelestia/` |
+| Import arquivo | Selecionar JSON válido | Seções atualizadas |
+| Import clipboard | Colar JSON válido + import | Seções atualizadas |
+| Import inválido | JSON malformado | Toast de erro, config inalterada |
+| Persistência | Restart shell | Configuração mantida |
+
+---
+
+## ⚠️ Decisões de Simplificação
+
+| Item | Decisão |
+|------|---------|
+| Confirmação de delete | Sem dialog - apenas remove (pode desfazer via import backup) |
+| Filtro command -v | Não implementado - mostra todos os botões |
+| Reordenação | Não implementado na v1 - editar via JSON se necessário |
+| Validação de ícone | Apenas preview - aceita qualquer string |
 
 ---
 
 ## 🔗 Referências
 
-- qpwgraph: https://github.com/rncbc/qpwgraph
-- EasyEffects: https://github.com/wwmm/easyeffects
-- nwg-displays: https://github.com/nwg-piotr/nwg-displays
-- LocalSend: https://localsend.org/
-- Quickshell JsonAdapter: `quickshell-patched/src/io/jsonadapter.cpp`
-- LauncherConfig.actions: exemplo de `list<var>` em Config
-
----
-
-## Pendências Mapeadas
-
-| Item | Status | Ação |
-|------|--------|------|
-| Keyboard config | Pendente | Mapear comando (OpenRGB, gnome-control-center region, outro) |
-| Mouse config | Pendente | Mapear comando (Polychromatic, gnome-control-center mouse, outro) |
-
----
-
-## ✅ Validações Confirmadas (2026-02-01)
-
-| Item | Decisão |
-|------|---------|
-| Export | Apenas backup (path fixo); sem clipboard na primeira versão |
-| Import arquivo | Process async (padrão Nmcli) |
-| Filtro command -v | Sem filtro na primeira versão |
-| Estrutura | Usar `buttons` (migrar de `apps`) |
-| Dialogs | Verificar padrão em LauncherPane/AppearancePane antes de implementar |
-| **Nome da seção** | **"Apps" → "Configuration"** (2026-02) — reflete propósito: configuráveis do sistema |
+- Pattern de dialog: `modules/controlcenter/network/WirelessPasswordDialog.qml`
+- Pattern de Process: `services/SystemUsage.qml` (StdioCollector)
+- Pattern de save: `config/Config.qml` (FileView.setText)
+- FileView API: `quickshell-patched/src/io/fileview.hpp`
+- Material Icons: https://fonts.google.com/icons
