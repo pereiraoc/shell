@@ -1,7 +1,7 @@
 # 📋 Pendências e Tarefas
 
-**Última Atualização**: 2026-02-01  
-**Progresso**: 3/19 tarefas concluídas (16%)
+**Última Atualização**: 2026-02-06  
+**Progresso**: 4/19 tarefas concluídas (21%)
 
 ---
 
@@ -9,8 +9,8 @@
 
 | Status | Quantidade |
 |--------|------------|
-| ✅ Concluídas | 3 |
-| ⏱️ Pendentes | 16 |
+| ✅ Concluídas | 4 |
+| ⏱️ Pendentes | 15 |
 | **TOTAL** | **19** |
 
 ---
@@ -55,6 +55,21 @@
 - Pacman removido (occupiedLabel/activeLabel vazios)
 - Highlight do workspace ativo
 
+### 32. GPU Mode Selector (supergfxctl)
+
+**Status**: ✅ Implementado + Arquitetura de Persistência  
+**Data**: 2026-02-05 (implementação) / 2026-02-06 (bugfixes + redesign)  
+**Detalhes**: [plan-and-implementation/32-gpu-mode-selector-implementation.md](plan-and-implementation/32-gpu-mode-selector-implementation.md)
+
+**Resumo**:
+- Seletor visual Integrated/Hybrid/Dedicated na barra com confirmação duplo-click
+- Persistência direta em `/etc/supergfxd.conf` via helper + sudoers (supergfxd não persiste para Hybrid/Integrated)
+- Modprobe guard que bloqueia nvidia em modo Integrated (resolve daemon travando no boot)
+- Detecção de modo real via nvidia-smi com timeout 5s
+- Switches instantâneos (~1-3s) + reboot para aplicar (todos os modos)
+- `supergfxctl -m` chamado apenas para MUX/Dedicated (hardware); Hybrid↔Integrated só persiste config
+- **14 bugs corrigidos** incluindo race conditions, hangs de nvidia-smi/supergfxctl, não-persistência do daemon, crash do compositor
+
 ---
 
 ---
@@ -94,7 +109,7 @@
 | # | Tarefa | Tempo | Plano |
 |---|--------|-------|-------|
 | 31 | Tema preto/amarelo customizável | 10-15h | [31-theme-customization.md](plan-and-implementation/31-theme-customization.md) |
-| 32 | GPU Mode Selector (supergfxctl) ⭐ | 6-8h | [32-gpu-mode-selector.md](plan-and-implementation/32-gpu-mode-selector.md) |
+| ~~32~~ | ~~GPU Mode Selector (supergfxctl)~~ | ~~6-8h~~ | ~~[32-gpu-mode-selector-implementation.md](plan-and-implementation/32-gpu-mode-selector-implementation.md)~~ ✅ |
 
 ### Futuro: Avaliar por Último
 
@@ -112,7 +127,7 @@
 1. ✅ Lock Screen (feito)
 2. ✅ Gaps Configuration (25) (feito)
 3. ✅ Workspace Grouping (24) (feito)
-4. **GPU Mode Selector (32) - resolve problema HDMI lag** ⭐
+4. ✅ GPU Mode Selector (32) (feito + bugfix)
 
 ### Média Prioridade
 6. Help Modal (28) - ajuda usuários

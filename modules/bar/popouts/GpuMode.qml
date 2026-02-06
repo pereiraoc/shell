@@ -242,13 +242,6 @@ Column {
         readonly property bool isTarget: GpuModeService.switching && GpuModeService.targetMode === mode
         readonly property bool isConfirmation: GpuModeService.pendingConfirmation === mode
         readonly property bool isDisabled: GpuModeService.switching || GpuModeService.loading
-        // Red badge for slow operations (~60s): Integrated <-> Hybrid
-        // Show if switching FROM configuredMode TO this mode would be slow
-        // Don't care about isCurrent - what matters is if the switch will be slow
-        readonly property bool showSlowBadge: !isPending && !isTarget && !isDisabled && (
-            (mode === "hybrid" && GpuModeService.configuredMode === "integrated") ||
-            (mode === "integrated" && GpuModeService.configuredMode === "hybrid")
-        )
 
         implicitWidth: buttonIcon.implicitWidth + Appearance.padding.small * 2
         implicitHeight: buttonIcon.implicitHeight + Appearance.padding.small * 2
@@ -283,18 +276,6 @@ Column {
             Behavior on color { ColorAnimation { duration: 150 } }
         }
 
-        // Small slow operation indicator dot (only for Integrated→Hybrid)
-        Rectangle {
-            visible: parent.showSlowBadge
-            width: 6
-            height: 6
-            radius: 3
-            color: Colours.palette.m3error
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.topMargin: 2
-            anchors.rightMargin: 2
-        }
     }
 
     Connections {
