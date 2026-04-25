@@ -46,10 +46,10 @@ rsync -av $DRY_RUN \
     --exclude='nix' \
     --exclude='flake.lock' \
     --exclude='flake.nix' \
-    --exclude='scripts' \
-    --exclude='docs' \
-    --exclude='development' \
-    --exclude='plugin' \
+    --exclude='/scripts' \
+    --exclude='/docs' \
+    --exclude='/development' \
+    --exclude='/plugin' \
     --exclude='.snapshot-*' \
     "$PROJECT_DIR/" "$TARGET_DIR/"
 
