@@ -44,13 +44,11 @@ Item {
                 return qsTr("Authenticating...");
             if (root.pam.state === "max")
                 return qsTr("Maximum attempts reached");
-            
-            // Show different placeholder based on auth mode
-            if (root.pam.currentMode === "face")
-                return qsTr("Look directly at the camera");
-            if (root.pam.currentMode === "pin")
-                return qsTr("Enter your 4-digit PIN");
+
+            // === DESATIVADO em US-002 (re-ativar em US-004) ===
+            // Force password placeholder; restore mode-specific text in US-004.
             return qsTr("Enter your password");
+            // === END DESATIVADO ===
         }
 
         animate: true

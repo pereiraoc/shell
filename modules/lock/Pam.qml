@@ -77,6 +77,14 @@ Scope {
         if (passwd.active || state === "max")
             return;
 
+        // === DESATIVADO em US-002 ===
+        // Force password mode regardless of currentMode.
+        // Re-enable in US-004 after Howdy/PIN port to new caelestia API.
+        if (currentMode !== "password") {
+            currentMode = "password";
+        }
+        // === END DESATIVADO ===
+
         // PIN mode: only accept numbers, auto-submit on 4 digits
         if (currentMode === "pin") {
             if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {

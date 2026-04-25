@@ -14,11 +14,14 @@ JsonObject {
     }
 
     component Auth: JsonObject {
-        property bool enableFaceAuth: true
-        property bool enablePinAuth: true
-        property bool faceEnabled: true
-        property bool pinEnabled: true
-        property string defaultMethod: "face"
+        // === DESATIVADO em US-002 (re-ativar em US-004 após port para nova API) ===
+        // Motivo: features Howdy/PIN dependem de stack pré-merge upstream.
+        // Defaults mantêm tela de lock funcional via password tradicional.
+        property bool enableFaceAuth: false
+        property bool enablePinAuth: false
+        property bool faceEnabled: false
+        property bool pinEnabled: false
+        property string defaultMethod: "password"
         property string userPin: ""
         property int maxFaceRetries: 5
         property int maxPinRetries: 10

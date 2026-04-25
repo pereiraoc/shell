@@ -111,6 +111,10 @@ ColumnLayout {
     AuthMethodSelector {
         id: authSelector
 
+        // === DESATIVADO em US-002 (re-ativar em US-004) ===
+        visible: false
+        // === END DESATIVADO ===
+
         Layout.topMargin: Appearance.spacing.large
         Layout.alignment: Qt.AlignHCenter
 
