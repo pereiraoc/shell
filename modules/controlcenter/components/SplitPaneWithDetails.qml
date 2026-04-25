@@ -1,13 +1,13 @@
 pragma ComponentBehavior: Bound
 
 import ".."
-import qs.components
-import qs.components.effects
-import qs.components.containers
-import qs.config
-import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Widgets
+import Caelestia.Config
+import qs.components
+import qs.components.containers
+import qs.components.effects
 
 Item {
     id: root
@@ -15,10 +15,12 @@ Item {
     required property Component leftContent
     required property Component rightDetailsComponent
     required property Component rightSettingsComponent
-    
+
     property var activeItem: null
-    property var paneIdGenerator: function(item) { return item ? String(item) : ""; }
-    
+    property var paneIdGenerator: function (item) {
+        return item ? String(item) : "";
+    }
+
     property Component overlayComponent: null
 
     SplitPaneLayout {
@@ -29,64 +31,65 @@ Item {
         leftContent: root.leftContent
 
         rightContent: Component {
-        Item {
-            id: rightPaneItem
-            
-            property var pane: root.activeItem
-            property string paneId: root.paneIdGenerator(pane)
-            property Component targetComponent: root.rightSettingsComponent
-            property Component nextComponent: root.rightSettingsComponent
+            Item {
+                id: rightPaneItem
 
-            function getComponentForPane() {
-                return pane ? root.rightDetailsComponent : root.rightSettingsComponent;
-            }
+                property var pane: root.activeItem
+                property string paneId: root.paneIdGenerator(pane)
+                property Component targetComponent: root.rightSettingsComponent
+                property Component nextComponent: root.rightSettingsComponent
 
-            Component.onCompleted: {
-                targetComponent = getComponentForPane();
-                nextComponent = targetComponent;
-            }
+                function getComponentForPane() {
+                    return pane ? root.rightDetailsComponent : root.rightSettingsComponent;
+                }
 
-            Loader {
-                id: rightLoader
+                Component.onCompleted: {
+                    targetComponent = getComponentForPane();
+                    nextComponent = targetComponent;
+                }
 
-                anchors.fill: parent
+                onPaneChanged: {
+                    nextComponent = getComponentForPane();
+                    paneId = root.paneIdGenerator(pane);
+                }
 
-                opacity: 1
-                scale: 1
-                transformOrigin: Item.Center
+                Loader {
+                    id: rightLoader
 
-                clip: false
-                sourceComponent: rightPaneItem.targetComponent
-            }
+                    anchors.fill: parent
 
-            Behavior on paneId {
-                PaneTransition {
-                    target: rightLoader
-                    propertyActions: [
-                        PropertyAction {
-                            target: rightPaneItem
-                            property: "targetComponent"
-                            value: rightPaneItem.nextComponent
-                        }
-                    ]
+                    asynchronous: true
+                    opacity: 1
+                    scale: 1
+                    transformOrigin: Item.Center
+
+                    clip: false
+                    sourceComponent: rightPaneItem.targetComponent
+                }
+
+                Behavior on paneId {
+                    PaneTransition {
+                        target: rightLoader
+                        propertyActions: [
+                            PropertyAction {
+                                target: rightPaneItem
+                                property: "targetComponent"
+                                value: rightPaneItem.nextComponent
+                            }
+                        ]
+                    }
                 }
             }
-
-            onPaneChanged: {
-                nextComponent = getComponentForPane();
-                paneId = root.paneIdGenerator(pane);
-            }
-        }
         }
     }
 
     Loader {
         id: overlayLoader
-        
+
         anchors.fill: parent
+        asynchronous: true
         z: 1000
         sourceComponent: root.overlayComponent
         active: root.overlayComponent !== null
     }
 }
-

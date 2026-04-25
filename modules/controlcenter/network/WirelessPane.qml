@@ -2,11 +2,11 @@ pragma ComponentBehavior: Bound
 
 import ".."
 import "../components"
+import QtQuick
+import Quickshell.Widgets
+import Caelestia.Config
 import qs.components
 import qs.components.containers
-import qs.config
-import Quickshell.Widgets
-import QtQuick
 
 SplitPaneWithDetails {
     id: root
@@ -16,7 +16,7 @@ SplitPaneWithDetails {
     anchors.fill: parent
 
     activeItem: session.network.active
-    paneIdGenerator: function(item) {
+    paneIdGenerator: function (item) {
         return item ? (item.ssid || item.bssid || "") : "";
     }
 

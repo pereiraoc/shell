@@ -5,14 +5,16 @@ import "network"
 import "audio"
 import "appearance"
 import "taskbar"
+import "notifications"
 import "launcher"
-import qs.components
-import qs.services
-import qs.config
-import qs.modules.controlcenter
-import Quickshell.Widgets
+import "dashboard"
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Widgets
+import Caelestia.Config
+import qs.components
+import qs.services
+import qs.modules.controlcenter
 
 ClippingRectangle {
     id: root
@@ -29,33 +31,34 @@ ClippingRectangle {
     MouseArea {
         anchors.fill: parent
         z: -1
-        onPressed: function(mouse) {
+        onPressed: function (mouse) {
             root.focus = true;
             mouse.accepted = false;
         }
     }
 
     Connections {
-        target: root.session
-
         function onActiveIndexChanged(): void {
             root.focus = true;
         }
+
+        target: root.session
     }
 
     ColumnLayout {
         id: layout
 
+        property bool animationComplete: true
+        property bool initialOpeningComplete: false
+
         spacing: 0
         y: -root.session.activeIndex * root.height
         clip: true
 
-        property bool animationComplete: true
-        property bool initialOpeningComplete: false
-
         Timer {
             id: animationDelayTimer
-            interval: Appearance.anim.durations.normal
+
+            interval: Tokens.anim.durations.normal
             onTriggered: {
                 layout.animationComplete = true;
             }
@@ -63,7 +66,8 @@ ClippingRectangle {
 
         Timer {
             id: initialOpeningTimer
-            interval: Appearance.anim.durations.large
+
+            interval: Tokens.anim.durations.large
             running: true
             onTriggered: {
                 layout.initialOpeningComplete = true;
@@ -75,6 +79,7 @@ ClippingRectangle {
 
             Pane {
                 required property int index
+
                 paneIndex: index
                 componentPath: PaneRegistry.getByIndex(index).component
             }
@@ -85,11 +90,12 @@ ClippingRectangle {
         }
 
         Connections {
-            target: root.session
             function onActiveIndexChanged(): void {
                 layout.animationComplete = false;
                 animationDelayTimer.restart();
             }
+
+            target: root.session
         }
     }
 
@@ -98,12 +104,8 @@ ClippingRectangle {
 
         required property int paneIndex
         required property string componentPath
-
-        implicitWidth: root.width
-        implicitHeight: root.height
-
         property bool hasBeenLoaded: false
-        
+
         function updateActive(): void {
             const diff = Math.abs(root.session.activeIndex - pane.paneIndex);
             const isActivePane = diff === 0;
@@ -124,51 +126,57 @@ ClippingRectangle {
             loader.active = shouldBeActive;
         }
 
+        implicitWidth: root.width
+        implicitHeight: root.height
+
         Loader {
             id: loader
 
             anchors.fill: parent
+            asynchronous: true
             clip: false
             active: false
-            
+
             Component.onCompleted: {
                 Qt.callLater(pane.updateActive);
             }
-            
+
             onActiveChanged: {
                 if (active && !pane.hasBeenLoaded) {
                     pane.hasBeenLoaded = true;
                 }
-                
+
                 if (active && !item) {
                     loader.setSource(pane.componentPath, {
                         "session": root.session
                     });
                 }
             }
-            
+
             onItemChanged: {
                 if (item) {
                     pane.hasBeenLoaded = true;
                 }
             }
         }
-        
+
         Connections {
-            target: root.session
             function onActiveIndexChanged(): void {
                 pane.updateActive();
             }
+
+            target: root.session
         }
-        
+
         Connections {
-            target: layout
             function onInitialOpeningCompleteChanged(): void {
                 pane.updateActive();
             }
             function onAnimationCompleteChanged(): void {
                 pane.updateActive();
             }
+
+            target: layout
         }
     }
 }

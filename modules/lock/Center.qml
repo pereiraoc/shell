@@ -1,38 +1,37 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
+import QtQuick.Layouts
+import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.components.images
 import qs.services
-import qs.config
 import qs.utils
-import QtQuick
-import QtQuick.Layouts
 
 ColumnLayout {
     id: root
 
     required property var lock
-    readonly property list<string> timeComponents: Time.format(Config.services.useTwelveHourClock ? "hh:mm:A" : "hh:mm").split(":")
     readonly property real centerScale: Math.min(1, (lock.screen?.height ?? 1440) / 1440)
-    readonly property int centerWidth: Config.lock.sizes.centerWidth * centerScale
+    readonly property int centerWidth: Tokens.sizes.lock.centerWidth * centerScale
 
     Layout.preferredWidth: centerWidth
     Layout.fillWidth: false
     Layout.fillHeight: true
 
-    spacing: Appearance.spacing.large * 2
+    spacing: Tokens.spacing.large * 2
 
     RowLayout {
         Layout.alignment: Qt.AlignHCenter
-        spacing: Appearance.spacing.small
+        spacing: Tokens.spacing.small
 
         StyledText {
             Layout.alignment: Qt.AlignVCenter
-            text: root.timeComponents[0]
+            text: Time.hourStr
             color: Colours.palette.m3secondary
-            font.pointSize: Math.floor(Appearance.font.size.extraLarge * 3 * root.centerScale)
-            font.family: Appearance.font.family.clock
+            font.pointSize: Math.floor(Tokens.font.size.extraLarge * 3 * root.centerScale)
+            font.family: Tokens.font.family.clock
             font.bold: true
         }
 
@@ -40,32 +39,33 @@ ColumnLayout {
             Layout.alignment: Qt.AlignVCenter
             text: ":"
             color: Colours.palette.m3primary
-            font.pointSize: Math.floor(Appearance.font.size.extraLarge * 3 * root.centerScale)
-            font.family: Appearance.font.family.clock
+            font.pointSize: Math.floor(Tokens.font.size.extraLarge * 3 * root.centerScale)
+            font.family: Tokens.font.family.clock
             font.bold: true
         }
 
         StyledText {
             Layout.alignment: Qt.AlignVCenter
-            text: root.timeComponents[1]
+            text: Time.minuteStr
             color: Colours.palette.m3secondary
-            font.pointSize: Math.floor(Appearance.font.size.extraLarge * 3 * root.centerScale)
-            font.family: Appearance.font.family.clock
+            font.pointSize: Math.floor(Tokens.font.size.extraLarge * 3 * root.centerScale)
+            font.family: Tokens.font.family.clock
             font.bold: true
         }
 
         Loader {
-            Layout.leftMargin: Appearance.spacing.small
+            asynchronous: true
+            Layout.leftMargin: Tokens.spacing.small
             Layout.alignment: Qt.AlignVCenter
 
-            active: Config.services.useTwelveHourClock
+            active: GlobalConfig.services.useTwelveHourClock
             visible: active
 
             sourceComponent: StyledText {
-                text: root.timeComponents[2] ?? ""
+                text: Time.amPmStr
                 color: Colours.palette.m3primary
-                font.pointSize: Math.floor(Appearance.font.size.extraLarge * 2 * root.centerScale)
-                font.family: Appearance.font.family.clock
+                font.pointSize: Math.floor(Tokens.font.size.extraLarge * 2 * root.centerScale)
+                font.family: Tokens.font.family.clock
                 font.bold: true
             }
         }
@@ -73,24 +73,24 @@ ColumnLayout {
 
     StyledText {
         Layout.alignment: Qt.AlignHCenter
-        Layout.topMargin: -Appearance.padding.large * 2
+        Layout.topMargin: -Tokens.padding.large * 2
 
         text: Time.format("dddd, d MMMM yyyy")
         color: Colours.palette.m3tertiary
-        font.pointSize: Math.floor(Appearance.font.size.extraLarge * root.centerScale)
-        font.family: Appearance.font.family.mono
+        font.pointSize: Math.floor(Tokens.font.size.extraLarge * root.centerScale)
+        font.family: Tokens.font.family.mono
         font.bold: true
     }
 
     StyledClippingRect {
-        Layout.topMargin: Appearance.spacing.large * 2
+        Layout.topMargin: Tokens.spacing.large * 2
         Layout.alignment: Qt.AlignHCenter
 
         implicitWidth: root.centerWidth / 2
         implicitHeight: root.centerWidth / 2
 
         color: Colours.tPalette.m3surfaceContainer
-        radius: Appearance.rounding.full
+        radius: Tokens.rounding.full
 
         MaterialIcon {
             anchors.centerIn: parent
@@ -98,6 +98,7 @@ ColumnLayout {
             text: "person"
             color: Colours.palette.m3onSurfaceVariant
             font.pointSize: Math.floor(root.centerWidth / 4)
+            visible: pfp.status !== Image.Ready
         }
 
         CachingImage {
@@ -108,52 +109,14 @@ ColumnLayout {
         }
     }
 
-    AuthMethodSelector {
-        id: authSelector
-
-        // === DESATIVADO em US-002 (re-ativar em US-004) ===
-        visible: false
-        // === END DESATIVADO ===
-
-        Layout.topMargin: Appearance.spacing.large
-        Layout.alignment: Qt.AlignHCenter
-
-        selectedMethod: {
-            if (Config.lock.auth && Config.lock.auth.defaultMethod) {
-                return Config.lock.auth.defaultMethod;
-            }
-            return "face";
-        }
-        
-        faceEnabled: {
-            if (root.lock.pam.faceEnabled !== undefined) {
-                return root.lock.pam.faceEnabled;
-            }
-            return true;
-        }
-        
-        pinEnabled: {
-            if (root.lock.pam.pinEnabled !== undefined) {
-                return root.lock.pam.pinEnabled;
-            }
-            return true;
-        }
-
-        onSelectedMethodChanged: {
-            if (root.lock.pam.currentMode !== undefined) {
-                root.lock.pam.currentMode = selectedMethod;
-            }
-        }
-    }
-
     StyledRect {
         Layout.alignment: Qt.AlignHCenter
 
         implicitWidth: root.centerWidth * 0.8
-        implicitHeight: input.implicitHeight + Appearance.padding.small * 2
+        implicitHeight: input.implicitHeight + Tokens.padding.small * 2
 
         color: Colours.tPalette.m3surfaceContainer
-        radius: Appearance.rounding.full
+        radius: Tokens.rounding.full
 
         focus: true
         onActiveFocusChanged: {
@@ -172,38 +135,38 @@ ColumnLayout {
         }
 
         StateLayer {
-            hoverEnabled: false
-            cursorShape: Qt.IBeamCursor
-
-            function onClicked(): void {
+            onClicked: {
                 parent.forceActiveFocus();
             }
+
+            hoverEnabled: false
+            cursorShape: Qt.IBeamCursor
         }
 
         RowLayout {
             id: input
 
             anchors.fill: parent
-            anchors.margins: Appearance.padding.small
-            spacing: Appearance.spacing.normal
+            anchors.margins: Tokens.padding.small
+            spacing: Tokens.spacing.normal
 
             Item {
                 implicitWidth: implicitHeight
-                implicitHeight: howdyIcon.implicitHeight + Appearance.padding.small * 2
+                implicitHeight: fprintIcon.implicitHeight + Tokens.padding.small * 2
 
                 MaterialIcon {
-                    id: howdyIcon
+                    id: fprintIcon
 
                     anchors.centerIn: parent
                     animate: true
                     text: {
-                        if (root.lock.pam.howdy && root.lock.pam.howdy.tries >= 3)
-                            return "face_retouching_off";
-                        if (root.lock.pam.howdy && root.lock.pam.howdy.active)
-                            return "face";
+                        if (root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries)
+                            return "fingerprint_off";
+                        if (root.lock.pam.fprint.active)
+                            return "fingerprint";
                         return "lock";
                     }
-                    color: (root.lock.pam.howdy && root.lock.pam.howdy.tries >= 3) ? Colours.palette.m3error : Colours.palette.m3onSurface
+                    color: root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries ? Colours.palette.m3error : Colours.palette.m3onSurface
                     opacity: root.lock.pam.passwd.active ? 0 : 1
 
                     Behavior on opacity {
@@ -225,17 +188,14 @@ ColumnLayout {
 
             StyledRect {
                 implicitWidth: implicitHeight
-                implicitHeight: enterIcon.implicitHeight + Appearance.padding.small * 2
+                implicitHeight: enterIcon.implicitHeight + Tokens.padding.small * 2
 
                 color: root.lock.pam.buffer ? Colours.palette.m3primary : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
-                radius: Appearance.rounding.full
+                radius: Tokens.rounding.full
 
                 StateLayer {
                     color: root.lock.pam.buffer ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface
-
-                    function onClicked(): void {
-                        root.lock.pam.passwd.start();
-                    }
+                    onClicked: root.lock.pam.passwd.start()
                 }
 
                 MaterialIcon {
@@ -252,7 +212,7 @@ ColumnLayout {
 
     Item {
         Layout.fillWidth: true
-        Layout.topMargin: -Appearance.spacing.large
+        Layout.topMargin: -Tokens.spacing.large
 
         implicitHeight: Math.max(message.implicitHeight, stateMessage.implicitHeight)
 
@@ -309,7 +269,7 @@ ColumnLayout {
             color: Colours.palette.m3onSurfaceVariant
             animateProp: "opacity"
 
-            font.family: Appearance.font.family.mono
+            font.family: Tokens.font.family.mono
             horizontalAlignment: Qt.AlignHCenter
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             lineHeight: 1.2
@@ -328,31 +288,31 @@ ColumnLayout {
 
             readonly property Pam pam: root.lock.pam
             readonly property string msg: {
-                if (pam.howdyState === "error")
-                    return qsTr("Face recognition error. Please use PIN or password.");
+                if (pam.fprintState === "error")
+                    return qsTr("FP ERROR: %1").arg(pam.fprint.message);
                 if (pam.state === "error")
-                    return qsTr("Authentication error: %1").arg(pam.passwd.message);
+                    return qsTr("PW ERROR: %1").arg(pam.passwd.message);
 
                 if (pam.lockMessage)
                     return pam.lockMessage;
 
-                if (pam.state === "max" && pam.howdyState === "max")
-                    return qsTr("Maximum password and face recognition attempts reached.");
+                if (pam.state === "max" && pam.fprintState === "max")
+                    return qsTr("Maximum password and fingerprint attempts reached.");
                 if (pam.state === "max") {
-                    if (pam.howdy && pam.howdy.available)
-                        return qsTr("Maximum password attempts reached. Please use face recognition.");
+                    if (pam.fprint.available)
+                        return qsTr("Maximum password attempts reached. Please use fingerprint.");
                     return qsTr("Maximum password attempts reached.");
                 }
-                if (pam.howdyState === "max")
-                    return qsTr("Maximum face recognition attempts reached. Please use PIN or password.");
+                if (pam.fprintState === "max")
+                    return qsTr("Maximum fingerprint attempts reached. Please use password.");
 
                 if (pam.state === "fail") {
-                    if (pam.howdy && pam.howdy.available)
-                        return qsTr("Incorrect password. Please try again or use face recognition.");
+                    if (pam.fprint.available)
+                        return qsTr("Incorrect password. Please try again or use fingerprint.");
                     return qsTr("Incorrect password. Please try again.");
                 }
-                if (pam.howdyState === "fail")
-                    return qsTr("Face not recognized. Please try again or use PIN/password.");
+                if (pam.fprintState === "fail")
+                    return qsTr("Fingerprint not recognized (%1/%2). Please try again or use password.").arg(pam.fprint.tries).arg(Config.lock.maxFprintTries);
 
                 return "";
             }
@@ -364,8 +324,8 @@ ColumnLayout {
             opacity: 0
             color: Colours.palette.m3error
 
-            font.pointSize: Appearance.font.size.small
-            font.family: Appearance.font.family.mono
+            font.pointSize: Tokens.font.size.small
+            font.family: Tokens.font.family.mono
             horizontalAlignment: Qt.AlignHCenter
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
 
@@ -394,8 +354,6 @@ ColumnLayout {
             }
 
             Connections {
-                target: root.lock.pam
-
                 function onFlashMsg(): void {
                     exitAnim.stop();
                     if (message.scale < 1)
@@ -403,6 +361,8 @@ ColumnLayout {
                     else
                         flashAnim.restart();
                 }
+
+                target: root.lock.pam
             }
 
             Anim {
@@ -434,13 +394,13 @@ ColumnLayout {
                     target: message
                     property: "scale"
                     to: 0.7
-                    duration: Appearance.anim.durations.large
+                    type: Anim.StandardLarge
                 }
                 Anim {
                     target: message
                     property: "opacity"
                     to: 0
-                    duration: Appearance.anim.durations.large
+                    type: Anim.StandardLarge
                 }
             }
         }
@@ -449,7 +409,7 @@ ColumnLayout {
     component FlashAnim: NumberAnimation {
         target: message
         property: "opacity"
-        duration: Appearance.anim.durations.small
+        duration: Tokens.anim.durations.small
         easing.type: Easing.Linear
     }
 }

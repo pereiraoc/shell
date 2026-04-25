@@ -1,5 +1,5 @@
-import Quickshell.Bluetooth
 import QtQuick
+import Quickshell.Bluetooth
 
 QtObject {
     id: root
@@ -10,4 +10,3 @@ QtObject {
     property bool fabMenuOpen: false
     property bool editingDeviceName: false
 }
-

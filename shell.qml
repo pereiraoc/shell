@@ -12,6 +12,8 @@ import Quickshell
 import QtQuick
 
 ShellRoot {
+    settings.watchFiles: true
+
     Background {}
     Drawers {}
     AreaPicker {}
@@ -19,6 +21,7 @@ ShellRoot {
         id: lock
     }
 
+    ConfigToasts {}
     Shortcuts {}
     BatteryMonitor {}
     IdleMonitors {
