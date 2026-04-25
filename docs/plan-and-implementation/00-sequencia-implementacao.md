@@ -1,6 +1,6 @@
 # Sequência de Implementação Recomendada
 
-**Última atualização**: 2026-02-06
+**Última atualização**: 2026-02-07
 
 Este documento define a ordem recomendada para implementar os planos, considerando dependências técnicas, prioridade de uso e complexidade.
 
@@ -18,34 +18,34 @@ flowchart TB
         P32[32 GPU Mode Selector]
     end
     
-    subgraph Fase1 [Fase 1 - Fundação]
+    subgraph Fase1 [Fase 1 - Wallpaper + Theme]
+        P38[38 Wallpaper per Monitor]
+        P31[31 Theme Customization]
+    end
+    
+    subgraph Fase2 [Fase 2 - Fundação]
         P39[39 Keyboard Shortcuts]
         P29[29 Configuration Panel]
     end
     
-    subgraph Fase2 [Fase 2 - Dashboard]
+    subgraph Fase3 [Fase 3 - Dashboard]
         P36[36 Help Dashboard Tab]
         P40[40 Peripheral Battery]
     end
     
-    subgraph Fase3 [Fase 3 - Wallpaper + Lock]
-        P38[38 Wallpaper per Monitor]
+    subgraph Fase4 [Fase 4 - Lock + Launcher]
         P35[35 Face Reading Retry]
+        P30[30 Launcher Customization]
     end
     
-    subgraph Fase4 [Fase 4 - Widgets Barra]
+    subgraph Fase5 [Fase 5 - Widgets Barra]
         P26[26 Shortcuts Widget]
         P27[27 Games Widget]
     end
     
-    subgraph Fase5 [Fase 5 - Notifications + Weather]
+    subgraph Fase6 [Fase 6 - Notifications + Weather]
         P34[34 Notification Manager]
         P33[33 Weather Multi-Locations]
-    end
-    
-    subgraph Fase6 [Fase 6 - Customization]
-        P30[30 Launcher Customization]
-        P31[31 Theme Customization]
     end
     
     subgraph Fase7 [Fase 7 - Software Manager]
@@ -56,9 +56,12 @@ flowchart TB
         P22[22 System Tray]
     end
     
+    subgraph BootFuturo [🔮 Futuro - Boot Experience]
+        P41[41 Bootsplash Config]
+    end
+    
     P39 --> P36
     P28 --> P39
-    P29 --> P38
     P29 --> P30
     P29 --> P37
 ```
@@ -79,85 +82,90 @@ flowchart TB
 
 ---
 
-### Fase 1: Fundação (Config + Shortcuts)
+### Fase 1: Wallpaper + Theme (Customização Visual)
 
 | Ordem | Plano | Tempo | Motivo |
 |-------|-------|-------|--------|
-| 1 | **39** Keyboard Shortcuts Management | 8-10h | ShortcutsManager centraliza core+custom; base para Help Tab |
-| 2 | **29** Configuration Panel | 6-8h | Painel central de config; usado por vários planos |
+| 1 | **38** Wallpaper per Monitor | 6-8h | Multi-source + per-monitor; usa FileSystemModel existente; config própria via FileView |
+| 2 | **31** Theme Customization | 10-15h | Gerar paleta M3; color picker + preview em tempo real |
 
 **Dependências**:
-- 39 usa HelpModal.qml como referência (shortcuts hardcoded → ShortcutsManager)
-- 29 estabelece padrão de config que 30, 37, 38 reutilizam
+- 38 usa config própria (WallpaperConfig via FileView); não depende do Configuration Panel
+- 31 manipula Colors.qml diretamente; independente de outros planos
+- 38 e 31 são independentes entre si e podem ser paralelizados
 
-**Total Fase 1**: ~14-18h
+**Total Fase 1**: ~16-23h
 
 ---
 
-### Fase 2: Dashboard Enhancements
+### Fase 2: Fundação (Config + Shortcuts)
 
 | Ordem | Plano | Tempo | Motivo |
 |-------|-------|-------|--------|
-| 3 | **36** Help Dashboard Tab | 3-4h | Reutiliza ShortcutsManager do plano 39 |
-| 4 | **40** Peripheral Battery Card | 4-6h | Card independente; usa Bluetooth API existente |
+| 3 | **39** Keyboard Shortcuts Management | 8-10h | ShortcutsManager centraliza core+custom; base para Help Tab |
+| 4 | **29** Configuration Panel | 6-8h | Painel central de config; usado por vários planos |
+
+**Dependências**:
+- 39 usa HelpModal.qml como referência (shortcuts hardcoded → ShortcutsManager)
+- 29 estabelece padrão de config que 30, 37 reutilizam
+
+**Total Fase 2**: ~14-18h
+
+---
+
+### Fase 3: Dashboard Enhancements
+
+| Ordem | Plano | Tempo | Motivo |
+|-------|-------|-------|--------|
+| 5 | **36** Help Dashboard Tab | 3-4h | Reutiliza ShortcutsManager do plano 39 |
+| 6 | **40** Peripheral Battery Card | 4-6h | Card independente; usa Bluetooth API existente |
 
 **Dependências**:
 - 36 depende de 39 (ShortcutsManager.getCoreByCategory)
 - 40 independente (apenas layout do Dashboard)
 
-**Total Fase 2**: ~7-10h
+**Total Fase 3**: ~7-10h
 
 ---
 
-### Fase 3: Wallpaper + Lock Screen
+### Fase 4: Lock Screen + Launcher
 
 | Ordem | Plano | Tempo | Motivo |
 |-------|-------|-------|--------|
-| 5 | **38** Wallpaper per Monitor | 6-8h | Multi-source + per-monitor; usa FileSystemModel existente |
-| 6 | **35** Face Reading Retry | 4-6h | Complementa Lock Screen; baixa complexidade |
+| 7 | **35** Face Reading Retry | 4-6h | Complementa Lock Screen; baixa complexidade |
+| 8 | **30** Launcher Customization | 6-8h | Editar ícones/nomes de apps; usa Config Panel (29) |
 
 **Dependências**:
-- 38 usa Config system (estabelecido em fase 1)
 - 35 independente
+- 30 depende de 29 (Config Panel da fase 2)
 
-**Total Fase 3**: ~10-14h
+**Total Fase 4**: ~10-14h
 
 ---
 
-### Fase 4: Widgets na Barra
+### Fase 5: Widgets na Barra
 
 | Ordem | Plano | Tempo | Motivo |
 |-------|-------|-------|--------|
-| 7 | **26** Shortcuts Widget | 6-8h | Atalhos rápidos na barra (apps, vaults, etc) |
-| 8 | **27** Games Widget | 8-10h | Steam favorites; parsing VDF |
+| 9 | **26** Shortcuts Widget | 6-8h | Atalhos rápidos na barra (apps, vaults, etc) |
+| 10 | **27** Games Widget | 8-10h | Steam favorites; parsing VDF |
 
 **Nota**: 26 (Shortcuts Widget) ≠ 39 (Keyboard Shortcuts)
 - 26 = botões clicáveis na barra para abrir apps
 - 39 = atalhos de teclado (Super+X)
 
-**Total Fase 4**: ~14-18h
+**Total Fase 5**: ~14-18h
 
 ---
 
-### Fase 5: Notifications + Weather
+### Fase 6: Notifications + Weather
 
 | Ordem | Plano | Tempo | Motivo |
 |-------|-------|-------|--------|
-| 9 | **34** Notification Manager | 12-16h | Histórico existe; adicionar blockedApps + iconOverrides |
-| 10 | **33** Weather Multi-Locations | 6-8h | Refatorar Weather service |
+| 11 | **34** Notification Manager | 12-16h | Histórico existe; adicionar blockedApps + iconOverrides |
+| 12 | **33** Weather Multi-Locations | 6-8h | Refatorar Weather service |
 
-**Total Fase 5**: ~18-24h
-
----
-
-### Fase 6: Customization
-
-| Ordem | Plano | Tempo | Motivo |
-|-------|-------|-------|--------|
-| 11 | **30** Launcher Customization | 6-8h | Editar ícones/nomes de apps |
-| 12 | **31** Theme Customization | 10-15h | Gerar paleta M3; mais complexo |
-
-**Total Fase 6**: ~16-23h
+**Total Fase 6**: ~18-24h
 
 ---
 
@@ -180,22 +188,33 @@ flowchart TB
 | - | 25 Gaps Configuration | - | - | ✅ Implementado |
 | - | 28 Help Modal | - | - | ✅ Implementado |
 | - | 32 GPU Mode Selector | - | - | ✅ Implementado |
-| 1 | **39 Keyboard Shortcuts** | 1 | 8-10h | ⏱️ Planejado |
-| 2 | 29 Configuration Panel | 1 | 6-8h | ⏱️ Planejado |
-| 3 | 36 Help Dashboard Tab | 2 | 3-4h | ⏱️ Planejado |
-| 4 | **40 Peripheral Battery** | 2 | 4-6h | ⏱️ Planejado |
-| 5 | **38 Wallpaper per Monitor** | 3 | 6-8h | ⏱️ Planejado |
-| 6 | 35 Face Reading Retry | 3 | 4-6h | ⏱️ Planejado |
-| 7 | 26 Shortcuts Widget | 4 | 6-8h | ⏱️ Planejado |
-| 8 | 27 Games Widget | 4 | 8-10h | ⏱️ Planejado |
-| 9 | 34 Notification Manager | 5 | 12-16h | ⏱️ Planejado |
-| 10 | 33 Weather Multi-Locations | 5 | 6-8h | ⏱️ Planejado |
-| 11 | 30 Launcher Customization | 6 | 6-8h | ⏱️ Planejado |
-| 12 | 31 Theme Customization | 6 | 10-15h | ⏱️ Planejado |
+| 1 | **38 Wallpaper per Monitor** | 1 | 6-8h | ⏱️ Próximo |
+| 2 | **31 Theme Customization** | 1 | 10-15h | ⏱️ Próximo |
+| 3 | 39 Keyboard Shortcuts | 2 | 8-10h | ⏱️ Planejado |
+| 4 | 29 Configuration Panel | 2 | 6-8h | ⏱️ Planejado |
+| 5 | 36 Help Dashboard Tab | 3 | 3-4h | ⏱️ Planejado |
+| 6 | 40 Peripheral Battery | 3 | 4-6h | ⏱️ Planejado |
+| 7 | 35 Face Reading Retry | 4 | 4-6h | ⏱️ Planejado |
+| 8 | 30 Launcher Customization | 4 | 6-8h | ⏱️ Planejado |
+| 9 | 26 Shortcuts Widget | 5 | 6-8h | ⏱️ Planejado |
+| 10 | 27 Games Widget | 5 | 8-10h | ⏱️ Planejado |
+| 11 | 34 Notification Manager | 6 | 12-16h | ⏱️ Planejado |
+| 12 | 33 Weather Multi-Locations | 6 | 6-8h | ⏱️ Planejado |
 | 13 | 37 Software Manager | 7 | 15-23h | ⏱️ Planejado |
 | - | 22 System Tray | Futuro | TBD | ⏳ Bloqueado (sync incubation) |
+| - | **41 Bootsplash (config)** | Futuro – Boot | TBD | 🔮 Ver `caelestia-arch-setup/development/docs/13-boot-experience-tbd.md` §1 |
 
 **Total estimado restante**: ~94-130h
+
+---
+
+### 🔮 Fase Futuro — Boot Experience
+
+| Plano | Descrição | Onde está |
+|-------|-----------|-----------|
+| **41** Bootsplash selecionável | Animação/tema de bootsplash configurável no painel do Caelestia | `development/docs/13-boot-experience-tbd.md` §1 |
+
+Nota: Itens “Lock como primeira tela” e “Menu de boot por tecla” são do sistema (SDDM, bootloader), não do Caelestia Shell; documentados no mesmo doc §2 e §3.
 
 ---
 
@@ -215,6 +234,18 @@ flowchart TB
 
 ## Notas de Implementação
 
+### Plano 38 (Wallpaper) — Fase 1
+- **Não usa hyprpaper**: Quickshell renderiza direto via QML
+- **Multi-source**: Repeater de FileSystemModel
+- **Per-monitor**: `Wallpapers.getForMonitor(screen.name)`
+- **Config própria**: FileView para persistir wallpaper por monitor
+
+### Plano 31 (Theme Customization) — Fase 1
+- **Color picker**: Selecionar cor primária
+- **Paleta M3**: Gerar ~50 cores derivadas automaticamente
+- **Preview**: Tempo real antes de aplicar
+- **Temas salvos**: Persistir temas customizados do usuário
+
 ### Plano 39 (Keyboard Shortcuts)
 - **Core shortcuts**: Hardcoded no ShortcutsManager (imutáveis)
 - **Custom shortcuts**: Persistidos em config.json
@@ -226,17 +257,12 @@ flowchart TB
 - **Tipos**: Detectar via `device.icon.includes("mouse"|"keyboard"|"headset")`
 - **2.4GHz**: Pode precisar UPower (investigação futura)
 
-### Plano 38 (Wallpaper)
-- **Não usa hyprpaper**: Quickshell renderiza direto via QML
-- **Multi-source**: Repeater de FileSystemModel
-- **Per-monitor**: `Wallpapers.getForMonitor(screen.name)`
-
 ---
 
 ## Ajustes Possíveis
 
-- **Paralelizar 3+4**: Help Tab e Peripheral Battery são independentes
-- **Paralelizar 7+8**: Shortcuts Widget e Games Widget são independentes
+- **Paralelizar 1+2**: Wallpaper e Theme são independentes entre si
+- **Paralelizar 5+6**: Help Tab e Peripheral Battery são independentes
+- **Paralelizar 9+10**: Shortcuts Widget e Games Widget são independentes
 - **Antecipar 40**: Se quiser ver periféricos logo (baixa complexidade)
-- **Adiar 31**: Theme Customization é complexo; pode ficar para v0.3.0+
 - **22 System Tray**: Bloqueado por bug de sync incubation; postergado indefinidamente

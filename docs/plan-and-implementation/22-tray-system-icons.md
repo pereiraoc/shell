@@ -357,7 +357,7 @@ Config:
   "modules-right": ["tray"],
   "tray": {
     "icon-size": 16,
-    "spacing": 10
+    "spacing": 10gtk-launch steam
   }
 }
 ```
