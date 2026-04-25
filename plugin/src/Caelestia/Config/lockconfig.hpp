@@ -13,6 +13,16 @@ class LockConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(int, maxFprintTries, 3)
     CONFIG_PROPERTY(bool, hideNotifs, false)
 
+    // === US-004: Howdy/PIN auth (custom Caelestia patch) ===
+    CONFIG_GLOBAL_PROPERTY(bool, enableFaceAuth, true)
+    CONFIG_GLOBAL_PROPERTY(bool, enablePinAuth, true)
+    CONFIG_GLOBAL_PROPERTY(QString, defaultMethod, u"face"_s)
+    CONFIG_GLOBAL_PROPERTY(QString, userPin, u""_s)
+    CONFIG_GLOBAL_PROPERTY(int, maxFaceRetries, 5)
+    CONFIG_GLOBAL_PROPERTY(int, maxPinRetries, 10)
+    CONFIG_GLOBAL_PROPERTY(int, maxPasswordRetries, 30)
+    // === END US-004 ===
+
 public:
     explicit LockConfig(QObject* parent = nullptr)
         : ConfigObject(parent) {}

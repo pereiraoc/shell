@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import qs.components
 import qs.components.controls
 import qs.services
-import qs.config
+import Caelestia.Config
 import QtQuick
 import QtQuick.Layouts
 
@@ -15,7 +15,7 @@ RowLayout {
     property bool faceEnabled: true
     property bool pinEnabled: true
 
-    spacing: Appearance.spacing.normal
+    spacing: Tokens.spacing.normal
 
     // Face button
     StyledRect {
@@ -28,7 +28,7 @@ RowLayout {
             Colours.palette.m3primaryContainer : 
             Colours.tPalette.m3surfaceContainer
         
-        radius: Appearance.rounding.small
+        radius: Tokens.rounding.small
         opacity: root.faceEnabled ? 1 : 0.5
 
         border.width: root.selectedMethod === "face" ? 2 : 0
@@ -46,7 +46,7 @@ RowLayout {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: Appearance.spacing.small
+            spacing: Tokens.spacing.small
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
@@ -54,7 +54,7 @@ RowLayout {
                 color: root.selectedMethod === "face" ? 
                     Colours.palette.m3primary : 
                     Colours.palette.m3onSurface
-                font.pointSize: Appearance.font.size.large
+                font.pointSize: Tokens.font.size.large
             }
 
             StyledText {
@@ -63,7 +63,7 @@ RowLayout {
                 color: root.selectedMethod === "face" ? 
                     Colours.palette.m3primary : 
                     Colours.palette.m3onSurface
-                font.pointSize: Appearance.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
         }
     }
@@ -79,7 +79,7 @@ RowLayout {
             Colours.palette.m3primaryContainer : 
             Colours.tPalette.m3surfaceContainer
         
-        radius: Appearance.rounding.small
+        radius: Tokens.rounding.small
         opacity: root.pinEnabled ? 1 : 0.5
 
         border.width: root.selectedMethod === "pin" ? 2 : 0
@@ -97,7 +97,7 @@ RowLayout {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: Appearance.spacing.small
+            spacing: Tokens.spacing.small
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
@@ -105,7 +105,7 @@ RowLayout {
                 color: root.selectedMethod === "pin" ? 
                     Colours.palette.m3primary : 
                     Colours.palette.m3onSurface
-                font.pointSize: Appearance.font.size.large
+                font.pointSize: Tokens.font.size.large
             }
 
             StyledText {
@@ -114,7 +114,7 @@ RowLayout {
                 color: root.selectedMethod === "pin" ? 
                     Colours.palette.m3primary : 
                     Colours.palette.m3onSurface
-                font.pointSize: Appearance.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
         }
     }
@@ -130,7 +130,7 @@ RowLayout {
             Colours.palette.m3primaryContainer : 
             Colours.tPalette.m3surfaceContainer
         
-        radius: Appearance.rounding.small
+        radius: Tokens.rounding.small
 
         border.width: root.selectedMethod === "password" ? 2 : 0
         border.color: Colours.palette.m3primary
@@ -143,7 +143,7 @@ RowLayout {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: Appearance.spacing.small
+            spacing: Tokens.spacing.small
 
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
@@ -151,7 +151,7 @@ RowLayout {
                 color: root.selectedMethod === "password" ? 
                     Colours.palette.m3primary : 
                     Colours.palette.m3onSurface
-                font.pointSize: Appearance.font.size.large
+                font.pointSize: Tokens.font.size.large
             }
 
             StyledText {
@@ -160,7 +160,7 @@ RowLayout {
                 color: root.selectedMethod === "password" ? 
                     Colours.palette.m3primary : 
                     Colours.palette.m3onSurface
-                font.pointSize: Appearance.font.size.small
+                font.pointSize: Tokens.font.size.small
             }
         }
     }

@@ -6,7 +6,7 @@ import qs.components
 import qs.components.controls
 import qs.components.containers
 import qs.services
-import qs.config
+import Caelestia.Config
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -48,7 +48,7 @@ Item {
         }
 
         // Save hashed PIN to config for security
-        Config.lock.auth.userPin = hashPin(newPin);
+        GlobalConfig.lock.userPin = hashPin(newPin);
         Config.save();
 
         pinMismatch = false;
@@ -63,8 +63,8 @@ Item {
 
     function resetLockouts() {
         // Reset all lockout counters (this would be saved in a state file)
-        Config.lock.auth.faceEnabled = true;
-        Config.lock.auth.pinEnabled = true;
+        GlobalConfig.lock.enableFaceAuth = true;
+        GlobalConfig.lock.enablePinAuth = true;
         Config.save();
         statusMessage = qsTr("All authentication methods have been reset");
         pinSavedTimer.start();
@@ -81,7 +81,7 @@ Item {
 
     StyledFlickable {
         anchors.fill: parent
-        anchors.margins: Appearance.padding.large * 2
+        anchors.margins: Tokens.padding.large * 2
         flickableDirection: Flickable.VerticalFlick
         contentHeight: contentLayout.height
 
@@ -95,7 +95,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            spacing: Appearance.spacing.large
+            spacing: Tokens.spacing.large
 
             // Header
             SettingsHeader {
@@ -106,29 +106,29 @@ Item {
             // PIN Configuration Section
             StyledRect {
                 Layout.fillWidth: true
-                Layout.topMargin: Appearance.spacing.large
+                Layout.topMargin: Tokens.spacing.large
                 color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
-                radius: Appearance.rounding.normal
-                implicitHeight: pinSection.implicitHeight + Appearance.padding.large * 2
+                radius: Tokens.rounding.normal
+                implicitHeight: pinSection.implicitHeight + Tokens.padding.large * 2
 
                 ColumnLayout {
                     id: pinSection
                     anchors.fill: parent
-                    anchors.margins: Appearance.padding.large
-                    spacing: Appearance.spacing.normal
+                    anchors.margins: Tokens.padding.large
+                    spacing: Tokens.spacing.normal
 
                     RowLayout {
-                        spacing: Appearance.spacing.normal
+                        spacing: Tokens.spacing.normal
 
                         MaterialIcon {
                             text: "pin"
-                            font.pointSize: Appearance.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             color: Colours.palette.m3primary
                         }
 
                         StyledText {
                             text: qsTr("PIN Configuration")
-                            font.pointSize: Appearance.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             font.weight: 500
                         }
                     }
@@ -143,8 +143,8 @@ Item {
                     // New PIN input
                     ColumnLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: Appearance.spacing.normal
-                        spacing: Appearance.spacing.small
+                        Layout.topMargin: Tokens.spacing.normal
+                        spacing: Tokens.spacing.small
 
                         StyledText {
                             text: qsTr("New PIN")
@@ -154,13 +154,13 @@ Item {
                         StyledRect {
                             Layout.fillWidth: true
                             color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                            radius: Appearance.rounding.small
-                            implicitHeight: newPinField.implicitHeight + Appearance.padding.normal * 2
+                            radius: Tokens.rounding.small
+                            implicitHeight: newPinField.implicitHeight + Tokens.padding.normal * 2
 
                             StyledTextField {
                                 id: newPinField
                                 anchors.fill: parent
-                                anchors.margins: Appearance.padding.normal
+                                anchors.margins: Tokens.padding.normal
                                 placeholderText: qsTr("Enter 4-digit PIN")
                                 echoMode: TextInput.Password
                                 maximumLength: 4
@@ -179,7 +179,7 @@ Item {
                     // Confirm PIN input
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: Appearance.spacing.small
+                        spacing: Tokens.spacing.small
 
                         StyledText {
                             text: qsTr("Confirm PIN")
@@ -189,13 +189,13 @@ Item {
                         StyledRect {
                             Layout.fillWidth: true
                             color: Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                            radius: Appearance.rounding.small
-                            implicitHeight: confirmPinField.implicitHeight + Appearance.padding.normal * 2
+                            radius: Tokens.rounding.small
+                            implicitHeight: confirmPinField.implicitHeight + Tokens.padding.normal * 2
 
                             StyledTextField {
                                 id: confirmPinField
                                 anchors.fill: parent
-                                anchors.margins: Appearance.padding.normal
+                                anchors.margins: Tokens.padding.normal
                                 placeholderText: qsTr("Confirm 4-digit PIN")
                                 echoMode: TextInput.Password
                                 maximumLength: 4
@@ -221,11 +221,11 @@ Item {
 
                     // Save button
                     StyledRect {
-                        Layout.topMargin: Appearance.spacing.normal
+                        Layout.topMargin: Tokens.spacing.normal
                         color: Colours.palette.m3primary
-                        radius: Appearance.rounding.small
-                        implicitWidth: savePinRow.implicitWidth + Appearance.padding.large * 2
-                        implicitHeight: savePinRow.implicitHeight + Appearance.padding.normal * 2
+                        radius: Tokens.rounding.small
+                        implicitWidth: savePinRow.implicitWidth + Tokens.padding.large * 2
+                        implicitHeight: savePinRow.implicitHeight + Tokens.padding.normal * 2
 
                         StateLayer {
                             color: Colours.palette.m3onPrimary
@@ -238,7 +238,7 @@ Item {
                         RowLayout {
                             id: savePinRow
                             anchors.centerIn: parent
-                            spacing: Appearance.spacing.small
+                            spacing: Tokens.spacing.small
 
                             MaterialIcon {
                                 text: "save"
@@ -258,29 +258,29 @@ Item {
             // Account Recovery Section
             StyledRect {
                 Layout.fillWidth: true
-                Layout.topMargin: Appearance.spacing.large
+                Layout.topMargin: Tokens.spacing.large
                 color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
-                radius: Appearance.rounding.normal
-                implicitHeight: recoverySection.implicitHeight + Appearance.padding.large * 2
+                radius: Tokens.rounding.normal
+                implicitHeight: recoverySection.implicitHeight + Tokens.padding.large * 2
 
                 ColumnLayout {
                     id: recoverySection
                     anchors.fill: parent
-                    anchors.margins: Appearance.padding.large
-                    spacing: Appearance.spacing.normal
+                    anchors.margins: Tokens.padding.large
+                    spacing: Tokens.spacing.normal
 
                     RowLayout {
-                        spacing: Appearance.spacing.normal
+                        spacing: Tokens.spacing.normal
 
                         MaterialIcon {
                             text: "lock_open"
-                            font.pointSize: Appearance.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             color: Colours.palette.m3tertiary
                         }
 
                         StyledText {
                             text: qsTr("Account Recovery")
-                            font.pointSize: Appearance.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             font.weight: 500
                         }
                     }
@@ -295,35 +295,35 @@ Item {
                     // Current status
                     ColumnLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: Appearance.spacing.normal
-                        spacing: Appearance.spacing.small
+                        Layout.topMargin: Tokens.spacing.normal
+                        spacing: Tokens.spacing.small
 
                         RowLayout {
-                            spacing: Appearance.spacing.normal
+                            spacing: Tokens.spacing.normal
 
                             MaterialIcon {
                                 text: "face"
-                                color: Config.lock.auth.enableFaceAuth ? Colours.palette.m3primary : Colours.palette.m3error
+                                color: GlobalConfig.lock.enableFaceAuth ? Colours.palette.m3primary : Colours.palette.m3error
                             }
 
                             StyledText {
                                 text: qsTr("Face Authentication: %1").arg(
-                                    Config.lock.auth.enableFaceAuth ? qsTr("Enabled") : qsTr("Disabled")
+                                    GlobalConfig.lock.enableFaceAuth ? qsTr("Enabled") : qsTr("Disabled")
                                 )
                             }
                         }
 
                         RowLayout {
-                            spacing: Appearance.spacing.normal
+                            spacing: Tokens.spacing.normal
 
                             MaterialIcon {
                                 text: "pin"
-                                color: Config.lock.auth.enablePinAuth ? Colours.palette.m3primary : Colours.palette.m3error
+                                color: GlobalConfig.lock.enablePinAuth ? Colours.palette.m3primary : Colours.palette.m3error
                             }
 
                             StyledText {
                                 text: qsTr("PIN Authentication: %1").arg(
-                                    Config.lock.auth.enablePinAuth ? qsTr("Enabled") : qsTr("Disabled")
+                                    GlobalConfig.lock.enablePinAuth ? qsTr("Enabled") : qsTr("Disabled")
                                 )
                             }
                         }
@@ -331,11 +331,11 @@ Item {
 
                     // Reset button
                     StyledRect {
-                        Layout.topMargin: Appearance.spacing.normal
+                        Layout.topMargin: Tokens.spacing.normal
                         color: Colours.palette.m3tertiaryContainer
-                        radius: Appearance.rounding.small
-                        implicitWidth: resetRow.implicitWidth + Appearance.padding.large * 2
-                        implicitHeight: resetRow.implicitHeight + Appearance.padding.normal * 2
+                        radius: Tokens.rounding.small
+                        implicitWidth: resetRow.implicitWidth + Tokens.padding.large * 2
+                        implicitHeight: resetRow.implicitHeight + Tokens.padding.normal * 2
 
                         StateLayer {
                             color: Colours.palette.m3onTertiaryContainer
@@ -348,7 +348,7 @@ Item {
                         RowLayout {
                             id: resetRow
                             anchors.centerIn: parent
-                            spacing: Appearance.spacing.small
+                            spacing: Tokens.spacing.small
 
                             MaterialIcon {
                                 text: "restart_alt"
@@ -368,29 +368,29 @@ Item {
             // Default Auth Method Section
             StyledRect {
                 Layout.fillWidth: true
-                Layout.topMargin: Appearance.spacing.large
+                Layout.topMargin: Tokens.spacing.large
                 color: Colours.layer(Colours.palette.m3surfaceContainer, 1)
-                radius: Appearance.rounding.normal
-                implicitHeight: defaultSection.implicitHeight + Appearance.padding.large * 2
+                radius: Tokens.rounding.normal
+                implicitHeight: defaultSection.implicitHeight + Tokens.padding.large * 2
 
                 ColumnLayout {
                     id: defaultSection
                     anchors.fill: parent
-                    anchors.margins: Appearance.padding.large
-                    spacing: Appearance.spacing.normal
+                    anchors.margins: Tokens.padding.large
+                    spacing: Tokens.spacing.normal
 
                     RowLayout {
-                        spacing: Appearance.spacing.normal
+                        spacing: Tokens.spacing.normal
 
                         MaterialIcon {
                             text: "settings"
-                            font.pointSize: Appearance.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             color: Colours.palette.m3secondary
                         }
 
                         StyledText {
                             text: qsTr("Default Authentication")
-                            font.pointSize: Appearance.font.size.large
+                            font.pointSize: Tokens.font.size.large
                             font.weight: 500
                         }
                     }
@@ -404,8 +404,8 @@ Item {
 
                     // Method buttons
                     RowLayout {
-                        Layout.topMargin: Appearance.spacing.normal
-                        spacing: Appearance.spacing.normal
+                        Layout.topMargin: Tokens.spacing.normal
+                        spacing: Tokens.spacing.normal
 
                         Repeater {
                             model: [
@@ -417,18 +417,18 @@ Item {
                             StyledRect {
                                 required property var modelData
 
-                                readonly property bool isSelected: Config.lock.auth.defaultMethod === modelData.id
+                                readonly property bool isSelected: GlobalConfig.lock.defaultMethod === modelData.id
 
                                 color: isSelected ? Colours.palette.m3primaryContainer : Colours.layer(Colours.palette.m3surfaceContainer, 2)
-                                radius: Appearance.rounding.small
-                                implicitWidth: methodContent.implicitWidth + Appearance.padding.large * 2
-                                implicitHeight: methodContent.implicitHeight + Appearance.padding.normal * 2
+                                radius: Tokens.rounding.small
+                                implicitWidth: methodContent.implicitWidth + Tokens.padding.large * 2
+                                implicitHeight: methodContent.implicitHeight + Tokens.padding.normal * 2
 
                                 StateLayer {
                                     color: isSelected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
 
                                     function onClicked(): void {
-                                        Config.lock.auth.defaultMethod = modelData.id;
+                                        GlobalConfig.lock.defaultMethod = modelData.id;
                                         Config.save();
                                     }
                                 }
@@ -436,7 +436,7 @@ Item {
                                 RowLayout {
                                     id: methodContent
                                     anchors.centerIn: parent
-                                    spacing: Appearance.spacing.small
+                                    spacing: Tokens.spacing.small
 
                                     MaterialIcon {
                                         text: modelData.icon

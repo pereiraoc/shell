@@ -45,10 +45,12 @@ Item {
             if (root.pam.state === "max")
                 return qsTr("Maximum attempts reached");
 
-            // === DESATIVADO em US-002 (re-ativar em US-004) ===
-            // Force password placeholder; restore mode-specific text in US-004.
+            // Mode-specific placeholder (US-004)
+            if (root.pam.currentMode === "face")
+                return qsTr("Look directly at the camera");
+            if (root.pam.currentMode === "pin")
+                return qsTr("Enter your 4-digit PIN");
             return qsTr("Enter your password");
-            // === END DESATIVADO ===
         }
 
         animate: true

@@ -109,6 +109,21 @@ ColumnLayout {
         }
     }
 
+    AuthMethodSelector {
+        id: authSelector
+
+        Layout.topMargin: Tokens.spacing.large
+        Layout.alignment: Qt.AlignHCenter
+
+        selectedMethod: root.lock.pam.currentMode
+        faceEnabled: root.lock.pam.faceEnabled
+        pinEnabled: root.lock.pam.pinEnabled
+
+        onSelectedMethodChanged: {
+            root.lock.pam.currentMode = selectedMethod;
+        }
+    }
+
     StyledRect {
         Layout.alignment: Qt.AlignHCenter
 
