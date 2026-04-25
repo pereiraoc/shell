@@ -4,6 +4,7 @@ import qs.components
 import qs.services
 import qs.config
 import Quickshell.Services.SystemTray
+import Quickshell
 import QtQuick
 
 StyledRect {
@@ -32,6 +33,22 @@ StyledRect {
 
     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (Config.bar.tray.background && items.count > 0) ? Colours.tPalette.m3surfaceContainer.a : 0)
     radius: Appearance.rounding.full
+
+    // DIAGNÓSTICO: escrever em arquivo (console pode não aparecer no output)
+    function diagLog(msg) {
+        Quickshell.execDetached(["sh", "-c", "echo '" + msg.replace(/'/g, "'\"'\"'") + "' >> /tmp/tray-diag.txt"])
+    }
+    Component.onCompleted: diagLog("TRAY-DIAG: Tray loaded, items.count: " + items.count)
+    Connections {
+        target: items
+        function onCountChanged() { diagLog("TRAY-DIAG: items.count changed: " + items.count) }
+    }
+    Timer {
+        interval: 5000
+        running: true
+        repeat: false
+        onTriggered: diagLog("TRAY-DIAG: after 5s, items.count: " + items.count)
+    }
 
     Column {
         id: layout

@@ -33,14 +33,14 @@ Item {
     }
 
     visible: width > Config.border.thickness
-    implicitWidth: Config.border.thickness
+    implicitWidth: shouldBeVisible ? contentWidth : Config.border.thickness
 
     states: State {
         name: "visible"
         when: root.shouldBeVisible
 
         PropertyChanges {
-            root.implicitWidth: root.contentWidth
+            // root.implicitWidth: root.contentWidth // Commented - using direct binding instead
         }
     }
 
