@@ -44,13 +44,13 @@ Singleton {
     function increaseBrightness(): void {
         const monitor = getMonitor("active");
         if (monitor)
-            monitor.setBrightness(monitor.brightness + Config.services.brightnessIncrement);
+            monitor.stepBrightness(Config.services.brightnessIncrement);
     }
 
     function decreaseBrightness(): void {
         const monitor = getMonitor("active");
         if (monitor)
-            monitor.setBrightness(monitor.brightness - Config.services.brightnessIncrement);
+            monitor.stepBrightness(-Config.services.brightnessIncrement);
     }
 
     onMonitorsChanged: {
@@ -142,6 +142,12 @@ Singleton {
                 targetBrightness = parseFloat(value);
             }
 
+            // Ensure minimum brightness is respected. Treat non-positive config
+            // values as unset and use a safe fallback of 5%.
+            const cfgMin = Config.services.minBrightness;
+            const minBrightness = Math.max(0, Math.min(1, (typeof cfgMin === 'number' && cfgMin > 0) ? cfgMin : 0.05));
+            targetBrightness = Math.max(minBrightness, Math.min(1, targetBrightness));
+
             if (isNaN(targetBrightness))
                 return `Failed to parse value: ${value}\nExpected: 0.1, +0.1, 0.1-, 10%, +10%, 10%-`;
 
@@ -160,16 +166,53 @@ Singleton {
         readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
         property real brightness
         property real queuedBrightness: NaN
+        property real pendingDelta: 0
+
+        function minBrightnessValue(): real {
+            const cfgMin = Config.services.minBrightness;
+            return Math.max(0, Math.min(1, (typeof cfgMin === 'number' && cfgMin > 0) ? cfgMin : 0.05));
+        }
+
+        function parseBrightnessText(text: string): real {
+            if (isAppleDisplay) {
+                const val = parseInt(text.trim());
+                return isNaN(val) ? NaN : val / 101;
+            }
+
+            const parts = text.trim().split(" ");
+            const cur = parseInt(parts[3]);
+            const max = parseInt(parts[4]);
+            if (isNaN(cur) || isNaN(max) || max <= 0)
+                return NaN;
+
+            return cur / max;
+        }
 
         readonly property Process initProc: Process {
             stdout: StdioCollector {
                 onStreamFinished: {
-                    if (monitor.isAppleDisplay) {
-                        const val = parseInt(text.trim());
-                        monitor.brightness = val / 101;
-                    } else {
-                        const [, , , cur, max] = text.split(" ");
-                        monitor.brightness = parseInt(cur) / parseInt(max);
+                    const actualBrightness = monitor.parseBrightnessText(text);
+                    if (!isNaN(actualBrightness))
+                        monitor.brightness = Math.max(monitor.minBrightnessValue(), actualBrightness);
+                }
+            }
+        }
+
+        readonly property Process refreshProc: Process {
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const actualBrightness = monitor.parseBrightnessText(text);
+                    if (isNaN(actualBrightness)) {
+                        monitor.pendingDelta = 0;
+                        return;
+                    }
+
+                    monitor.brightness = Math.max(monitor.minBrightnessValue(), actualBrightness);
+
+                    if (monitor.pendingDelta !== 0) {
+                        const delta = monitor.pendingDelta;
+                        monitor.pendingDelta = 0;
+                        monitor.setBrightness(actualBrightness + delta);
                     }
                 }
             }
@@ -185,8 +228,25 @@ Singleton {
             }
         }
 
+        function stepBrightness(delta: real): void {
+            if (isAppleDisplay || isDdc) {
+                setBrightness(brightness + delta);
+                return;
+            }
+
+            pendingDelta += delta;
+            if (refreshProc.running)
+                return;
+
+            refreshProc.command = ["sh", "-c", "echo a b c $(brightnessctl g) $(brightnessctl m)"];
+            refreshProc.running = true;
+        }
+
         function setBrightness(value: real): void {
-            value = Math.max(0, Math.min(1, value));
+            // Use same safe fallback (5%) as above and treat non-positive
+            // config values as unset.
+            const minBrightness = minBrightnessValue();
+            value = Math.max(minBrightness, Math.min(1, value));
             const rounded = Math.round(value * 100);
             if (Math.round(brightness * 100) === rounded)
                 return;
@@ -197,6 +257,13 @@ Singleton {
             }
 
             brightness = value;
+
+            // Log attempted brightness changes for diagnostics before applying
+            const cfgMinLog = Config.services.minBrightness;
+            const minLog = Math.max(0, Math.min(1, (typeof cfgMinLog === 'number' && cfgMinLog > 0) ? cfgMinLog : 0.05));
+            Quickshell.execDetached(["sh", "-c",
+                `printf '%s\n' "BRIGHTNESS_ATTEMPT name=${monitor.modelData.name} requested=${value} rounded=${rounded} min=${minLog} isDdc=${isDdc} isApple=${isAppleDisplay}" >> /tmp/brightness-debug.log`
+            ]);
 
             if (isAppleDisplay)
                 Quickshell.execDetached(["asdbctl", "set", rounded]);

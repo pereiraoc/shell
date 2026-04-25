@@ -11,6 +11,16 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    // Enforce a single source of truth for minimum brightness so nested
+    // components (FilledSlider/onWheel) can reference it safely.
+    // Use a safe fallback of 5% when `Config.services.minBrightness` is not set
+    // or is non-positive.
+    property real minBrightness: {
+        const cfg = Config.services.minBrightness;
+        const base = (typeof cfg === 'number' && cfg > 0) ? cfg : 0.05;
+        return Math.max(0, Math.min(1, base));
+    }
+
     required property Brightness.Monitor monitor
     required property var visibilities
 
@@ -90,9 +100,9 @@ Item {
                     if (!monitor)
                         return;
                     if (event.angleDelta.y > 0)
-                        monitor.setBrightness(monitor.brightness + 0.1);
+                        monitor.setBrightness(Math.max(root.minBrightness, monitor.brightness + 0.1));
                     else if (event.angleDelta.y < 0)
-                        monitor.setBrightness(monitor.brightness - 0.1);
+                        monitor.setBrightness(Math.max(root.minBrightness, monitor.brightness - 0.1));
                 }
 
                 FilledSlider {
@@ -100,7 +110,7 @@ Item {
 
                     icon: `brightness_${(Math.round(value * 6) + 1)}`
                     value: root.brightness
-                    onMoved: root.monitor?.setBrightness(value)
+                    onMoved: root.monitor?.setBrightness(Math.max(root.minBrightness, value))
                 }
             }
         }

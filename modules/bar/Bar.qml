@@ -94,10 +94,12 @@ ColumnLayout {
         } else if (Config.bar.scrollActions.brightness) {
             // Brightness scroll on bottom half
             const monitor = Brightness.getMonitorForScreen(screen);
+            const cfg = Config.services.minBrightness;
+            const minBrightness = Math.max(0, Math.min(1, (typeof cfg === 'number' && cfg > 0) ? cfg : 0.05));
             if (angleDelta.y > 0)
-                monitor.setBrightness(monitor.brightness + Config.services.brightnessIncrement);
+                monitor.setBrightness(Math.max(minBrightness, monitor.brightness + Config.services.brightnessIncrement));
             else if (angleDelta.y < 0)
-                monitor.setBrightness(monitor.brightness - Config.services.brightnessIncrement);
+                monitor.setBrightness(Math.max(minBrightness, monitor.brightness - Config.services.brightnessIncrement));
         }
     }
 

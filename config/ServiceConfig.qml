@@ -9,6 +9,7 @@ JsonObject {
     property int visualiserBars: 45
     property real audioIncrement: 0.1
     property real brightnessIncrement: 0.1
+    property real minBrightness: 0.05 // Ensure minimum brightness is not zero
     property real maxVolume: 1.0
     property bool smartScheme: true
     property string defaultPlayer: "Spotify"
