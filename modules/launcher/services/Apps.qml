@@ -9,17 +9,30 @@ Searcher {
     id: root
 
     function launch(entry: DesktopEntry): void {
-        appDb.incrementFrequency(entry.id);
+        // Se for AppEntry (wrapper Caelestia), usar o DesktopEntry interno
+        const desktopEntry = (entry && entry.entry) ? entry.entry : entry;
+        const id = desktopEntry?.id ?? "";
+        const name = desktopEntry?.name ?? "";
 
-        if (entry.runInTerminal)
+        appDb.incrementFrequency(id);
+
+        if (desktopEntry?.runInTerminal)
             Quickshell.execDetached({
-                command: ["app2unit", "--", ...Config.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...entry.command],
-                workingDirectory: entry.workingDirectory
+                command: ["app2unit", "--"].concat(Config.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`).concat(Array.from(desktopEntry.command || [])),
+                workingDirectory: desktopEntry.workingDirectory || ""
             });
+        else if (id === "steam" || (name && name.indexOf("Games Hub (Steam)") >= 0)) {
+            // Steam: executar wrapper com caminho absoluto, sem app2unit
+            const wrapper = `${Paths.home}/.local/bin/steam-caelestia`;
+            Quickshell.execDetached({
+                command: [wrapper],
+                workingDirectory: Paths.home
+            });
+        }
         else
             Quickshell.execDetached({
-                command: ["app2unit", "--", ...entry.command],
-                workingDirectory: entry.workingDirectory
+                command: ["app2unit", "--"].concat(Array.from(desktopEntry?.command || [])),
+                workingDirectory: desktopEntry?.workingDirectory || ""
             });
     }
 

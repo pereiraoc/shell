@@ -21,7 +21,8 @@ Item {
         radius: Appearance.rounding.normal
 
         function onClicked(): void {
-            Apps.launch(root.modelData);
+            // Garantir DesktopEntry (modelData pode ser AppEntry com .entry)
+            Apps.launch(root.modelData?.entry ?? root.modelData);
             root.visibilities.launcher = false;
         }
     }
