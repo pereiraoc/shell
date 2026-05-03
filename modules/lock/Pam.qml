@@ -194,66 +194,23 @@ Scope {
     }
 
     // === Howdy face auth (US-004) ===
-    PamContext {
+    // NOTA: pam_howdy.so requer permissões de root para acessar a câmera.
+    // Quando invocado pelo PamContext do shell (user context), falha silenciosamente.
+    // Stub mantido para compatibilidade com properties usadas pelo Center.qml
+    // (pam.howdy.tries, pam.howdy.active). Para usar face recognition de verdade,
+    // adicione `auth sufficient pam_howdy.so` em /etc/pam.d/passwd para o
+    // sistema invocar Howdy quando a senha for digitada (com permissões corretas).
+    QtObject {
         id: howdy
 
-        property bool available
-        property int tries
-        property int errorTries
+        property bool available: false
+        property bool active: false
+        property int tries: 0
+        property int errorTries: 0
 
-        function checkAvail(): void {
-            if (!available || !GlobalConfig.lock.enableFaceAuth || !root.lock.secure) {
-                abort();
-                return;
-            }
-
-            // Only start in face mode
-            if (root.currentMode !== "face") {
-                abort();
-                return;
-            }
-
-            tries = 0;
-            errorTries = 0;
-            start();
-        }
-
-        config: "howdy"
-        configDirectory: Quickshell.shellDir + "/assets/pam.d"
-
-        onCompleted: res => {
-            if (!available)
-                return;
-
-            if (res === PamResult.Success) {
-                root.faceFailedAttempts = 0;
-                return root.lock.unlock();
-            }
-
-            if (res === PamResult.Error) {
-                root.howdyState = "error";
-                errorTries++;
-                if (errorTries < 5) {
-                    abort();
-                    howdyErrorRetry.restart();
-                }
-            } else if (res === PamResult.MaxTries || res === PamResult.Failed) {
-                tries++;
-                root.faceFailedAttempts++;
-                if (root.faceFailedAttempts >= GlobalConfig.lock.maxFaceRetries) {
-                    root.faceEnabled = false;
-                    root.howdyState = "max";
-                    abort();
-                } else {
-                    root.howdyState = "fail";
-                    abort();
-                    howdyRetry.restart();
-                }
-            }
-
-            root.flashMsg();
-            howdyStateReset.start();
-        }
+        function checkAvail(): void { /* no-op — face auth via system PAM stack */ }
+        function abort(): void { /* no-op */ }
+        function start(): void { /* no-op */ }
     }
 
     Process {
@@ -269,7 +226,9 @@ Scope {
     Process {
         id: howdyAvailProc
 
-        command: ["sh", "-c", "command -v howdy >/dev/null && howdy list 2>/dev/null | grep -q '^pereiraoc'"]
+        // 'howdy list' precisa sudo. Verifica só se o binário existe e
+        // se há modelo treinado para o usuário atual.
+        command: ["sh", "-c", "command -v howdy >/dev/null && ls /etc/howdy/models/$(id -un).dat 2>/dev/null"]
         onExited: code => { // qmllint disable signal-handler-parameters
             howdy.available = code === 0;
             howdy.checkAvail();

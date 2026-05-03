@@ -37,7 +37,7 @@ RowLayout {
         StateLayer {
             enabled: root.faceEnabled
             
-            function onClicked(): void {
+            onClicked: {
                 if (root.faceEnabled) {
                     root.selectedMethod = "face";
                 }
@@ -88,7 +88,7 @@ RowLayout {
         StateLayer {
             enabled: root.pinEnabled
             
-            function onClicked(): void {
+            onClicked: {
                 if (root.pinEnabled) {
                     root.selectedMethod = "pin";
                 }
@@ -136,7 +136,7 @@ RowLayout {
         border.color: Colours.palette.m3primary
 
         StateLayer {
-            function onClicked(): void {
+            onClicked: {
                 root.selectedMethod = "password";
             }
         }
