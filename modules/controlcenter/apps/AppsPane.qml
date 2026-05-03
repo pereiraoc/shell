@@ -163,7 +163,7 @@ Item {
                                     radius: parent.radius
                                     color: Colours.palette.m3onSurface
 
-                                    function onClicked(): void {
+                                    onClicked: {
                                         Quickshell.execDetached(appButton.modelData.command);
                                     }
                                 }

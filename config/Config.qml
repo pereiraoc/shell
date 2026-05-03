@@ -92,7 +92,8 @@ Singleton {
             osd: serializeOsd(),
             session: serializeSession(),
             winfo: serializeWinfo(),
-            lock: serializeLock(),
+            // lock: gerenciado pelo plugin C++ Caelestia.Config (incluindo Auth properties).
+            //       Não serializar aqui — race condition sobrescreve novas properties.
             utilities: serializeUtilities(),
             sidebar: serializeSidebar(),
             services: serializeServices(),

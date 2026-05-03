@@ -254,7 +254,7 @@ Column {
                    (parent.isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurface)))
             enabled: !parent.isDisabled
 
-            function onClicked(): void {
+            onClicked: {
                 if (parent.isDisabled) return
                 console.log("[GPU] User clicked:", parent.mode, "(active:", GpuModeService.activeMode, "pending:", GpuModeService.pendingMode, "confirmation:", GpuModeService.pendingConfirmation, ")")
                 GpuModeService.switchMode(parent.mode)

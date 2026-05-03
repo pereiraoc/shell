@@ -47,17 +47,14 @@ Item {
             return;
         }
 
-        // Save hashed PIN to config for security
         GlobalConfig.lock.userPin = hashPin(newPin);
-        Config.save();
+        // Plugin C++ persiste automaticamente via debounce de 500ms
 
         pinMismatch = false;
         pinSaved = true;
         statusMessage = qsTr("PIN saved successfully!");
         newPin = "";
         confirmPin = "";
-
-        // Reset status after 3 seconds
         pinSavedTimer.start();
     }
 
@@ -65,7 +62,7 @@ Item {
         // Reset all lockout counters (this would be saved in a state file)
         GlobalConfig.lock.enableFaceAuth = true;
         GlobalConfig.lock.enablePinAuth = true;
-        Config.save();
+        // Plugin C++ persiste automaticamente via debounce
         statusMessage = qsTr("All authentication methods have been reset");
         pinSavedTimer.start();
     }
@@ -230,7 +227,7 @@ Item {
                         StateLayer {
                             color: Colours.palette.m3onPrimary
 
-                            function onClicked(): void {
+                            onClicked: {
                                 root.savePin();
                             }
                         }
@@ -340,7 +337,7 @@ Item {
                         StateLayer {
                             color: Colours.palette.m3onTertiaryContainer
 
-                            function onClicked(): void {
+                            onClicked: {
                                 root.resetLockouts();
                             }
                         }
@@ -427,9 +424,9 @@ Item {
                                 StateLayer {
                                     color: isSelected ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurface
 
-                                    function onClicked(): void {
+                                    onClicked: {
                                         GlobalConfig.lock.defaultMethod = modelData.id;
-                                        Config.save();
+                                        // Plugin C++ persiste automaticamente via debounce
                                     }
                                 }
 
