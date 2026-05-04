@@ -8,11 +8,20 @@ import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
 import qs.config
+import qs.services
 import Quickshell
 import QtQuick
 
 ShellRoot {
     settings.watchFiles: true
+
+    // Force MonitorRoles singleton to load — US-005 Fase 1 verification
+    Component.onCompleted: {
+        const desc = MonitorRoles.orderedMonitors.map((m, i) =>
+            MonitorRoles.nameForIndex(i) + "=" + (m?.name ?? "null")).join(", ");
+        console.log("[shell] MonitorRoles loaded (count=" + MonitorRoles.count + "):", desc);
+    }
+
 
     Background {}
     Drawers {}

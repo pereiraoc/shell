@@ -47,6 +47,12 @@ class GlobalConfig : public RootConfig {
     Q_MOC_INCLUDE("winfoconfig.hpp")
 
     CONFIG_PROPERTY(bool, enabled, true)
+
+    // === US-005: monitor roles override (workspace per-monitor redesign) ===
+    // Map de "desc:HARDWARE_FINGERPRINT" -> "primary"|"secondary"|"tertiary"|"quaternary"
+    // Vazio = roles 100% auto-resolvidos via algoritmo (built-in primeiro, depois desc alfabética)
+    CONFIG_PROPERTY(QVariantMap, monitorRoleOverrides, {})
+
     CONFIG_SUBOBJECT(AppearanceConfig, appearance)
     CONFIG_SUBOBJECT(GeneralConfig, general)
     CONFIG_SUBOBJECT(BackgroundConfig, background)
