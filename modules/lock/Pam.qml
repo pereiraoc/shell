@@ -230,32 +230,26 @@ Scope {
                 return root.lock.unlock();
             }
 
-            if (res === PamResult.Error) {
-                root.howdyState = "error";
-                errorTries++;
-                if (errorTries < 5) {
-                    abort();
-                    howdyErrorRetry.restart();
-                }
-            } else if (res === PamResult.MaxTries || res === PamResult.Failed) {
-                tries++;
-                root.faceFailedAttempts++;
-                if (root.faceFailedAttempts >= GlobalConfig.lock.maxFaceRetries) {
-                    // Após N falhas, troca mode para PIN/password (poupa bateria — não fica
-                    // tentando face indefinidamente). Botão face permanece clickável no
-                    // AuthMethodSelector — user pode reescolher e contador é resetado.
-                    root.howdyState = "max";
-                    abort();
-                    root.faceFailedAttempts = 0;
-                    if (GlobalConfig.lock.enablePinAuth && GlobalConfig.lock.userPin !== "")
-                        root.currentMode = "pin";
-                    else
-                        root.currentMode = "password";
-                } else {
-                    root.howdyState = "fail";
-                    abort();
-                    howdyRetry.restart();
-                }
+            // Qualquer não-sucesso (Error/Failed/MaxTries) conta como tentativa falha.
+            // pam_howdy retorna Error quando câmera coberta/timeout, Failed quando
+            // rosto não bate, MaxTries quando interno do howdy estourou.
+            tries++;
+            root.faceFailedAttempts++;
+
+            if (root.faceFailedAttempts >= GlobalConfig.lock.maxFaceRetries) {
+                // Após N falhas, troca mode para PIN/password (poupa bateria).
+                // Botão face permanece clickável — user pode reescolher e contador reseta.
+                root.howdyState = "max";
+                abort();
+                root.faceFailedAttempts = 0;
+                if (GlobalConfig.lock.enablePinAuth && GlobalConfig.lock.userPin !== "")
+                    root.currentMode = "pin";
+                else
+                    root.currentMode = "password";
+            } else {
+                root.howdyState = res === PamResult.Error ? "error" : "fail";
+                abort();
+                howdyRetry.restart();
             }
 
             root.flashMsg();
