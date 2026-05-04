@@ -241,9 +241,16 @@ Scope {
                 tries++;
                 root.faceFailedAttempts++;
                 if (root.faceFailedAttempts >= GlobalConfig.lock.maxFaceRetries) {
-                    root.faceEnabled = false;
+                    // Após N falhas, troca mode para PIN/password (poupa bateria — não fica
+                    // tentando face indefinidamente). Botão face permanece clickável no
+                    // AuthMethodSelector — user pode reescolher e contador é resetado.
                     root.howdyState = "max";
                     abort();
+                    root.faceFailedAttempts = 0;
+                    if (GlobalConfig.lock.enablePinAuth && GlobalConfig.lock.userPin !== "")
+                        root.currentMode = "pin";
+                    else
+                        root.currentMode = "password";
                 } else {
                     root.howdyState = "fail";
                     abort();
@@ -361,6 +368,8 @@ Scope {
 
     onCurrentModeChanged: {
         if (currentMode === "face" && faceEnabled) {
+            // Reset contador quando user reclica face — dá novamente N tentativas frescas
+            faceFailedAttempts = 0;
             howdy.checkAvail();
         } else {
             howdy.abort();
