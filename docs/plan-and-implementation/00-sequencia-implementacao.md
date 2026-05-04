@@ -179,6 +179,16 @@ flowchart TB
 
 ---
 
+### Fase 0: UX Redesign Crítico (priority bump)
+
+| Ordem | Plano | Tempo | Motivo |
+|-------|-------|-------|--------|
+| **0** | **41** Workspace Groups per Monitor | 7-8h | Bar atual confusa em multi-monitor; redesign supersede plano 24 (visual grouping); tracked em [EPIC-002 / FEAT-002 / US-005](../../../caelestia-arch-setup/development/backlog/UXShellRedesign/) |
+
+**Total Fase 0**: ~7-8h. Anteposta às outras fases por ser bloqueador de UX.
+
+---
+
 ## Resumo da Sequência
 
 | # | Plano | Fase | Tempo | Status |
@@ -188,6 +198,7 @@ flowchart TB
 | - | 25 Gaps Configuration | - | - | ✅ Implementado |
 | - | 28 Help Modal | - | - | ✅ Implementado |
 | - | 32 GPU Mode Selector | - | - | ✅ Implementado |
+| 0 | **41 Workspace Groups per Monitor** | 0 | 7-8h | 🔄 **EM IMPLEMENTAÇÃO** (US-005) |
 | 1 | **38 Wallpaper per Monitor** | 1 | 6-8h | ⏱️ Próximo |
 | 2 | **31 Theme Customization** | 1 | 10-15h | ⏱️ Próximo |
 | 3 | 39 Keyboard Shortcuts | 2 | 8-10h | ⏱️ Planejado |
