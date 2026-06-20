@@ -27,6 +27,9 @@ echo ""
 if [[ -z "$DRY_RUN" ]] && [[ -d "$TARGET_DIR" ]]; then
     echo "Snapshot do estado atual: $SNAPSHOT_DIR"
     cp -a "$TARGET_DIR" "$SNAPSHOT_DIR"
+    # Rotação: mantém só os N snapshots mais recentes (evita crescimento ilimitado)
+    KEEP="${CAELESTIA_SNAPSHOT_KEEP:-10}"
+    ls -dt "$HOME/.config/quickshell/"caelestia.snapshot-* 2>/dev/null | tail -n +$((KEEP+1)) | while read -r old; do rm -rf "$old"; done
     echo ""
 fi
 
@@ -54,9 +57,18 @@ rsync -av $DRY_RUN \
     "$PROJECT_DIR/" "$TARGET_DIR/"
 
 if [[ -z "$DRY_RUN" ]]; then
+    # Carimbo de proveniência — rastreia de qual commit/tag veio este deploy
+    # (o ~/.config/.../caelestia é uma cópia, não um checkout git).
+    PROV_SHA="$(git -C "$PROJECT_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+    PROV_DESC="$(git -C "$PROJECT_DIR" describe --tags --dirty --always 2>/dev/null || echo unknown)"
+    printf '%s  %s  deploy=%s  src=%s\n' \
+        "$PROV_DESC" "$PROV_SHA" "$(date +%Y-%m-%d\ %H:%M:%S)" "$PROJECT_DIR" \
+        > "$TARGET_DIR/.caelestia-provenance"
+
     echo ""
     echo "=== Deploy concluído ==="
     echo ""
+    echo "Proveniência: $(cat "$TARGET_DIR/.caelestia-provenance")"
     echo "Snapshot anterior: $SNAPSHOT_DIR"
     echo "Reverter:  rm -rf '$TARGET_DIR' && mv '$SNAPSHOT_DIR' '$TARGET_DIR'"
     echo "Restart:   Super+Shift+R   (ou: hyprctl dispatch exec 'quickshell -c caelestia --daemonize')"
