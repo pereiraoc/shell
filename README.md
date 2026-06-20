@@ -110,8 +110,7 @@ bash scripts/stage3/35-caelestia-fork-install.sh
 
 ### Configuração Básica
 
-<<<<<<< HEAD
-Edite `~/.config/caelestia/shell.json`:
+Edite `~/.config/caelestia/shell.json` — este fork adiciona a seção `lock.auth` (face/PIN):
 
 ```json
 {
@@ -130,7 +129,11 @@ Edite `~/.config/caelestia/shell.json`:
       "rateLimitDelay": 2000,
       "lockoutAfterTries": 5,
       "lockoutDuration": 30000
-=======
+    }
+  }
+}
+```
+
 The profile picture for the dashboard is read from the file `~/.face`, so to set
 it you can copy your image to there or set it via the dashboard.
 
@@ -698,7 +701,6 @@ For example, to disable the bar on DP-1:
                 "enabled": true
             }
         ]
->>>>>>> upstream/main
     }
   }
 }
@@ -706,30 +708,10 @@ For example, to disable the bar on DP-1:
 
 ### Opções de Configuração
 
-<<<<<<< HEAD
 #### Face Authentication
 - `enableFaceAuth`: Habilitar reconhecimento facial (padrão: `true`)
 - `faceAuthTimeout`: Timeout em ms (padrão: `5000`)
 - `maxFaceRetries`: Falhas antes de desabilitar Face (padrão: `5`)
-=======
-### Advanced configuration
-
-> [!WARNING]
-> Do NOT change any of these options if you do not know what you are doing. These options control the
-> tokens used internally within the shell, and can cause visual issues if changed. The existence of
-> the options are also not guaranteed across versions, and may change or be removed without notice.
-
-A separate `~/.config/caelestia/shell-tokens.json` file allows editing the internal tokens without
-touching the source code of the shell. These tokens affect, for example, individual rounding,
-spacing, padding, font size, animation duration and easing curves tokens, and the sizes of certain
-components. The appearance scale values in `shell.json` are multiplied against these base
-token values to produce the final computed values.
-
-Per-monitor token overrides are also available at
-`~/.config/caelestia/monitors/<screen-name>/shell-tokens.json`.
-
-### Home Manager Module
->>>>>>> upstream/main
 
 **Comportamento**: Após 5 falhas, Face é desabilitado até próximo unlock bem-sucedido.
 
@@ -798,12 +780,7 @@ caelestia shell lock lock
 3. Pressione Enter
 4. Unlock se senha correta
 
-<<<<<<< HEAD
 ### Atalhos de Teclado
-=======
-You can join the community Discord server for assistance and discussion:
-https://discord.gg/BGDCFCmMBk
->>>>>>> upstream/main
 
 - `F`: Mudar para Face authentication
 - `P`: Mudar para PIN authentication
