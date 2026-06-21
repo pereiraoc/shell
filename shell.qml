@@ -9,7 +9,7 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
-import qs.config
+import Caelestia.Config
 import qs.services
 import Quickshell
 import QtQuick
@@ -33,18 +33,16 @@ ShellRoot {
         lock: lock
     }
 
-    // Apply persisted Hyprland settings on startup (F3 — gaps)
+    // Apply persisted Hyprland settings on startup (gaps via Caelestia.Config)
     Timer {
         running: true
         interval: 100
         repeat: false
         onTriggered: {
-            if (Config.hyprland?.gaps) {
-                const innerGap = Config.hyprland.gaps.inner ?? 5;
-                const outerGap = Config.hyprland.gaps.outer ?? 20;
-                Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_in", innerGap.toString()]);
-                Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_out", outerGap.toString()]);
-            }
+            const innerGap = GlobalConfig.hyprland.gapsInner;
+            const outerGap = GlobalConfig.hyprland.gapsOuter;
+            Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_in", innerGap.toString()]);
+            Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_out", outerGap.toString()]);
         }
     }
 }

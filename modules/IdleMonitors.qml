@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import "lock"
-import qs.config
+import Caelestia.Config
 import qs.services
 import Caelestia.Internal
 import Quickshell
@@ -12,11 +12,11 @@ Scope {
     id: root
 
     required property Lock lock
-    readonly property bool enabled: !Config.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying)
+    readonly property bool enabled: !GlobalConfig.general.idle.inhibitWhenAudio || !Players.list.some(p => p.isPlaying)
     readonly property var activeTimeouts: {
-        const ac = Config.general.idle.timeoutsOnAC
-        const bat = Config.general.idle.timeoutsOnBattery
-        const legacy = Config.general.idle.timeouts
+        const ac = GlobalConfig.general.idle.timeoutsOnAC
+        const bat = GlobalConfig.general.idle.timeoutsOnBattery
+        const legacy = GlobalConfig.general.idle.timeouts
         if (ac && ac.length > 0 && bat && bat.length > 0)
             return UPower.onBattery ? bat : ac
         if (legacy && legacy.length > 0)
@@ -40,7 +40,7 @@ Scope {
 
     LogindManager {
         onAboutToSleep: {
-            if (Config.general.idle.lockBeforeSleep)
+            if (GlobalConfig.general.idle.lockBeforeSleep)
                 root.lock.lock.locked = true;
         }
         onLockRequested: root.lock.lock.locked = true

@@ -46,6 +46,9 @@ class GeneralIdle : public ConfigObject {
                 { u"idleAction"_s, QStringList{ u"systemctl"_s, u"suspend-then-hibernate"_s } },
             }),
         })
+    // === US-004: idle timeouts por fonte de energia (custom; vazio = usa timeouts) ===
+    CONFIG_GLOBAL_PROPERTY(QVariantList, timeoutsOnAC)
+    CONFIG_GLOBAL_PROPERTY(QVariantList, timeoutsOnBattery)
 
 public:
     explicit GeneralIdle(QObject* parent = nullptr)
