@@ -14,11 +14,23 @@ Item {
     readonly property string msg: {
         if (pam.fprintState === "error")
             return qsTr("FP ERROR: %1").arg(pam.fprint.message);
-        if (pam.state === "error")
+        if (pam.state === "error") {
+            // PIN mode reaproveita state="error" p/ problema de config (ex.: sem PIN)
+            if (pam.currentMode === "pin" && pam.lockMessage)
+                return pam.lockMessage;
             return qsTr("PW ERROR: %1").arg(pam.passwd.message);
+        }
 
         if (pam.lockMessage)
             return pam.lockMessage;
+
+        // === US-007: estados de face (howdy) ===
+        if (pam.howdyState === "max")
+            return qsTr("Face not recognized. Please use PIN or password.");
+        if (pam.howdyState === "error")
+            return qsTr("Camera unavailable. Please try again or use PIN/password.");
+        if (pam.howdyState === "fail")
+            return qsTr("Face not recognized (%1/%2). Please try again or use PIN/password.").arg(pam.faceFailedAttempts).arg(Config.lock.maxFaceRetries);
 
         if (pam.state === "max" && pam.fprintState === "max")
             return qsTr("Maximum password and fingerprint attempts reached.");
@@ -31,6 +43,8 @@ Item {
             return qsTr("Maximum fingerprint attempts reached. Please use password.");
 
         if (pam.state === "fail") {
+            if (pam.currentMode === "pin")
+                return qsTr("Incorrect PIN. Please try again.");
             if (pam.fprint.available)
                 return qsTr("Incorrect password. Please try again or use fingerprint.");
             return qsTr("Incorrect password. Please try again.");

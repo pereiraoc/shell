@@ -39,6 +39,22 @@ ColumnLayout {
         centerWidth: root.centerWidth
     }
 
+    // === US-007: seletor de método de auth (face/PIN/senha) ===
+    AuthMethodSelector {
+        id: authSelector
+
+        Layout.alignment: Qt.AlignHCenter
+        visible: root.lock.pam.faceEnabled || root.lock.pam.pinEnabled
+
+        selectedMethod: root.lock.pam.currentMode
+        faceEnabled: root.lock.pam.faceEnabled
+        pinEnabled: root.lock.pam.pinEnabled
+
+        onSelectedMethodChanged: {
+            root.lock.pam.currentMode = selectedMethod;
+        }
+    }
+
     PasswordInput {
         Layout.alignment: Qt.AlignHCenter
         centerScale: Math.max(0.8, root.centerScale)

@@ -24,10 +24,8 @@ RowLayout {
         Layout.preferredWidth: 80
         Layout.preferredHeight: 70
 
-        color: root.selectedMethod === "face" ? 
-            Colours.palette.m3primaryContainer : 
-            Colours.tPalette.m3surfaceContainer
-        
+        color: root.selectedMethod === "face" ? Colours.palette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
+
         radius: Tokens.rounding.small
         opacity: root.faceEnabled ? 1 : 0.5
 
@@ -36,7 +34,7 @@ RowLayout {
 
         StateLayer {
             enabled: root.faceEnabled
-            
+
             onClicked: {
                 if (root.faceEnabled) {
                     root.selectedMethod = "face";
@@ -51,19 +49,15 @@ RowLayout {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: "face"
-                color: root.selectedMethod === "face" ? 
-                    Colours.palette.m3primary : 
-                    Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.large
+                color: root.selectedMethod === "face" ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                fontStyle: Tokens.font.icon.builders.large.build()
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Face")
-                color: root.selectedMethod === "face" ? 
-                    Colours.palette.m3primary : 
-                    Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.small
+                color: root.selectedMethod === "face" ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                font: Tokens.font.body.small
             }
         }
     }
@@ -75,10 +69,8 @@ RowLayout {
         Layout.preferredWidth: 80
         Layout.preferredHeight: 70
 
-        color: root.selectedMethod === "pin" ? 
-            Colours.palette.m3primaryContainer : 
-            Colours.tPalette.m3surfaceContainer
-        
+        color: root.selectedMethod === "pin" ? Colours.palette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
+
         radius: Tokens.rounding.small
         opacity: root.pinEnabled ? 1 : 0.5
 
@@ -87,7 +79,7 @@ RowLayout {
 
         StateLayer {
             enabled: root.pinEnabled
-            
+
             onClicked: {
                 if (root.pinEnabled) {
                     root.selectedMethod = "pin";
@@ -102,19 +94,15 @@ RowLayout {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: "dialpad"
-                color: root.selectedMethod === "pin" ? 
-                    Colours.palette.m3primary : 
-                    Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.large
+                color: root.selectedMethod === "pin" ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                fontStyle: Tokens.font.icon.builders.large.build()
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("PIN")
-                color: root.selectedMethod === "pin" ? 
-                    Colours.palette.m3primary : 
-                    Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.small
+                color: root.selectedMethod === "pin" ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                font: Tokens.font.body.small
             }
         }
     }
@@ -126,10 +114,8 @@ RowLayout {
         Layout.preferredWidth: 80
         Layout.preferredHeight: 70
 
-        color: root.selectedMethod === "password" ? 
-            Colours.palette.m3primaryContainer : 
-            Colours.tPalette.m3surfaceContainer
-        
+        color: root.selectedMethod === "password" ? Colours.palette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
+
         radius: Tokens.rounding.small
 
         border.width: root.selectedMethod === "password" ? 2 : 0
@@ -148,19 +134,15 @@ RowLayout {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: "password"
-                color: root.selectedMethod === "password" ? 
-                    Colours.palette.m3primary : 
-                    Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.large
+                color: root.selectedMethod === "password" ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                fontStyle: Tokens.font.icon.builders.large.build()
             }
 
             StyledText {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Password")
-                color: root.selectedMethod === "password" ? 
-                    Colours.palette.m3primary : 
-                    Colours.palette.m3onSurface
-                font.pointSize: Tokens.font.size.small
+                color: root.selectedMethod === "password" ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                font: Tokens.font.body.small
             }
         }
     }
