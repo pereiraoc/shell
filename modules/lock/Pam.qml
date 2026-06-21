@@ -72,6 +72,10 @@ Scope {
         if (passwd.active || state === "max")
             return;
 
+        // Face mode: sem digitação — usar o seletor p/ trocar p/ PIN/senha
+        if (currentMode === "face")
+            return;
+
         // PIN mode: only digits, auto-submit on 4 digits
         if (currentMode === "pin") {
             if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {

@@ -113,6 +113,21 @@ PageBase {
             onSelected: item => GlobalConfig.lock.defaultMethod = root.methodValues[root.methodItems.indexOf(item)]
         }
 
+        // Lock screen
+        SectionHeader {
+            text: qsTr("Lock screen")
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            first: true
+            last: true
+            text: qsTr("Hide notifications")
+            subtext: qsTr("Don't show notification content on the lock screen")
+            checked: Config.lock.hideNotifs
+            onToggled: GlobalConfig.lock.hideNotifs = checked
+        }
+
         // PIN
         SectionHeader {
             text: qsTr("PIN")

@@ -14,7 +14,7 @@ Item {
         return metrics.tightBoundingRect.y - metrics.boundingRect.y;
     }
 
-    implicitWidth: hours.implicitWidth + minutes.implicitWidth + Tokens.spacing.small
+    implicitWidth: hours.implicitWidth + colon.implicitWidth + minutes.implicitWidth + Tokens.spacing.small * 2
     implicitHeight: hourMetrics.tightBoundingRect.height
 
     StyledText {
@@ -23,7 +23,7 @@ Item {
         y: -root.calcTopOff(hourMetrics)
         text: Time.hourStr
         color: Colours.palette.m3primary
-        font: Tokens.font.headline.builders.large.scale(7 * root.centerScale).width(30).build()
+        font: Tokens.font.headline.builders.large.scale(7 * root.centerScale).build()
 
         TextMetrics {
             id: hourMetrics
@@ -34,14 +34,27 @@ Item {
     }
 
     StyledText {
+        id: colon
+
+        anchors.left: hours.right
+        anchors.leftMargin: Tokens.spacing.small
+        y: hours.y
+
+        text: ":"
+        color: Colours.palette.m3primary
+        font: hours.font
+    }
+
+    StyledText {
         id: minutes
 
-        anchors.right: parent.right
+        anchors.left: colon.right
+        anchors.leftMargin: Tokens.spacing.small
         y: -root.calcTopOff(minuteMetrics)
 
         text: Time.minuteStr
         color: Colours.palette.m3secondary
-        font: Tokens.font.headline.builders.large.scale((GlobalConfig.services.useTwelveHourClock ? 3.8 : 7) * root.centerScale).width(30).build()
+        font: Tokens.font.headline.builders.large.scale((GlobalConfig.services.useTwelveHourClock ? 3.8 : 7) * root.centerScale).build()
 
         TextMetrics {
             id: minuteMetrics
@@ -79,7 +92,7 @@ Item {
 
                 text: Time.amPmStr
                 color: Colours.palette.m3onSurface
-                font: Tokens.font.headline.builders.small.scale(2 * root.centerScale).width(30).build()
+                font: Tokens.font.headline.builders.small.scale(2 * root.centerScale).build()
 
                 TextMetrics {
                     id: amPmMetrics
