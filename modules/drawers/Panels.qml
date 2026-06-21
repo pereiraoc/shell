@@ -12,7 +12,6 @@ import qs.modules.sidebar as Sidebar
 import qs.modules.utilities as Utilities
 import qs.modules.bar.popouts as BarPopouts
 import qs.modules.utilities.toasts as Toasts
-// import qs.modules.help as Help  // F5 DISABLED — habilitar quando feature pronta
 
 Item {
     id: root
@@ -154,16 +153,4 @@ Item {
         anchors.topMargin: -notifications.anchors.topMargin
     }
 
-    // Help modal - keyboard shortcuts reference
-    // DISABLED FOR TESTING
-    // Help.HelpModal {
-    //     id: helpModal
-
-    //     parent: root
-    //     showing: root.visibilities.help
-
-    //     onShowingChanged: {
-    //         root.visibilities.help = showing;
-    //     }
-    // }
 }

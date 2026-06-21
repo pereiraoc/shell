@@ -70,17 +70,6 @@ Scope {
         onPressed: root.launcherInterrupted = true
     }
 
-    CustomShortcut {
-        name: "help"
-        description: "Show keyboard shortcuts help"
-        onPressed: {
-            if (root.hasFullscreen)
-                return;
-            const visibilities = Visibilities.getForActive();
-            visibilities.help = !visibilities.help;
-        }
-    }
-
     IpcHandler {
         target: "drawers"
 
