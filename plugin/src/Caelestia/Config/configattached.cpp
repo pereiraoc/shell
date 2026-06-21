@@ -67,6 +67,7 @@ void Config::attachedParentChange(
 
 CONFIG_ATTACHED_GETTER(AppearanceConfig, appearance)
 CONFIG_ATTACHED_GETTER(GeneralConfig, general)
+CONFIG_ATTACHED_GETTER(HyprlandConfig, hyprland)
 CONFIG_ATTACHED_GETTER(BackgroundConfig, background)
 CONFIG_ATTACHED_GETTER(BarConfig, bar)
 CONFIG_ATTACHED_GETTER(BorderConfig, border)

@@ -18,6 +18,7 @@ class Config : public QQuickAttachedPropertyPropagator, public QQmlParserStatus 
     Q_MOC_INCLUDE("borderconfig.hpp")
     Q_MOC_INCLUDE("dashboardconfig.hpp")
     Q_MOC_INCLUDE("generalconfig.hpp")
+    Q_MOC_INCLUDE("hyprlandconfig.hpp")
     Q_MOC_INCLUDE("launcherconfig.hpp")
     Q_MOC_INCLUDE("lockconfig.hpp")
     Q_MOC_INCLUDE("nexusconfig.hpp")
@@ -33,6 +34,7 @@ class Config : public QQuickAttachedPropertyPropagator, public QQmlParserStatus 
     Q_PROPERTY(QString screen READ screen WRITE inheritScreen NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::AppearanceConfig* appearance READ appearance NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::GeneralConfig* general READ general NOTIFY sourceChanged)
+    Q_PROPERTY(const caelestia::config::HyprlandConfig* hyprland READ hyprland NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::BackgroundConfig* background READ background NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::BarConfig* bar READ bar NOTIFY sourceChanged)
     Q_PROPERTY(const caelestia::config::BorderConfig* border READ border NOTIFY sourceChanged)
@@ -57,6 +59,7 @@ public:
 
     [[nodiscard]] const AppearanceConfig* appearance() const;
     [[nodiscard]] const GeneralConfig* general() const;
+    [[nodiscard]] const HyprlandConfig* hyprland() const;
     [[nodiscard]] const BackgroundConfig* background() const;
     [[nodiscard]] const BarConfig* bar() const;
     [[nodiscard]] const BorderConfig* border() const;

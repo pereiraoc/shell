@@ -104,6 +104,8 @@ class BarStatus : public ConfigObject {
     CONFIG_PROPERTY(bool, showBluetooth, true)
     CONFIG_PROPERTY(bool, showBattery, true)
     CONFIG_PROPERTY(bool, showLockStatus, true)
+    // === US-007: GPU mode toggle na taskbar (custom) ===
+    CONFIG_PROPERTY(bool, showGpuMode, true)
 
 public:
     explicit BarStatus(QObject* parent = nullptr)

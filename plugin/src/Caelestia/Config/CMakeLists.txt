@@ -17,6 +17,7 @@ qml_module(caelestia-config
         borderconfig.hpp
         dashboardconfig.hpp
         generalconfig.hpp
+        hyprlandconfig.hpp
         launcherconfig.hpp
         lockconfig.hpp
         nexusconfig.hpp
