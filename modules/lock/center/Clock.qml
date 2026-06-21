@@ -23,7 +23,7 @@ Item {
         y: -root.calcTopOff(hourMetrics)
         text: Time.hourStr
         color: Colours.palette.m3primary
-        font: Tokens.font.headline.builders.large.scale(7 * root.centerScale).build()
+        font: Tokens.font.headline.builders.large.scale(5 * root.centerScale).build()
 
         TextMetrics {
             id: hourMetrics
@@ -54,7 +54,7 @@ Item {
 
         text: Time.minuteStr
         color: Colours.palette.m3secondary
-        font: Tokens.font.headline.builders.large.scale((GlobalConfig.services.useTwelveHourClock ? 3.8 : 7) * root.centerScale).build()
+        font: Tokens.font.headline.builders.large.scale((GlobalConfig.services.useTwelveHourClock ? 3.8 : 5) * root.centerScale).build()
 
         TextMetrics {
             id: minuteMetrics
