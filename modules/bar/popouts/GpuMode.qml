@@ -2,19 +2,18 @@ pragma ComponentBehavior: Bound
 
 import qs.components
 import qs.services
-import qs.config
 import QtQuick
 
 Column {
     id: root
 
-    spacing: Appearance.spacing.normal
-    width: Config.bar.sizes.batteryWidth
+    spacing: Tokens.spacing.normal
+    width: Tokens.sizes.bar.batteryWidth
 
     // Title: Current ACTIVE Mode (real, not configured)
     StyledText {
         text: "GPU Mode: " + GpuModeService.getModeName(GpuModeService.activeMode)
-        font.pointSize: Appearance.font.size.smaller
+        font: Tokens.font.body.small
     }
 
     // Status text: Switching with timer OR Confirmation (NOT pending - that goes below)
@@ -39,7 +38,7 @@ Column {
         wrapMode: Text.WordWrap
         width: parent.width
         color: statusText.hasConfirmation ? Colours.palette.m3tertiary : Colours.palette.m3primary
-        font.pointSize: Appearance.font.size.smaller
+        font: Tokens.font.body.small
     }
 
     // Description of CURRENT ACTIVE mode (always visible when not switching/loading)
@@ -49,7 +48,7 @@ Column {
         wrapMode: Text.WordWrap
         width: parent.width
         color: Colours.palette.m3onSurface
-        font.pointSize: Appearance.font.size.smaller
+        font: Tokens.font.body.small
     }
 
     // Loading indicator
@@ -59,7 +58,7 @@ Column {
         wrapMode: Text.WordWrap
         width: parent.width
         color: Colours.palette.m3onSurfaceVariant
-        font.pointSize: Appearance.font.size.smaller
+        font: Tokens.font.body.small
     }
 
     // Mode selector buttons (visible during loading but disabled)
@@ -93,11 +92,11 @@ Column {
 
         anchors.horizontalCenter: parent.horizontalCenter
 
-        implicitWidth: integrated.implicitWidth + hybrid.implicitWidth + dedicated.implicitWidth + Appearance.padding.normal * 2 + Appearance.spacing.large * 2
-        implicitHeight: Math.max(integrated.implicitHeight, hybrid.implicitHeight, dedicated.implicitHeight) + Appearance.padding.small * 2
+        implicitWidth: integrated.implicitWidth + hybrid.implicitWidth + dedicated.implicitWidth + Tokens.padding.normal * 2 + Tokens.spacing.large * 2
+        implicitHeight: Math.max(integrated.implicitHeight, hybrid.implicitHeight, dedicated.implicitHeight) + Tokens.padding.small * 2
 
         color: Colours.tPalette.m3surfaceContainer
-        radius: Appearance.rounding.full
+        radius: Tokens.rounding.full
 
         // Dim overlay when switching or loading
         Rectangle {
@@ -118,7 +117,7 @@ Column {
             color: GpuModeService.switching ? Colours.palette.m3outline : 
                    GpuModeService.pendingConfirmation !== "" ? Colours.palette.m3tertiary :
                    Colours.palette.m3primary
-            radius: Appearance.rounding.full
+            radius: Tokens.rounding.full
             state: profiles.current
 
             Behavior on color {
@@ -142,9 +141,9 @@ Column {
 
             transitions: Transition {
                 AnchorAnimation {
-                    duration: Appearance.anim.durations.normal
+                    duration: Tokens.anim.durations.normal
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Appearance.anim.curves.emphasized
+                    easing.bezierCurve: Tokens.anim.curves.emphasized
                 }
             }
         }
@@ -153,7 +152,7 @@ Column {
             id: integrated
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            anchors.leftMargin: Appearance.padding.small
+            anchors.leftMargin: Tokens.padding.small
             mode: "integrated"
             icon: "memory"
         }
@@ -170,7 +169,7 @@ Column {
             id: dedicated
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
-            anchors.rightMargin: Appearance.padding.small
+            anchors.rightMargin: Tokens.padding.small
             mode: "asusmuxdgpu"
             icon: "developer_board"
         }
@@ -195,7 +194,7 @@ Column {
             }
             return result
         }
-        font.pointSize: Appearance.font.size.small
+        font: Tokens.font.body.small
         color: (action === "reboot" || isSlow) ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
     }
 
@@ -209,7 +208,7 @@ Column {
         property string actionWord: action === "reboot" ? "Reboot" : "Logout"
         
         text: "Pending " + actionWord + " to " + GpuModeService.getModeName(GpuModeService.pendingMode)
-        font.pointSize: Appearance.font.size.small
+        font: Tokens.font.body.small
         color: Colours.palette.m3error  // Always red for pending
     }
 
@@ -218,7 +217,7 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
         visible: GpuModeService.lastError !== ""
         text: GpuModeService.lastError
-        font.pointSize: Appearance.font.size.small
+        font: Tokens.font.body.small
         color: Colours.palette.m3error
     }
 
@@ -243,11 +242,11 @@ Column {
         readonly property bool isConfirmation: GpuModeService.pendingConfirmation === mode
         readonly property bool isDisabled: GpuModeService.switching || GpuModeService.loading
 
-        implicitWidth: buttonIcon.implicitWidth + Appearance.padding.small * 2
-        implicitHeight: buttonIcon.implicitHeight + Appearance.padding.small * 2
+        implicitWidth: buttonIcon.implicitWidth + Tokens.padding.small * 2
+        implicitHeight: buttonIcon.implicitHeight + Tokens.padding.small * 2
 
         StateLayer {
-            radius: Appearance.rounding.full
+            radius: Tokens.rounding.full
             color: parent.isDisabled ? Colours.palette.m3outline :
                    (parent.isConfirmation ? Colours.palette.m3tertiary :
                    (parent.isTarget || parent.isPending ? Colours.palette.m3primary : 
@@ -265,7 +264,7 @@ Column {
             id: buttonIcon
             anchors.centerIn: parent
             text: parent.icon
-            font.pointSize: Appearance.font.size.large
+            fontStyle: Tokens.font.icon.builders.large.build()
             color: parent.isDisabled ? Colours.palette.m3outline :
                    (parent.isConfirmation ? Colours.palette.m3onTertiary :
                    (parent.isTarget || parent.isPending ? Colours.palette.m3onPrimary :
