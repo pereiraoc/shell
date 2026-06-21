@@ -78,6 +78,22 @@ QtObject {
         Component {
             PlaceholderComp {}
         },
+        Component {
+            // Security
+            StackPage {
+                Component {
+                    SecurityPage {}
+                }
+            }
+        },
+        Component {
+            // System apps
+            StackPage {
+                Component {
+                    AppsPage {}
+                }
+            }
+        },
 
         // Shell
         Component {
@@ -114,6 +130,14 @@ QtObject {
                 }
                 Component {
                     BarClock {}
+                }
+            }
+        },
+        Component {
+            // Window management
+            StackPage {
+                Component {
+                    WindowManagement {}
                 }
             }
         },

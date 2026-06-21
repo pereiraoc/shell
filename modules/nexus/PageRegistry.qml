@@ -55,12 +55,30 @@ QtObject {
             description: qsTr("Manage plugins"),
             category: "system"
         },
+        {
+            label: qsTr("Security"),
+            icon: "security",
+            description: qsTr("PIN, face authentication"),
+            category: "system"
+        },
+        {
+            label: qsTr("System apps"),
+            icon: "apps",
+            description: qsTr("Quick launchers for config tools"),
+            category: "system"
+        },
 
         // Shell
         {
             label: qsTr("Panels"),
             icon: "dock_to_bottom",
             description: qsTr("Dashboard, taskbar, launcher, sidebar"),
+            category: "shell"
+        },
+        {
+            label: qsTr("Window management"),
+            icon: "select_window",
+            description: qsTr("Gaps"),
             category: "shell"
         },
         {

@@ -72,6 +72,14 @@ PageBase {
             onToggled: GlobalConfig.bar.status.showBattery = checked
         }
 
+        // US-007: toggle do indicador de GPU mode (custom)
+        ToggleRow {
+            Layout.fillWidth: true
+            text: qsTr("GPU mode")
+            checked: Config.bar.status.showGpuMode
+            onToggled: GlobalConfig.bar.status.showGpuMode = checked
+        }
+
         ToggleRow {
             Layout.fillWidth: true
             last: true
