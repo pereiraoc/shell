@@ -1,5 +1,5 @@
 import qs.components.misc
-import qs.modules.controlcenter
+import qs.modules.nexus
 import qs.services
 import Caelestia
 import Quickshell
@@ -12,8 +12,9 @@ Scope {
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen === 2) ?? false
 
     CustomShortcut {
-        name: "controlCenter"
-        description: "Open control center"
+        // qmllint enable unresolved-type
+        name: "nexus"
+        description: "Open nexus"
         onPressed: WindowFactory.create()
     }
 
@@ -101,7 +102,7 @@ Scope {
     }
 
     IpcHandler {
-        target: "controlCenter"
+        target: "nexus"
 
         function open(): void {
             WindowFactory.create();

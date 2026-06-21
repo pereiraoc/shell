@@ -1,6 +1,8 @@
-//@ pragma Env QS_NO_RELOAD_POPUP=1
-//@ pragma Env QSG_RENDER_LOOP=threaded
-//@ pragma Env QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
+//@ pragma Env QS_CRASHREPORT_URL=https://github.com/caelestia-dots/shell/issues/new?template=crash.yml
+//@ pragma DefaultEnv QS_NO_RELOAD_POPUP=1
+//@ pragma DefaultEnv QS_DROP_EXPENSIVE_FONTS=1
+//@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
+//@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 
 import "modules"
 import "modules/drawers"
@@ -15,13 +17,7 @@ import QtQuick
 ShellRoot {
     settings.watchFiles: true
 
-    // Force MonitorRoles singleton to load — US-005 Fase 1 verification
-    Component.onCompleted: {
-        const desc = MonitorRoles.orderedMonitors.map((m, i) =>
-            MonitorRoles.nameForIndex(i) + "=" + (m?.name ?? "null")).join(", ");
-        console.log("[shell] MonitorRoles loaded (count=" + MonitorRoles.count + "):", desc);
-    }
-
+    GSFLoader {}
 
     Background {}
     Drawers {}

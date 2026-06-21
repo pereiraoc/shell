@@ -8,8 +8,7 @@ import qs.components
 import qs.services
 import qs.utils
 
-// US-005 — Workspace bubble com active highlight + ícones centrados.
-Item {
+ColumnLayout {
     id: root
 
     required property int index
@@ -17,38 +16,25 @@ Item {
     required property var occupied
     required property int groupOffset
 
-    readonly property bool isWorkspace: true
+    readonly property bool isWorkspace: true // Flag for finding workspace children
+    // Unanimated prop for others to use as reference
+    readonly property int size: implicitHeight + (hasWindows ? Tokens.padding.extraSmall : 0)
+
     readonly property int ws: groupOffset + index + 1
     readonly property bool isOccupied: occupied[ws] ?? false
     readonly property bool hasWindows: isOccupied && Config.bar.workspaces.showWindows
-    readonly property bool isActive: activeWsId === ws
-
-    readonly property int bubbleSize: Tokens.sizes.bar.innerWidth - Tokens.padding.small * 2
-    readonly property int contentHeight: hasWindows ? Math.max(bubbleSize, iconColumn.implicitHeight) : bubbleSize
 
     Layout.alignment: Qt.AlignHCenter
-    Layout.preferredWidth: bubbleSize
-    Layout.preferredHeight: contentHeight
-    implicitWidth: bubbleSize
-    implicitHeight: contentHeight
+    Layout.preferredHeight: size
 
-    // Active highlight background
-    Rectangle {
-        anchors.fill: parent
-        radius: Tokens.rounding.full
-        color: Colours.palette.m3primary
-        opacity: root.isActive ? 0.25 : 0
+    spacing: 0
 
-        Behavior on opacity {
-            NumberAnimation { duration: Tokens.anim.durations.small }
-        }
-    }
-
-    // Indicator (label/dot) — visível só quando NÃO tem windows
     StyledText {
         id: indicator
-        anchors.centerIn: parent
-        visible: !root.hasWindows
+
+        Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+        Layout.preferredHeight: Tokens.sizes.bar.innerWidth - Tokens.padding.small
+
         animate: true
         text: {
             const ws = Hypr.workspaces.values.find(w => w.id === root.ws);
@@ -62,49 +48,70 @@ Item {
             const label = Config.bar.workspaces.label || displayName;
             const occupiedLabel = Config.bar.workspaces.occupiedLabel || label;
             const activeLabel = Config.bar.workspaces.activeLabel || (root.isOccupied ? occupiedLabel : label);
-            return root.isActive ? activeLabel : root.isOccupied ? occupiedLabel : label;
+            return root.activeWsId === root.ws ? activeLabel : root.isOccupied ? occupiedLabel : label;
         }
-        color: root.isActive ? Colours.palette.m3primary : (Config.bar.workspaces.occupiedBg || root.isOccupied ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2))
-        horizontalAlignment: Qt.AlignHCenter
+        color: Config.bar.workspaces.occupiedBg || root.isOccupied || root.activeWsId === root.ws ? Colours.palette.m3onSurface : Colours.layer(Colours.palette.m3outlineVariant, 2)
         verticalAlignment: Qt.AlignVCenter
+        font.family: Tokens.font.workspaces
     }
 
-    // Icons column — centrada quando hasWindows
-    Column {
-        id: iconColumn
-        anchors.centerIn: parent
-        spacing: 0
-        visible: root.hasWindows
+    Loader {
+        id: windows
 
-        add: Transition {
-            Anim {
-                properties: "scale"
-                from: 0
-                to: 1
-                easing: Tokens.anim.standardDecel
-            }
-        }
+        asynchronous: true
 
-        Repeater {
-            model: ScriptModel {
-                values: {
-                    const ws = root.ws;
-                    const wins = Hypr.toplevels.values.filter(c => c.workspace?.id === ws);
-                    const maxIcons = Config.bar.workspaces.maxWindowIcons;
-                    return maxIcons > 0 ? wins.slice(0, maxIcons) : wins;
+        Layout.alignment: Qt.AlignHCenter
+        Layout.fillHeight: true
+        Layout.topMargin: -Tokens.sizes.bar.innerWidth / 10
+
+        visible: active
+        active: root.hasWindows
+
+        sourceComponent: Column {
+            spacing: 0
+
+            add: Transition {
+                Anim {
+                    properties: "scale"
+                    from: 0
+                    to: 1
+                    easing: Tokens.anim.standardDecel
                 }
             }
 
-            MaterialIcon {
-                required property var modelData
-                grade: 0
-                text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
-                color: root.isActive ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            move: Transition {
+                Anim {
+                    properties: "scale"
+                    to: 1
+                    easing: Tokens.anim.standardDecel
+                }
+                Anim {
+                    properties: "x,y"
+                }
+            }
+
+            Repeater {
+                model: ScriptModel {
+                    values: {
+                        const ws = root.ws;
+                        const windows = Hypr.toplevels.values.filter(c => c.workspace?.id === ws);
+                        const maxIcons = root.Config.bar.workspaces.maxWindowIcons;
+                        return maxIcons > 0 ? windows.slice(0, maxIcons) : windows;
+                    }
+                }
+
+                MaterialIcon {
+                    required property var modelData
+
+                    grade: 0
+                    text: Icons.getAppCategoryIcon(modelData.lastIpcObject.class, "terminal")
+                    color: Colours.palette.m3onSurfaceVariant
+                }
             }
         }
     }
 
-    Behavior on implicitHeight {
+    Behavior on Layout.preferredHeight {
         Anim {}
     }
 }
