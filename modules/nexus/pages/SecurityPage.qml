@@ -67,18 +67,18 @@ PageBase {
         statusTimer.restart();
     }
 
-    Timer {
-        id: statusTimer
-
-        interval: 3000
-        onTriggered: root.statusMessage = ""
-    }
-
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        Timer {
+            id: statusTimer
+
+            interval: 3000
+            onTriggered: root.statusMessage = ""
+        }
 
         // Methods
         SectionHeader {
