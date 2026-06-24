@@ -84,8 +84,17 @@ ColumnLayout {
             const specialWs = mon?.lastIpcObject.specialWorkspace.name;
             if (specialWs?.length > 0)
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${specialWs.slice(8)}")` : `togglespecialworkspace ${specialWs.slice(8)}`);
-            else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
-                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "r${angleDelta.y > 0 ? "-" : "+"}1" })` : `workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
+            else {
+                // US-012 — scroll BOUNDED ao bloco de 9 ws do monitor (3 grupos × 3 subgrupos), com wrap.
+                // Evita "grupos infinitos": nunca escapa do bloco do role atual. block = GROUPS*SUBS.
+                const cur = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) ?? 1;
+                const block = 9;
+                const role = Math.floor((cur - 1) / block);
+                const dir = angleDelta.y > 0 ? -1 : 1;
+                const local = (((cur - 1) % block) + dir + block) % block;
+                const target = role * block + local + 1;
+                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "${target}" })` : `workspace ${target}`);
+            }
         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
             // Volume scroll on top half
             if (angleDelta.y > 0)
