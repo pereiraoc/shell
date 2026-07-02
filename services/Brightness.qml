@@ -197,7 +197,8 @@ Singleton {
         }
 
         function setBrightness(value: real): void {
-            value = Math.max(0, Math.min(1, value));
+            // Piso de 5%: brilho 0 apaga a tela e exige resgate às cegas (Super+Shift+B)
+            value = Math.max(0.05, Math.min(1, value));
             const rounded = Math.round(value * 100);
             if (Math.round(brightness * 100) === rounded)
                 return;
