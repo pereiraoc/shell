@@ -76,6 +76,12 @@ QtObject {
             category: "shell"
         },
         {
+            label: qsTr("Apps"),
+            icon: "apps",
+            description: qsTr("Default apps, favourites, hidden apps"),
+            category: "shell"
+        },
+        {
             label: qsTr("Window management"),
             icon: "select_window",
             description: qsTr("Gaps"),
