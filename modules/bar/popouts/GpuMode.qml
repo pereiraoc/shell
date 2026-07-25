@@ -8,7 +8,7 @@ import QtQuick
 Column {
     id: root
 
-    spacing: Tokens.spacing.normal
+    spacing: Tokens.spacing.medium
     width: Tokens.sizes.bar.batteryWidth
 
     // Title: Current ACTIVE Mode (real, not configured)
@@ -93,7 +93,7 @@ Column {
 
         anchors.horizontalCenter: parent.horizontalCenter
 
-        implicitWidth: integrated.implicitWidth + hybrid.implicitWidth + dedicated.implicitWidth + Tokens.padding.normal * 2 + Tokens.spacing.large * 2
+        implicitWidth: integrated.implicitWidth + hybrid.implicitWidth + dedicated.implicitWidth + Tokens.padding.medium * 2 + Tokens.spacing.large * 2
         implicitHeight: Math.max(integrated.implicitHeight, hybrid.implicitHeight, dedicated.implicitHeight) + Tokens.padding.small * 2
 
         color: Colours.tPalette.m3surfaceContainer
@@ -141,11 +141,7 @@ Column {
             ]
 
             transitions: Transition {
-                AnchorAnimation {
-                    duration: Tokens.anim.durations.normal
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Tokens.anim.curves.emphasized
-                }
+                AnchorAnim {}
             }
         }
 
