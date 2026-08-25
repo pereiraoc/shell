@@ -36,10 +36,14 @@ fi
 # Criar diretório destino
 mkdir -p "$TARGET_DIR"
 
-# Sync (sem --delete para preservar arquivos pessoais .bak etc.)
-# Excludes idênticos ao install-clean.sh + plugin/ (C++ source não vai)
+# Sync COM --delete: órfãos de versões antigas são singletons QML fantasmas que
+# sombreiam tipos locais e derrubam o load (ex.: services/Network.qml órfão ×
+# import qs.services do v2.3.0). Arquivos pessoais protegidos pelos excludes
+# (*.bak*, provenance); o snapshot pré-deploy já preserva tudo de qualquer forma.
 echo "Sincronizando arquivos..."
-rsync -av $DRY_RUN \
+rsync -av --delete $DRY_RUN \
+    --exclude='.caelestia-provenance' \
+    --exclude='*.bak*' \
     --exclude='.git' \
     --exclude='build' \
     --exclude='.vscode' \

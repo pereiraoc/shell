@@ -90,8 +90,8 @@ PageBase {
                         required property int index
 
                         icon: modelData.icon
-                        label: modelData.name
-                        status: modelData.description
+                        text: modelData.name
+                        subtext: modelData.description
                         first: index === 0
                         last: index === catDelegate.modelData.apps.length - 1
                         onClicked: Quickshell.execDetached(modelData.command)

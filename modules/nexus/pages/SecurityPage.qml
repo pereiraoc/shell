@@ -214,8 +214,8 @@ PageBase {
             Layout.fillWidth: true
             last: true
             icon: "save"
-            label: qsTr("Save PIN")
-            status: root.statusMessage
+            text: qsTr("Save PIN")
+            subtext: root.statusMessage
             onClicked: root.savePin()
         }
 
@@ -229,8 +229,8 @@ PageBase {
             first: true
             last: true
             icon: "restart_alt"
-            label: qsTr("Reset authentication methods")
-            status: qsTr("Re-enable face and PIN if locked out")
+            text: qsTr("Reset authentication methods")
+            subtext: qsTr("Re-enable face and PIN if locked out")
             onClicked: root.resetLockouts()
         }
     }
