@@ -55,6 +55,15 @@ QtObject {
                 Component {
                     NetworkDetailPage {}
                 }
+                Component {
+                    AddVpnPage {}
+                }
+                Component {
+                    AllNetworksPage {}
+                }
+                Component {
+                    SavedNetworksPage {}
+                }
             }
         },
         Component {
@@ -125,6 +134,9 @@ QtObject {
                 }
                 Component {
                     SidebarPanel {}
+                }
+                Component {
+                    UtilitiesPanel {}
                 }
 
                 // Taskbar component sub-pages

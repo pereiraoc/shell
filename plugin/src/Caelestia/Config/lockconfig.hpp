@@ -9,6 +9,7 @@ class LockConfig : public ConfigObject {
     QML_ANONYMOUS
 
     CONFIG_PROPERTY(bool, enabled, true)
+    CONFIG_PROPERTY(bool, useWallpaper, false)
     // Custom: default false (logo sem recolor no nosso setup)
     CONFIG_PROPERTY(bool, recolourLogo, false)
     CONFIG_GLOBAL_PROPERTY(bool, enableFprint, true)
