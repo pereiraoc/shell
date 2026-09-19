@@ -153,7 +153,14 @@ ColumnLayout {
 
                     StyledText {
                         Layout.fillWidth: true
-                        text: ethRow.isConnected ? ethRow.modelData.iface : qsTr("Not connected • %1").arg(ethRow.modelData.iface)
+                        // Nome da interface + tradução: o nome é a identidade
+                        // real (é o que se usa no terminal), a tradução diz de
+                        // onde ele vem fisicamente.
+                        text: {
+                            const desc = Nmcli.describeInterface(ethRow.modelData.iface);
+                            const label = desc ? `${ethRow.modelData.iface} · ${desc}` : ethRow.modelData.iface;
+                            return ethRow.isConnected ? label : qsTr("Not connected • %1").arg(label);
+                        }
                         color: ethRow.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
                         font: Tokens.font.label.small
                         elide: Text.ElideRight

@@ -133,6 +133,50 @@ Singleton {
         return command.includes(root.nmcliCommandWifi) || command.includes(root.nmcliCommandConnection);
     }
 
+    // Traduz o nome previsivel do systemd para algo legivel.
+    //
+    // O proprio nome carrega a informacao (systemd.net-naming-scheme):
+    //   en/wl/ww  tipo: ethernet, wireless, wwan
+    //   o<n>      onboard, indice vindo da BIOS
+    //   p<n>s<n>  barramento e slot PCI
+    //   u<n>      caminho da porta USB (pode encadear: u2u1)
+    //   x<MAC>    nomeado pelo endereco MAC
+    //
+    // Decodificar o NOME, e nao ler o sysfs, e de proposito: o rotulo que a
+    // BIOS expoe nao e confiavel -- nesta maquina o /sys/.../label da placa
+    // Wi-Fi diz "Onboard - Ethernet".
+    function describeInterface(iface: string): string {
+        if (!iface)
+            return "";
+
+        const kinds = {
+            en: qsTr("Ethernet"),
+            wl: qsTr("Wi-Fi"),
+            ww: qsTr("Mobile")
+        };
+        const kind = kinds[iface.slice(0, 2)];
+        if (!kind)
+            return "";
+
+        const rest = iface.slice(2);
+
+        if (rest.startsWith("x"))
+            return qsTr("%1 (by MAC)").arg(kind);
+
+        const usb = /u(\d+)(?!.*u\d)/.exec(rest);
+        if (usb)
+            return qsTr("USB %1 (port %2)").arg(kind).arg(usb[1]);
+
+        const onboard = /^o(\d+)/.exec(rest);
+        if (onboard)
+            return qsTr("Internal %1 (onboard %2)").arg(kind).arg(onboard[1]);
+
+        if (/^p\d+s\d+/.test(rest))
+            return qsTr("Internal %1 (PCIe)").arg(kind);
+
+        return kind;
+    }
+
     function parseDeviceStatusOutput(output: string, filterType: string): list<var> {
         if (!output || output.length === 0) {
             return [];

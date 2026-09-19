@@ -60,6 +60,16 @@ PageBase {
             Layout.topMargin: Nmcli.hasAvailableEthernet ? Tokens.spacing.large : 0
             first: true
             text: qsTr("Wi-Fi")
+            // Mesma tradução do Ethernet: o adaptador raramente importa aqui,
+            // mas quando há mais de um (dongle USB, por exemplo) saber qual
+            // está em uso deixa de ser detalhe.
+            subtext: {
+                const iface = Nmcli.wirelessInterfaces[0]?.device ?? "";
+                if (!iface)
+                    return "";
+                const desc = Nmcli.describeInterface(iface);
+                return desc ? `${iface} · ${desc}` : iface;
+            }
             font: Tokens.font.body.medium
             horizontalPadding: Tokens.padding.largeIncreased
             checked: Nmcli.wifiEnabled
