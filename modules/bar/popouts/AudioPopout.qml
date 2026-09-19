@@ -8,12 +8,17 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 Item {
     id: root
 
     required property PopoutState popouts
+
+    // Mixer por app, recolhido por padrao: o popout existe para ser rapido, e
+    // a lista so interessa quando ha algo tocando que voce queira ajustar.
+    property bool mixerOpen: false
 
     implicitWidth: layout.implicitWidth + Tokens.padding.medium * 2
     implicitHeight: layout.implicitHeight + Tokens.padding.medium * 2
@@ -145,16 +150,125 @@ Item {
             }
         }
 
-        IconTextButton {
+        // Volume por aplicativo. A lista vem de Audio.streams, que sao os
+        // streams de REPRODUCAO -- um app aberto mas sem stream nao aparece
+        // porque nao ha nada em que aplicar volume.
+        Loader {
             Layout.fillWidth: true
             Layout.topMargin: Tokens.spacing.medium
-            inactiveColour: Colours.palette.m3primaryContainer
-            inactiveOnColour: Colours.palette.m3onPrimaryContainer
-            verticalPadding: Tokens.padding.extraSmall
-            text: qsTr("Open settings")
-            icon: "settings"
+            active: root.mixerOpen
+            visible: active
 
-            onClicked: root.popouts.detachRequested("audio")
+            sourceComponent: ColumnLayout {
+                spacing: Tokens.spacing.small
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: Audio.streams.length === 0
+                    text: qsTr("Nothing playing")
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.small
+                }
+
+                Repeater {
+                    model: Audio.streams
+
+                    delegate: ColumnLayout {
+                        id: stream
+
+                        required property PwNode modelData
+
+                        readonly property bool streamMuted: Audio.getStreamMuted(stream.modelData)
+
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Tokens.spacing.small
+
+                            // Clicar no icone silencia esse app so.
+                            MaterialIcon {
+                                // getAppCategoryIcon, nao getAppIcon: este devolve
+                                // NOME DE GLIFO (usavel em MaterialIcon), enquanto
+                                // o outro devolve caminho de arquivo, para Image.
+                                text: stream.streamMuted ? "volume_off" : Icons.getAppCategoryIcon(Audio.getStreamName(stream.modelData), "music_note")
+                                color: stream.streamMuted ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                                fontStyle: Tokens.font.icon.small
+
+                                StateLayer {
+                                    radius: Tokens.rounding.full
+                                    onClicked: Audio.setStreamMuted(stream.modelData, !stream.streamMuted)
+                                }
+                            }
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: Audio.getStreamName(stream.modelData)
+                                color: stream.streamMuted ? Colours.palette.m3outline : Colours.palette.m3onSurface
+                                font: Tokens.font.body.small
+                                elide: Text.ElideRight
+                            }
+
+                            StyledText {
+                                text: `${Math.round(Audio.getStreamVolume(stream.modelData) * 100)}%`
+                                color: Colours.palette.m3outline
+                                font: Tokens.font.label.small
+                            }
+                        }
+
+                        CustomMouseArea {
+                            Layout.fillWidth: true
+                            implicitHeight: Tokens.padding.medium * 2
+
+                            onWheel: event => {
+                                const v = Audio.getStreamVolume(stream.modelData);
+                                Audio.setStreamVolume(stream.modelData, v + (event.angleDelta.y > 0 ? 0.05 : -0.05));
+                            }
+
+                            StyledSlider {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                implicitHeight: parent.implicitHeight
+
+                                value: Audio.getStreamVolume(stream.modelData)
+                                onInteraction: value => Audio.setStreamVolume(stream.modelData, value)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.medium
+            spacing: Tokens.spacing.small
+
+            IconTextButton {
+                Layout.fillWidth: true
+                inactiveColour: Colours.palette.m3primaryContainer
+                inactiveOnColour: Colours.palette.m3onPrimaryContainer
+                verticalPadding: Tokens.padding.extraSmall
+                text: qsTr("Open settings")
+                icon: "settings"
+
+                onClicked: root.popouts.detachRequested("audio")
+            }
+
+            // 'tune' e o icone que o projeto ja usa para volume por app
+            // (AudioPage.qml:92) -- mantido para nao inventar vocabulario.
+            IconButton {
+                icon: "tune"
+                isToggle: true
+                isRound: true
+                shapeMorph: true
+                checked: root.mixerOpen
+                inactiveColour: Colours.palette.m3secondaryContainer
+                verticalPadding: Tokens.padding.extraSmall
+
+                onClicked: root.mixerOpen = !root.mixerOpen
+            }
         }
     }
 }

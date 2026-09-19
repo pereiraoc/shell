@@ -80,7 +80,12 @@ Singleton {
     function isProcessingNode(name: string): bool {
         if (!name)
             return false;
-        return name.startsWith("effect_input.") || name.startsWith("effect_output.") || name.startsWith("caelestia_ec_");
+        // "caelestia_ec_*" sao os nos que NOS nomeamos ao carregar o
+        // module-echo-cancel; "echo-cancel-*" sao os internos que o proprio
+        // modulo cria e batiza, independente dos nomes que passamos. Sem o
+        // segundo prefixo, o echo-cancel-playback aparecia no mixer como se
+        // fosse um app tocando audio.
+        return name.startsWith("effect_input.") || name.startsWith("effect_output.") || name.startsWith("caelestia_ec_") || name.startsWith("echo-cancel-");
     }
 
     function setVolume(newVolume: real): void {
