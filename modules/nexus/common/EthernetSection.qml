@@ -80,7 +80,12 @@ ColumnLayout {
         id: ethRepeater
 
         model: ScriptModel {
-            values: Nmcli.ethernetDevices.filter(d => d.state !== "unavailable")
+            // "unmanaged" sai junto com "unavailable": o Docker cria um par
+            // veth por container e o NetworkManager os classifica como
+            // type=ethernet, entao eles entravam na lista como se fossem
+            // placas de rede, com botao de conectar que nao faria nada --
+            // o NM nem gerencia essas interfaces.
+            values: Nmcli.ethernetDevices.filter(d => d.state !== "unavailable" && d.state !== "unmanaged")
         }
 
         delegate: ConnectedRect {
