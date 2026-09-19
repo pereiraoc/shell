@@ -12,28 +12,11 @@ Column {
     spacing: Tokens.spacing.medium
     width: Tokens.sizes.bar.batteryWidth
 
+    // Nivel e tempo do notebook vivem na lista de aparelhos abaixo, para nao
+    // duplicar. Este texto so cobre o caso de nao haver bateria nenhuma.
     StyledText {
-        text: UPower.displayDevice.isLaptopBattery ? qsTr("Remaining: %1%").arg(Math.round(UPower.displayDevice.percentage * 100)) : qsTr("No battery detected")
-    }
-
-    StyledText {
-        function formatSeconds(s: int, fallback: string): string {
-            const day = Math.floor(s / 86400);
-            const hr = Math.floor(s / 3600) % 24;
-            const min = Math.floor(s / 60) % 60;
-
-            let comps = [];
-            if (day > 0)
-                comps.push(`${day} days`);
-            if (hr > 0)
-                comps.push(`${hr} hours`);
-            if (min > 0)
-                comps.push(`${min} mins`);
-
-            return comps.join(", ") || fallback;
-        }
-
-        text: UPower.displayDevice.isLaptopBattery ? qsTr("Time %1: %2").arg(UPower.onBattery ? "remaining" : "until charged").arg(UPower.onBattery ? formatSeconds(UPower.displayDevice.timeToEmpty, "Calculating...") : formatSeconds(UPower.displayDevice.timeToFull, "Fully charged!")) : qsTr("Power profile: %1").arg(PowerProfile.toString(PowerProfiles.profile))
+        visible: !UPower.displayDevice.isLaptopBattery
+        text: qsTr("No battery detected · Power profile: %1").arg(PowerProfile.toString(PowerProfiles.profile))
     }
 
     Loader {
@@ -92,6 +75,12 @@ Column {
                 }
             }
         }
+    }
+
+    // Bateria dos aparelhos conectados. Fica ACIMA do seletor de perfil de
+    // energia, que permanece intocado logo abaixo.
+    DeviceBatteries {
+        width: parent.width
     }
 
     StyledRect {

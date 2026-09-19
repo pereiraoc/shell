@@ -62,7 +62,10 @@ ItemList {
                     id: devIcon
 
                     anchors.centerIn: parent
-                    text: root.iconName
+                    // Bluetooth ganha o icone de Bluetooth: e a informacao que
+                    // importa olhando a lista (como o aparelho esta ligado),
+                    // mais do que repetir "alto-falante" em toda linha.
+                    text: (device.modelData?.name ?? "").startsWith("bluez_") ? "bluetooth" : root.iconName
                     color: device.active ? Colours.palette.m3onPrimary : Colours.palette.m3onSecondaryContainer
                     fontStyle: Tokens.font.icon.medium
                     fill: device.active ? 1 : 0
@@ -73,11 +76,35 @@ ItemList {
                 }
             }
 
+            // Nome dimensionado ao CONTEUDO, nao a largura toda: e o que
+            // permite o toggle de modo ficar colado nele em vez de encostado
+            // nas tags do outro lado.
             StyledText {
-                Layout.fillWidth: true
+                Layout.maximumWidth: device.width * 0.5
                 text: device.modelData?.description || device.modelData?.name || qsTr("Unknown")
                 font: Tokens.font.body.small
                 elide: Text.ElideRight
+            }
+
+            // HEADPHONE <-> HEADSET, com as duas opcoes a vista. So aparece
+            // para quem tem as duas familias de perfil (A2DP e headset) --
+            // alto-falante, HDMI e o jack nao tem microfone proprio.
+            Loader {
+                active: AudioProfile.supportsHeadset(device.modelData?.name ?? "")
+                visible: active
+
+                sourceComponent: AudioModeToggle {
+                    node: device.modelData
+                }
+            }
+
+            // Empurra tags e check para a direita.
+            Item {
+                Layout.fillWidth: true
+            }
+
+            AudioTags {
+                node: device.modelData
             }
 
             MaterialIcon {

@@ -21,19 +21,76 @@ Singleton {
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property PwNode source: Pipewire.defaultAudioSource
 
-    readonly property bool muted: !!sink?.audio?.muted
-    readonly property real volume: sink?.audio?.volume ?? 0
+    // O sink default pode ser um FILTRO (a cadeia CUSTOM do caelestia-audio-profile),
+    // que nao e um dispositivo: e uma etapa de processamento entre os apps e o
+    // hardware. Nos de filtro carregam node.link-group; nos de hardware carregam
+    // device.id. Distinguir importa por dois motivos:
+    //   1. o filtro nao deve aparecer no seletor de saida (nome confuso, nao e fone)
+    //   2. volume tem que seguir o DISPOSITIVO; seguindo o filtro, o estagio de
+    //      hardware fica orfao e o usuario nao alcanca o volume maximo do fone
+    readonly property bool defaultIsFilter: !!sink?.properties["node.link-group"]
 
-    readonly property bool sourceMuted: !!source?.audio?.muted
-    readonly property real sourceVolume: source?.audio?.volume ?? 0
+    // Quando o default e um filtro, o dispositivo real e aquele em que o
+    // WirePlumber liga a saida dele: o de maior priority.session entre os
+    // devices (mesma regra de linking/find-best-target.lua, que so itera sobre
+    // item.node.type = "device").
+    readonly property PwNode outputDevice: {
+        if (!defaultIsFilter)
+            return sink;
+        let best = null;
+        let bestPrio = -1;
+        for (const n of sinks) {
+            const prio = parseInt(n.properties["priority.session"] ?? "0");
+            if (prio > bestPrio) {
+                bestPrio = prio;
+                best = n;
+            }
+        }
+        return best;
+    }
+
+    // Espelha outputDevice do lado da entrada: quando a supressao esta ligada,
+    // a fonte padrao e o no do echo-cancel, que nao e um dispositivo. Quem
+    // resolve o microfone real por tras dele e o CLI (campo input_device).
+    readonly property PwNode sourceDevice: {
+        const wanted = AudioProfile.status?.input_device ?? "";
+        if (!wanted)
+            return source;
+        return sources.find(n => n.name === wanted) ?? source;
+    }
+
+    readonly property bool muted: !!outputDevice?.audio?.muted
+    readonly property real volume: outputDevice?.audio?.volume ?? 0
+
+    readonly property bool sourceMuted: !!sourceDevice?.audio?.muted
+    readonly property real sourceVolume: sourceDevice?.audio?.volume ?? 0
 
     readonly property alias cava: cava
     readonly property alias beatTracker: beatTracker
 
+    // Nos de PROCESSAMENTO que este setup cria (cadeia CUSTOM e supressao de
+    // ruido). Nao sao dispositivos e nao devem aparecer no seletor.
+    //
+    // O criterio e o NOME de proposito. A tentativa anterior usava
+    // properties["device.id"], que e preenchida de forma ASSINCRONA pelo
+    // PipeWire: refreshNodes() so roda em Component.onCompleted e quando o
+    // conjunto de nos muda, entao a propriedade ainda estava vazia na hora da
+    // avaliacao e os dispositivos eram descartados para sempre -- as listas
+    // ficavam vazias. node.name vem preenchido em initProps, sincronamente.
+    function isProcessingNode(name: string): bool {
+        if (!name)
+            return false;
+        return name.startsWith("effect_input.") || name.startsWith("effect_output.") || name.startsWith("caelestia_ec_");
+    }
+
     function setVolume(newVolume: real): void {
-        if (sink?.ready && sink?.audio) {
-            sink.audio.muted = false;
-            sink.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
+        // Escreve no DISPOSITIVO, nao no default: com a cadeia CUSTOM no caminho
+        // o default e o filtro, e mexer nele deixa o estagio de hardware do fone
+        // parado onde estava -- foi assim que o volume maximo ficou inalcancavel.
+        const target = outputDevice;
+        if (target?.ready && target?.audio) {
+            target.audio.muted = false;
+            target.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
     }
 
@@ -46,9 +103,10 @@ Singleton {
     }
 
     function setSourceVolume(newVolume: real): void {
-        if (source?.ready && source?.audio) {
-            source.audio.muted = false;
-            source.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
+        const target = sourceDevice;
+        if (target?.ready && target?.audio) {
+            target.audio.muted = false;
+            target.audio.volume = Math.max(0, Math.min(GlobalConfig.services.maxVolume, newVolume));
         }
     }
 
@@ -61,7 +119,13 @@ Singleton {
     }
 
     function setAudioSink(newSink: PwNode): void {
-        Pipewire.preferredDefaultAudioSink = newSink;
+        // Com a cena CUSTOM ativa o default precisa continuar sendo o filtro;
+        // trocar de dispositivo e' mover a SAIDA do filtro. Isso e' feito pelo
+        // caelestia-audio-profile, que e o dono dessa logica.
+        if (root.defaultIsFilter)
+            selectOutputProc.exec([selectOutputProc.cli, "output", newSink.name]);
+        else
+            Pipewire.preferredDefaultAudioSink = newSink;
     }
 
     function setAudioSource(newSource: PwNode): void {
@@ -112,11 +176,26 @@ Singleton {
 
         for (const node of Pipewire.nodes.values) {
             if (!node.isStream) {
-                if (node.isSink)
+                // So DISPOSITIVOS no seletor de saida. Nos virtuais (filter-chain
+                // da cena CUSTOM, echo-cancel) tem media.class Audio/Sink mas nao
+                // tem device.id -- apareciam na lista com nomes tipo
+                // "Custom (HRTF atmos.wav + EQ)" e "Echo-Cancel Sink", como se
+                // fossem fones.
+                if (node.isSink && !root.isProcessingNode(node.name))
                     newSinks.push(node);
-                else if (node.audio)
+                else if (node.audio && !root.isProcessingNode(node.name))
+                    // Mesmo criterio da saida: nos virtuais (o echo-cancel da
+                    // supressao) nao sao dispositivos e nao entram no seletor.
+                    // O processamento aparece como tag no dispositivo real.
                     newSources.push(node);
-            } else if (node.audio) {
+            } else if (node.audio && node.isSink && !root.isProcessingNode(node.name)) {
+                // isSink isola streams de REPRODUCAO: AudioOutStream e Audio|Sink|Stream,
+                // enquanto AudioInStream e Audio|Source|Stream. Sem isso, streams de
+                // captura (o proprio visualizer do shell, por exemplo) apareciam em
+                // "App volumes", que se anuncia como "apps currently playing audio".
+                // isProcessingNode exclui os nos de filter-chain e do echo-cancel,
+                // que sao Stream/Output/Audio mas nao sao apps. Pelo nome, e nao
+                // por node.link-group, porque essa propriedade chega assincrona.
                 newStreams.push(node);
             }
         }
@@ -168,8 +247,16 @@ Singleton {
 
     // Always track the current defaults so volume/mute bind even if the lists
     // momentarily lag behind the default node.
+    Process {
+        id: selectOutputProc
+
+        // Caminho absoluto de proposito: ~/.local/bin NAO esta no PATH neste
+        // sistema (nem no login shell), entao chamar pelo nome falharia.
+        readonly property string cli: `${Quickshell.env("HOME")}/.local/bin/caelestia-audio-profile`
+    }
+
     PwObjectTracker {
-        objects: [root.sink, root.source, ...root.sinks, ...root.sources, ...root.streams].filter(n => n)
+        objects: [root.sink, root.source, root.outputDevice, root.sourceDevice, ...root.sinks, ...root.sources, ...root.streams].filter(n => n)
     }
 
     CavaProvider {

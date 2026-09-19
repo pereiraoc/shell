@@ -8,6 +8,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.modules.nexus.common
 
 Item {
     id: root
@@ -40,15 +41,42 @@ Item {
         Repeater {
             model: Audio.sinks
 
-            StyledRadioButton {
+            RowLayout {
                 id: control
 
                 required property PwNode modelData
 
-                ButtonGroup.group: sinks
-                checked: Audio.sink?.id === modelData.id
-                onClicked: Audio.setAudioSink(modelData)
-                text: modelData.description
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                StyledRadioButton {
+                    ButtonGroup.group: sinks
+                    // outputDevice, nao sink: com a cadeia CUSTOM ativa o sink
+                    // default e o filtro, cujo id nao casa com nenhum device --
+                    // e nenhuma opcao ficava marcada.
+                    checked: Audio.outputDevice?.id === control.modelData.id
+                    onClicked: Audio.setAudioSink(control.modelData)
+                    text: control.modelData.description
+                }
+
+                // HEADPHONE <-> HEADSET com as duas opcoes a vista, logo apos o
+                // nome. E o caminho rapido: da pra trocar no meio de um jogo.
+                Loader {
+                    active: AudioProfile.supportsHeadset(control.modelData?.name ?? "")
+                    visible: active
+
+                    sourceComponent: AudioModeToggle {
+                        node: control.modelData
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                AudioTags {
+                    node: control.modelData
+                }
             }
         }
 
@@ -61,14 +89,33 @@ Item {
         Repeater {
             model: Audio.sources
 
-            StyledRadioButton {
+            RowLayout {
+                id: srcControl
+
                 required property PwNode modelData
 
-                ButtonGroup.group: sources
-                checked: Audio.source?.id === modelData.id
-                onClicked: Audio.setAudioSource(modelData)
-                text: modelData.description
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                StyledRadioButton {
+                    Layout.fillWidth: true
+                    ButtonGroup.group: sources
+                    checked: Audio.sourceDevice?.id === srcControl.modelData.id
+                    onClicked: Audio.setAudioSource(srcControl.modelData)
+                    text: srcControl.modelData.description
+                }
+
+                AudioTags {
+                    node: srcControl.modelData
+                }
             }
+        }
+
+        // Cena de audio. Fora do dispositivo de proposito: vale para a saida
+        // toda, nao para um fone especifico. O componente traz nome e descricao.
+        AudioSceneSelector {
+            Layout.topMargin: Tokens.spacing.medium
+            Layout.fillWidth: true
         }
 
         StyledText {

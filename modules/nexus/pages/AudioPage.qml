@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import qs.components
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -37,11 +38,22 @@ PageBase {
 
         AudioDeviceList {
             nodes: Audio.sinks
-            currentId: Audio.sink?.id ?? -1
+            // outputDevice, nao sink: com a cadeia CUSTOM ativa o sink default
+            // e o filtro, cujo id nao casa com nenhum device -- e nenhuma linha
+            // ficava marcada como ativa.
+            currentId: Audio.outputDevice?.id ?? -1
             iconName: "speaker"
             placeholderIcon: "speaker"
             placeholderText: qsTr("No output devices")
             onSelected: node => Audio.setAudioSink(node)
+        }
+
+        // Cena de audio. O componente ja traz nome e descricao do selecionado.
+        AudioSceneSelector {
+            Layout.topMargin: Tokens.spacing.large - parent.spacing
+            Layout.fillWidth: true
+            // Aqui ha espaco para explicar; no popout da barra, nao.
+            showDescription: true
         }
 
         // Input
