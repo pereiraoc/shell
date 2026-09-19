@@ -157,8 +157,10 @@ ColumnLayout {
                         // real (é o que se usa no terminal), a tradução diz de
                         // onde ele vem fisicamente.
                         text: {
+                            // Legivel primeiro, nome do systemd reduzido depois:
+                            // mesma ordem do popout da barra.
                             const desc = Nmcli.describeInterface(ethRow.modelData.iface);
-                            const label = desc ? `${ethRow.modelData.iface} · ${desc}` : ethRow.modelData.iface;
+                            const label = desc ? `${desc} · ${ethRow.modelData.iface}` : ethRow.modelData.iface;
                             return ethRow.isConnected ? label : qsTr("Not connected • %1").arg(label);
                         }
                         color: ethRow.isConnected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant

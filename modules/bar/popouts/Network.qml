@@ -16,6 +16,12 @@ ColumnLayout {
 
     property string connectingToSsid: ""
     property string view: "wireless" // "wireless" or "ethernet"
+
+    // O Docker cria um par veth por container e o NetworkManager os classifica
+    // como type=ethernet. Sem filtrar, a lista (e o contador "N devices
+    // available") enchia de encanamento com botao de conectar que nao faria
+    // nada -- o NM nem gerencia essas interfaces.
+    readonly property var managedEthernet: Nmcli.ethernetDevices.filter(d => d.state !== "unavailable" && d.state !== "unmanaged")
     property var passwordNetwork: null
     property bool showPasswordDialog: false
 
@@ -235,7 +241,7 @@ ColumnLayout {
         Layout.preferredHeight: visible ? implicitHeight : 0
         Layout.topMargin: visible ? Tokens.spacing.small : 0
         Layout.rightMargin: Tokens.padding.extraSmall
-        text: qsTr("%1 devices available").arg(Nmcli.ethernetDevices.length)
+        text: qsTr("%1 devices available").arg(root.managedEthernet.length)
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.body.small
     }
@@ -243,7 +249,7 @@ ColumnLayout {
     Repeater {
         visible: root.view === "ethernet"
         model: ScriptModel {
-            values: [...Nmcli.ethernetDevices].sort((a, b) => {
+            values: [...root.managedEthernet].sort((a, b) => {
                 if (a.connected !== b.connected)
                     return b.connected - a.connected;
                 return (a.iface || "").localeCompare(b.iface || "");
@@ -285,14 +291,27 @@ ColumnLayout {
                 color: ethernetItem.modelData.connected ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
             }
 
+            // Nome legivel como principal: o perfil do NetworkManager quando
+            // existe (e renomeavel pelo usuario), senao a traducao do nome do
+            // systemd. O nome cru fica ao lado, entre parenteses.
             StyledText {
                 Layout.leftMargin: Tokens.spacing.extraSmall
-                Layout.rightMargin: Tokens.spacing.extraSmall
                 Layout.fillWidth: true
-                text: ethernetItem.modelData.iface || qsTr("Unknown")
+                text: ethernetItem.modelData.connection || Nmcli.describeInterface(ethernetItem.modelData.iface) || ethernetItem.modelData.iface || qsTr("Unknown")
                 elide: Text.ElideRight
                 font: Tokens.font.body.builders.medium.weight(ethernetItem.modelData.connected ? Font.Medium : Font.Normal).build()
                 color: ethernetItem.modelData.connected ? Colours.palette.m3primary : Colours.palette.m3onSurface
+            }
+
+            // Encostado a direita: como o nome ao lado ocupa a largura
+            // restante, os parenteses de todas as linhas terminam no mesmo
+            // ponto e ficam alinhados em coluna.
+            StyledText {
+                Layout.rightMargin: Tokens.spacing.extraSmall
+                visible: !!ethernetItem.modelData.iface
+                text: `(${ethernetItem.modelData.iface})`
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
             }
 
             StyledRect {
