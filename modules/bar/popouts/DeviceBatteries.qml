@@ -193,31 +193,39 @@ ColumnLayout {
                     elide: Text.ElideRight
                 }
 
-                // Largura FIXA nos dois: sem isso o texto da percentagem muda de
-                // largura ("100%" vs "40%") e empurra o icone de bateria, deixando
-                // as linhas desalinhadas entre si. O glifo tambem varia de avanco
-                // conforme o nivel (battery_full vs battery_2_bar).
-                MaterialIcon {
-                    Layout.preferredWidth: implicitHeight
-                    horizontalAlignment: Text.AlignHCenter
-                    text: Icons.getBatteryIcon(entry.modelData.pct, entry.modelData.charging)
-                    color: entry.tint
-                    fontStyle: Tokens.font.icon.small
-                    fill: 1
-                }
+                // Icone e percentual formam um par COMPACTO: eles se referem a
+                // mesma coisa, entao ficam juntos, com o espacamento normal da
+                // linha so antes do par. A margem a direita e o que afasta o
+                // "100%" da borda arredondada do popout.
+                RowLayout {
+                    Layout.rightMargin: Tokens.padding.small
+                    spacing: Tokens.spacing.extraSmall / 2
 
-                StyledText {
-                    Layout.preferredWidth: pctMetrics.width
-                    horizontalAlignment: Text.AlignRight
-                    text: `${Math.round(entry.modelData.pct * 100)}%`
-                    color: entry.tint
-                    font: Tokens.font.body.small
+                    // Largura FIXA nos dois: sem isso o texto da percentagem muda
+                    // de largura ("100%" vs "40%") e empurra o icone, deixando as
+                    // linhas desalinhadas entre si. O glifo tambem varia de avanco
+                    // conforme o nivel (battery_full vs battery_2_bar).
+                    MaterialIcon {
+                        Layout.preferredWidth: implicitWidth
+                        text: Icons.getBatteryIcon(entry.modelData.pct, entry.modelData.charging)
+                        color: entry.tint
+                        fontStyle: Tokens.font.icon.small
+                        fill: 1
+                    }
 
-                    TextMetrics {
-                        id: pctMetrics
-
+                    StyledText {
+                        Layout.preferredWidth: pctMetrics.width
+                        horizontalAlignment: Text.AlignRight
+                        text: `${Math.round(entry.modelData.pct * 100)}%`
+                        color: entry.tint
                         font: Tokens.font.body.small
-                        text: "100%"
+
+                        TextMetrics {
+                            id: pctMetrics
+
+                            font: Tokens.font.body.small
+                            text: "100%"
+                        }
                     }
                 }
             }

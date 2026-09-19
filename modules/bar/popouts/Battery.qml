@@ -10,11 +10,7 @@ Column {
     id: root
 
     spacing: Tokens.spacing.medium
-    // Um pouco mais largo que o token: a lista de aparelhos tem percentual
-    // alinhado a direita, e com 250 o "100%" do laptop encostava na borda
-    // arredondada. Local de proposito -- o token e compartilhado com o popout
-    // de modo de GPU, que nao tem esse conteudo.
-    width: Tokens.sizes.bar.batteryWidth + Tokens.padding.large * 2
+    width: Tokens.sizes.bar.batteryWidth
 
     // Nivel e tempo do notebook vivem na lista de aparelhos abaixo, para nao
     // duplicar. Este texto so cobre o caso de nao haver bateria nenhuma.
