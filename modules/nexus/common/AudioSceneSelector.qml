@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
+import qs.components.controls
 import qs.services
 
 // Seletor de cena de audio, quatro posicoes, no molde do seletor de modo de
@@ -49,7 +50,9 @@ ColumnLayout {
 
     StyledText {
         Layout.fillWidth: true
-        text: qsTr("Audio scene: %1").arg(root.currentLabel)
+        // Durante a troca o rotulo assume o lugar do nome: sem isso ele
+        // seguiria anunciando a cena ANTIGA enquanto o spinner gira.
+        text: AudioProfile.busy ? qsTr("Audio scene: applying…") : qsTr("Audio scene: %1").arg(root.currentLabel)
         font: Tokens.font.body.small
         elide: Text.ElideRight
     }
@@ -79,6 +82,16 @@ ColumnLayout {
         // pai, e os botoes vivem dentro do RowLayout, um nivel abaixo. Ancorar
         // falhava em silencio e o destaque ficava com tamanho zero. Binding de
         // geometria atravessa niveis e ainda anima.
+        // O spinner toma o lugar dos botoes em vez de se somar a eles: enquanto
+        // a acao corre o estado exibido nao vale, e deixar a pilula a vista
+        // convidaria a cliques que o exec() descarta em silencio.
+        CircularIndicator {
+            anchors.centerIn: parent
+            implicitSize: sceneRow.implicitHeight
+            visible: AudioProfile.busy
+            running: visible
+        }
+
         StyledRect {
             id: indicator
 
@@ -88,6 +101,10 @@ ColumnLayout {
                 return items[i >= 0 ? i : 0];
             }
 
+            // Itens invisiveis nao recebem clique no QML, entao esconder a
+            // linha ja desabilita a interacao -- nao e' preciso mexer nos
+            // StateLayer de cada botao.
+            visible: !AudioProfile.busy
             x: sceneRow.x + (sel?.x ?? 0)
             y: sceneRow.y + (sel?.y ?? 0)
             width: sel?.width ?? 0
@@ -107,6 +124,7 @@ ColumnLayout {
         RowLayout {
             id: sceneRow
 
+            visible: !AudioProfile.busy
             anchors.fill: parent
             anchors.margins: Tokens.padding.small
             spacing: Tokens.spacing.small

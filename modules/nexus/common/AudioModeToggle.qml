@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell.Services.Pipewire
 import Caelestia.Config
 import qs.components
+import qs.components.controls
 import qs.services
 
 // HEADPHONE <-> HEADSET de um dispositivo, com as DUAS opcoes visiveis.
@@ -30,11 +31,22 @@ StyledRect {
 
     // Mesmo motivo do AudioSceneSelector: os botoes vivem dentro do Row, um
     // nivel abaixo, e anchors so alcancam irmao ou pai. Por binding funciona.
+    // Mesmo tratamento do seletor de cena. Aqui importa ainda mais: trocar
+    // HEADPHONE<->HEADSET derruba e recria os nos do Bluetooth, e e' a acao
+    // mais demorada da camada.
+    CircularIndicator {
+        anchors.centerIn: parent
+        implicitSize: modeRow.implicitHeight
+        visible: AudioProfile.busy
+        running: visible
+    }
+
     StyledRect {
         id: modeIndicator
 
         readonly property Item sel: root.headset ? setBtn : phoneBtn
 
+        visible: !AudioProfile.busy
         x: modeRow.x + (sel?.x ?? 0)
         y: modeRow.y + (sel?.y ?? 0)
         width: sel?.width ?? 0
@@ -50,6 +62,7 @@ StyledRect {
     Row {
         id: modeRow
 
+        visible: !AudioProfile.busy
         anchors.centerIn: parent
         spacing: Tokens.spacing.extraSmall
 
