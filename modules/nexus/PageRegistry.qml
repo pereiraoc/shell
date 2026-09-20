@@ -44,9 +44,9 @@ QtObject {
 
         // System
         {
-            label: qsTr("Updates"),
-            icon: "update",
-            description: qsTr("System updates"),
+            label: qsTr("Software"),
+            icon: "inventory_2",
+            description: qsTr("Traceability, packages, loose ends"),
             category: "system"
         },
         {
