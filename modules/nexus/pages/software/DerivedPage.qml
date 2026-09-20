@@ -84,9 +84,14 @@ PageBase {
                     Flow {
                         id: flow
 
+                        // Ancorado no TOPO, nunca centralizado: a altura do pai
+                        // vem de flow.implicitHeight, entao centralizar faria o
+                        // Flow se reposicionar a cada mudanca de altura, o que o
+                        // faz relayoutar, o que muda a altura -- polish() loop, a
+                        // 50% de CPU e a interface travada.
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: parent.top
                         anchors.margins: Tokens.padding.largeIncreased
                         spacing: Tokens.spacing.small
 
