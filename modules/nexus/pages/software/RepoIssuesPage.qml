@@ -14,6 +14,8 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
+    readonly property var unlinkedConfigs: (SoftwareInventory.trace.configurations ?? []).filter(c => !c.design)
+
     title: qsTr("Repository issues")
     isSubPage: true
 
@@ -151,6 +153,49 @@ PageBase {
                 icon: "description"
                 label: `${unusedRow.modelData.id}  ${unusedRow.modelData.title}`
                 subtext: unusedRow.modelData.file
+            }
+        }
+
+        SectionHeader {
+            text: qsTr("CONFIGURATION WITHOUT A DESIGN  ·  %1").arg(root.unlinkedConfigs.length)
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.leftMargin: Tokens.padding.small
+            Layout.bottomMargin: Tokens.spacing.extraSmall
+            text: qsTr("These configuration notes hang off nothing, so no requirement reaches them. Either a design document is missing, or the configuration is for something outside the project.")
+            color: Colours.palette.m3outline
+            font: Tokens.font.body.small
+            wrapMode: Text.WordWrap
+        }
+
+        ItemList {
+            id: unlinkedCfgList
+
+            showList: true
+            placeholderIcon: "check_circle"
+            placeholderText: qsTr("Every configuration hangs off a design")
+            list.spacing: Tokens.spacing.extraSmall / 2
+
+            model: ScriptModel {
+                values: [...root.unlinkedConfigs]
+            }
+
+            delegate: InfoRow {
+                id: unlinkedCfgRow
+
+                required property var modelData
+                required property int index
+
+                anchors.left: unlinkedCfgList.list.contentItem.left
+                anchors.right: unlinkedCfgList.list.contentItem.right
+                first: unlinkedCfgRow.index === 0
+                last: unlinkedCfgRow.index === root.unlinkedConfigs.length - 1
+                icon: "tune"
+                iconColour: Colours.palette.m3error
+                label: `${unlinkedCfgRow.modelData.id}  ${unlinkedCfgRow.modelData.title}`
+                subtext: unlinkedCfgRow.modelData.file
             }
         }
 

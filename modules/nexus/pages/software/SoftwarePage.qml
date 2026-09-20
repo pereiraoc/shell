@@ -8,21 +8,32 @@ import qs.components
 import qs.services
 import qs.modules.nexus.common
 
-// REQUIREMENT -> DESIGN -> IMPLEMENTATION, empilhados em vez de lado a lado.
+// Arvore aninhada: REQUIREMENT > DESIGN > CONFIGURATION, com IMPLEMENTATION
+// ao lado do design dentro do mesmo requisito.
 //
-// O conteudo do Nexus e limitado a Tokens.sizes.nexus.maxContentWidth (800),
-// entao tres colunas dariam ~253 px cada e um caminho como
-// scripts/stage4/40-hypr-binds-shortcuts.sh viraria reticencias. Empilhado,
-// cada camada usa a largura inteira e a cascata continua a mesma: escolher um
-// requisito filtra as duas camadas abaixo.
+// A versao anterior filtrava tres secoes irmas: escolher um requisito trocava
+// o conteudo das listas abaixo, e a hierarquia ficava so implicita -- nao dava
+// pra ver ONDE cada coisa estava. Aninhado, a posicao na tela e a propria
+// resposta, e da pra ter dois requisitos abertos ao mesmo tempo.
+//
+// Configuracao pendura no DESIGN, nao no requisito: em docs/configuracao cada
+// arquivo declara a que design pertence.
 PageBase {
     id: root
 
-    property string selectedId
+    // Conjuntos de nos abertos, por id. Objeto em vez de string unica para que
+    // varios ramos fiquem abertos ao mesmo tempo -- comparar dois requisitos
+    // e' metade do uso desta tela.
+    property var openReq: ({})
+    property var openDesign: ({})
 
-    readonly property var selectedReq: SoftwareInventory.requirements.find(r => r.id === root.selectedId) ?? null
-    readonly property var shownDesign: root.selectedReq ? SoftwareInventory.designFor(root.selectedReq) : SoftwareInventory.design
-    readonly property var shownImpl: root.selectedReq ? SoftwareInventory.implFor(root.selectedReq) : SoftwareInventory.implementation
+    function fmtSize(bytes: int): string {
+        if (!bytes)
+            return "";
+        if (bytes >= 1048576)
+            return `${(bytes / 1048576).toFixed(1)} MiB`;
+        return `${Math.round(bytes / 1024)} KiB`;
+    }
 
     function statusLabel(s: string): string {
         if (s === "parcial")
@@ -30,6 +41,25 @@ PageBase {
         if (s === "pendente")
             return qsTr("Pending");
         return qsTr("Not assessed");
+    }
+
+    function toggle(set: var, key: string): var {
+        const next = Object.assign({}, set);
+        if (next[key])
+            delete next[key];
+        else
+            next[key] = true;
+        return next;
+    }
+
+    // Abre a nota no editor configurado (open_command em
+    // software-inventory.json). Caminho absoluto montado a partir de
+    // trace.repo, porque o CLI devolve caminhos relativos ao repositorio.
+    function openNote(rel: string): void {
+        const repo = SoftwareInventory.trace.repo ?? "";
+        const cmd = SoftwareInventory.trace.open_command ?? ["code"];
+        if (repo && rel)
+            Quickshell.execDetached([...cmd, `${repo}/${rel}`]);
     }
 
     title: qsTr("Software")
@@ -44,7 +74,7 @@ PageBase {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
             Layout.bottomMargin: Tokens.spacing.medium
-            text: qsTr("Required software traces back to a requirement. Derived software does not — it is the list of things to formalise or remove.")
+            text: qsTr("Required software traces back to a requirement. Derived software does not — it is the list of things to formalise or remove. Click any row to open its note.")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -68,94 +98,116 @@ PageBase {
         }
 
         SectionHeader {
-            text: qsTr("REQUIREMENT")
+            text: qsTr("REQUIREMENT  ·  DESIGN  ·  CONFIGURATION  ·  IMPLEMENTATION")
         }
 
         Repeater {
             model: SoftwareInventory.requirements
 
-            RowButton {
-                id: reqRow
+            ColumnLayout {
+                id: reqBranch
 
                 required property var modelData
                 required property int index
 
-                readonly property bool selected: root.selectedId === reqRow.modelData.id
+                readonly property bool expanded: !!root.openReq[reqBranch.modelData.id]
+                readonly property var designs: SoftwareInventory.designFor(reqBranch.modelData)
+                readonly property var impls: SoftwareInventory.implFor(reqBranch.modelData)
 
-                first: reqRow.index === 0
-                last: reqRow.index === SoftwareInventory.requirements.length - 1
-                color: reqRow.selected ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainer
-                icon: reqRow.selected ? "radio_button_checked" : "radio_button_unchecked"
-                text: `${reqRow.modelData.id}  ${reqRow.modelData.title}`
-                subtext: qsTr("%1 · %2 design · %3 implementation").arg(root.statusLabel(reqRow.modelData.status)).arg(reqRow.modelData.design.length).arg(reqRow.modelData.implementation.length)
-                onClicked: root.selectedId = reqRow.selected ? "" : reqRow.modelData.id
-            }
-        }
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
 
-        SectionHeader {
-            text: root.selectedReq ? qsTr("DESIGN — %1").arg(root.selectedReq.id) : qsTr("DESIGN — all")
-        }
+                TreeRow {
+                    first: reqBranch.index === 0
+                    last: !reqBranch.expanded && reqBranch.index === SoftwareInventory.requirements.length - 1
+                    color: reqBranch.expanded ? Colours.palette.m3secondaryContainer : Colours.tPalette.m3surfaceContainer
+                    icon: reqBranch.expanded ? "expand_more" : "chevron_right"
+                    text: `${reqBranch.modelData.id}  ${reqBranch.modelData.title}`
+                    subtext: qsTr("%1 · %2 design · %3 config · %4 impl · %5 pkg").arg(root.statusLabel(reqBranch.modelData.status)).arg(reqBranch.modelData.design.length).arg(reqBranch.modelData.configurations.length).arg(reqBranch.modelData.implementation.length).arg(reqBranch.modelData.packages.length)
+                    value: reqBranch.modelData.packages_size > 0 ? `${root.fmtSize(reqBranch.modelData.files_size)}  ·  ${root.fmtSize(reqBranch.modelData.packages_size)}` : root.fmtSize(reqBranch.modelData.files_size)
+                    onClicked: root.openReq = root.toggle(root.openReq, reqBranch.modelData.id)
+                }
 
-        ItemList {
-            id: designList
+                // --- DESIGN, um nivel abaixo
+                Repeater {
+                    model: reqBranch.expanded ? reqBranch.designs : []
 
-            showList: true
-            placeholderIcon: "description"
-            placeholderText: qsTr("No design document serves this requirement")
-            list.spacing: Tokens.spacing.extraSmall / 2
+                    ColumnLayout {
+                        id: designBranch
 
-            model: ScriptModel {
-                values: [...root.shownDesign]
-            }
+                        required property var modelData
 
-            delegate: InfoRow {
-                id: designRow
+                        // A chave junta requisito e design: o mesmo documento
+                        // serve mais de um requisito (DS-12 serve tres), e sem
+                        // o prefixo abrir num ramo abriria em todos.
+                        readonly property string key: `${reqBranch.modelData.id}/${designBranch.modelData.id}`
+                        readonly property bool expanded: !!root.openDesign[designBranch.key]
+                        readonly property var configs: (designBranch.modelData.configurations ?? []).map(id => (SoftwareInventory.trace.configurations ?? []).find(c => c.id === id)).filter(c => c)
 
-                required property var modelData
-                required property int index
+                        Layout.fillWidth: true
+                        Layout.leftMargin: Tokens.padding.largeIncreased
+                        spacing: Tokens.spacing.extraSmall / 2
 
-                anchors.left: designList.list.contentItem.left
-                anchors.right: designList.list.contentItem.right
-                first: designRow.index === 0
-                last: designRow.index === root.shownDesign.length - 1
-                icon: "description"
-                label: `${designRow.modelData.id}  ${designRow.modelData.title}`
-                subtext: designRow.modelData.file
-                value: designRow.modelData.requirements.join(" ")
-            }
-        }
+                        TreeRow {
+                            icon: designBranch.configs.length > 0 ? (designBranch.expanded ? "expand_more" : "chevron_right") : "description"
+                            text: `${designBranch.modelData.id}  ${designBranch.modelData.title}`
+                            subtext: designBranch.modelData.file
+                            value: designBranch.configs.length > 0 ? qsTr("%1 config  ·  %2").arg(designBranch.configs.length).arg(root.fmtSize(designBranch.modelData.size)) : root.fmtSize(designBranch.modelData.size)
+                            trailingIcon: designBranch.configs.length > 0 ? "" : "open_in_new"
+                            onClicked: {
+                                if (designBranch.configs.length > 0)
+                                    root.openDesign = root.toggle(root.openDesign, designBranch.key);
+                                else
+                                    root.openNote(designBranch.modelData.file);
+                            }
+                        }
 
-        SectionHeader {
-            text: root.selectedReq ? qsTr("IMPLEMENTATION — %1").arg(root.selectedReq.id) : qsTr("IMPLEMENTATION — all")
-        }
+                        // --- CONFIGURATION, dois niveis abaixo
+                        Repeater {
+                            model: designBranch.expanded ? designBranch.configs : []
 
-        ItemList {
-            id: implList
+                            TreeRow {
+                                id: cfgRow
 
-            showList: true
-            placeholderIcon: "folder_off"
-            placeholderText: qsTr("No implementation declared")
-            list.spacing: Tokens.spacing.extraSmall / 2
+                                required property var modelData
 
-            model: ScriptModel {
-                values: [...root.shownImpl]
-            }
+                                Layout.leftMargin: Tokens.padding.largeIncreased
+                                color: Colours.tPalette.m3surfaceContainerHigh
+                                icon: "tune"
+                                text: `${cfgRow.modelData.id}  ${cfgRow.modelData.title}`
+                                subtext: cfgRow.modelData.file
+                                value: root.fmtSize(cfgRow.modelData.size)
+                                trailingIcon: "open_in_new"
+                                onClicked: root.openNote(cfgRow.modelData.file)
+                            }
+                        }
+                    }
+                }
 
-            delegate: InfoRow {
-                id: implRow
+                // --- IMPLEMENTATION, irma do design dentro do requisito
+                Repeater {
+                    model: reqBranch.expanded ? reqBranch.impls : []
 
-                required property var modelData
-                required property int index
+                    TreeRow {
+                        id: implRow
 
-                anchors.left: implList.list.contentItem.left
-                anchors.right: implList.list.contentItem.right
-                first: implRow.index === 0
-                last: implRow.index === root.shownImpl.length - 1
-                icon: implRow.modelData.stub ? "warning" : (implRow.modelData.kind === "dir" ? "folder" : "terminal")
-                iconColour: implRow.modelData.stub ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                label: implRow.modelData.path
-                subtext: implRow.modelData.stub ? qsTr("Stub — declared but does nothing") : implRow.modelData.requirements.join(" ")
-                value: implRow.modelData.packages.length > 0 ? qsTr("%1 pkg").arg(implRow.modelData.packages.length) : ""
+                        required property var modelData
+                        required property int index
+
+                        Layout.leftMargin: Tokens.padding.largeIncreased
+                        last: implRow.index === reqBranch.impls.length - 1 && reqBranch.index === SoftwareInventory.requirements.length - 1
+                        icon: implRow.modelData.stub ? "warning" : (implRow.modelData.kind === "dir" ? "folder" : "terminal")
+                        iconColour: implRow.modelData.stub ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                        text: implRow.modelData.path
+                        subtext: implRow.modelData.stub ? qsTr("Stub — declared but does nothing") : (implRow.modelData.packages.length > 0 ? implRow.modelData.packages.join(" ") : qsTr("Configures, installs nothing"))
+                        value: root.fmtSize(implRow.modelData.size)
+                        trailingIcon: implRow.modelData.kind === "dir" ? "" : "open_in_new"
+                        onClicked: {
+                            if (implRow.modelData.kind !== "dir")
+                                root.openNote(implRow.modelData.path);
+                        }
+                    }
+                }
             }
         }
 
@@ -182,7 +234,7 @@ PageBase {
             last: true
             icon: "link_off"
             text: qsTr("Repository issues")
-            subtext: qsTr("%1 broken edges · %2 stubs · %3 unused design").arg(SoftwareInventory.broken.length).arg(SoftwareInventory.stubs.length).arg(SoftwareInventory.unusedDesign.length)
+            subtext: qsTr("%1 broken · %2 stubs · %3 design unused · %4 config unlinked").arg(SoftwareInventory.broken.length).arg(SoftwareInventory.stubs.length).arg(SoftwareInventory.unusedDesign.length).arg(SoftwareInventory.counts.configurations_unlinked ?? 0)
             onClicked: root.nState.openSubPage(3)
         }
     }
