@@ -98,6 +98,22 @@ PageBase {
         }
 
         SectionHeader {
+            text: qsTr("UPDATES")
+        }
+
+        // Le o cache (sem rede). Contagem parcial ganha o aviso na propria
+        // linha: um "0" sem os repositorios oficiais nao e' "em dia".
+        NavRow {
+            first: true
+            last: true
+            icon: SoftwareInventory.updateCount > 0 ? "system_update_alt" : "update"
+            iconLabel.color: SoftwareInventory.updateCount > 0 ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            text: SoftwareInventory.updateCount > 0 ? qsTr("%n update(s) available", "", SoftwareInventory.updateCount) : qsTr("Updates")
+            subtext: !SoftwareInventory.updatesFetched ? qsTr("Not checked yet") : (SoftwareInventory.updatesComplete ? qsTr("%1 official · %2 AUR · %3 Flatpak").arg((SoftwareInventory.updates.repo ?? []).length).arg((SoftwareInventory.updates.aur ?? []).length).arg((SoftwareInventory.updates.flatpak ?? []).length) : qsTr("Partial check — some sources were not asked"))
+            onClicked: root.nState.openSubPage(4)
+        }
+
+        SectionHeader {
             text: qsTr("REQUIREMENT  ·  DESIGN  ·  CONFIGURATION  ·  IMPLEMENTATION")
         }
 

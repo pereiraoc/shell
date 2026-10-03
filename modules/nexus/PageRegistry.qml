@@ -50,6 +50,12 @@ QtObject {
             category: "system"
         },
         {
+            label: qsTr("Storage"),
+            icon: "hard_drive",
+            description: qsTr("Disk usage, safe cleanups"),
+            category: "system"
+        },
+        {
             label: qsTr("Plugins"),
             icon: "extension",
             description: qsTr("Manage plugins"),

@@ -14,6 +14,7 @@ import qs.modules.nexus.pages.network
 import qs.modules.nexus.pages.panels
 import qs.modules.nexus.pages.services
 import qs.modules.nexus.pages.software
+import qs.modules.nexus.pages.storage
 import qs.modules.nexus.pages.wallandstyle
 import qs.modules.nexus.pages.panels.taskbar
 
@@ -108,6 +109,17 @@ QtObject {
                 }
                 Component {
                     RepoIssuesPage {}
+                }
+                Component {
+                    UpdatesPage {}
+                }
+            }
+        },
+        Component {
+            // Storage
+            StackPage {
+                Component {
+                    StoragePage {}
                 }
             }
         },

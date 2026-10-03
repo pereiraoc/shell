@@ -3,6 +3,8 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Caelestia.Config
+import qs.utils
 
 // Ponte fina para o caelestia-software.
 //
@@ -11,13 +13,15 @@ import Quickshell.Io
 // testavel no terminal, vale sem o shell aberto, e mora no repositorio de
 // setup, entao nao vira superficie de conflito a cada rebase do upstream.
 //
-// Nada aqui escreve: o CLI e somente leitura por design. Remover ou atualizar
-// pacote continua sendo trabalho de terminal ou do pamac.
+// Nada aqui escreve: o CLI e somente leitura por design. Atualizar e' o
+// caelestia-update, aberto num terminal (runUpdate) -- sudo e prompts do
+// pacman precisam de alguem olhando, nao de um botao silencioso.
 Singleton {
     id: root
 
     // Caminho absoluto: ~/.local/bin nao esta no PATH neste sistema.
     readonly property string cli: `${Quickshell.env("HOME")}/.local/bin/caelestia-software`
+    readonly property string bin: `${Quickshell.env("HOME")}/.local/bin`
 
     property var trace: ({})
     property var inventory: ({})
@@ -27,6 +31,12 @@ Singleton {
     property bool loadingInventory: invProc.running
     property bool loadingUpdates: updProc.running
     property bool updatesFetched: false
+
+    readonly property int updateCount: root.updates.count ?? 0
+    // Parcial = alguma fonte nao respondeu ou o checkupdates falta. Um zero
+    // parcial NAO e' "em dia" e a pagina nao pode mostrar como se fosse.
+    readonly property bool updatesComplete: root.updates.complete ?? false
+    readonly property var updatesCheckedAt: root.updates.checked_at ? new Date(root.updates.checked_at * 1000) : null
 
     readonly property var counts: root.trace.counts ?? ({})
     readonly property var requirements: root.trace.requirements ?? []
@@ -59,12 +69,22 @@ Singleton {
     }
 
     // Separada de proposito: `paru -Qua` e `flatpak remote-ls` vao a rede e
-    // custam ~1,7 s, contra 0,4 s do rastreamento local. Juntar as duas faria a
-    // pagina inteira esperar pela parte que pode nem responder.
+    // custam segundos, contra 0,4 s do rastreamento local. Juntar as duas faria
+    // a pagina inteira esperar pela parte que pode nem responder.
+    //
+    // Passa pelo caelestia-update-check em vez do CLI direto: ele grava o mesmo
+    // cache que o timer grava, e marca a lista como vista (sem notificacao
+    // repetida do que o usuario acabou de olhar).
     function fetchUpdates(): void {
         if (updProc.running)
             return;
         updProc.running = true;
+    }
+
+    // Abre o terminal configurado (general.apps.terminal) com o aplicador. Ao
+    // terminar ele regrava o cache, e o FileView abaixo atualiza a pagina.
+    function runUpdate(): void {
+        Quickshell.execDetached([...GlobalConfig.general.apps.terminal, `${root.bin}/caelestia-update`]);
     }
 
     Component.onCompleted: root.refresh()
@@ -102,15 +122,25 @@ Singleton {
     Process {
         id: updProc
 
-        command: [root.cli, "updates", "--json"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    root.updates = JSON.parse(text);
-                    root.updatesFetched = true;
-                } catch (e) {
-                    console.warn("[SoftwareInventory] updates ilegivel:", e);
-                }
+        command: [`${root.bin}/caelestia-update-check`, "--no-notify"]
+        onExited: cacheFile.reload()
+    }
+
+    // Ultima resposta conhecida, de quem quer que tenha checado (timer, botao,
+    // fim do caelestia-update). A pagina abre com ela sem ir a rede.
+    FileView {
+        id: cacheFile
+
+        path: `${Paths.cache}/updates.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.updates = JSON.parse(text());
+                root.updatesFetched = true;
+            } catch (e) {
+                console.warn("[SoftwareInventory] updates.json ilegivel:", e);
             }
         }
     }
