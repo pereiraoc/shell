@@ -10,8 +10,22 @@ import qs.modules.nexus
 Singleton {
     id: root
 
+    // Janelas abertas, para o botao da barra alternar em vez de empilhar.
+    property list<QtObject> windows: []
+
     function create(parent: Item, props: var): void {
-        nexusComp.createObject(parent ?? dummy, props);
+        const w = nexusComp.createObject(parent ?? dummy, props);
+        root.windows = [...root.windows, w];
+    }
+
+    // Botao da barra: fecha se ja houver Nexus aberto, senao abre.
+    function toggle(): void {
+        if (root.windows.length > 0) {
+            for (const w of [...root.windows])
+                w.destroy();
+        } else {
+            root.create();
+        }
     }
 
     QtObject {
@@ -31,6 +45,8 @@ Singleton {
                 if (!visible)
                     destroy();
             }
+
+            Component.onDestruction: root.windows = root.windows.filter(x => x !== win)
 
             implicitWidth: nexus.implicitWidth
             implicitHeight: nexus.implicitHeight

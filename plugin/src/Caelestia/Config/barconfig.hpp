@@ -141,6 +141,7 @@ class BarConfig : public ConfigObject {
             LIST_ENTRY(tray, true),
             LIST_ENTRY(clock, true),
             LIST_ENTRY(statusIcons, true),
+            LIST_ENTRY(nexus, true), // custom: atalho para o Nexus acima do desligar
             LIST_ENTRY(power, true),
         })
     CONFIG_PROPERTY(QStringList, excludedScreens)

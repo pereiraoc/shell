@@ -181,6 +181,14 @@ ColumnLayout {
                 }
             }
             DelegateChoice {
+                roleValue: "nexus"
+                delegate: EntryWrapper {
+                    NexusButton {
+                        objectName: "taskbarNexusButton"
+                    }
+                }
+            }
+            DelegateChoice {
                 roleValue: "power"
                 delegate: EntryWrapper {
                     Power {
