@@ -9,6 +9,7 @@ import "modules/drawers"
 import "modules/background"
 import "modules/areapicker"
 import "modules/lock"
+import "modules/polkit"
 import QtQuick
 import Quickshell
 import qs.services
@@ -34,6 +35,9 @@ ShellRoot {
     Lock {
         id: lock
     }
+
+    // Agente polkit: caixa de senha do Caelestia para pkexec e afins
+    Polkit {}
 
     ConfigToasts {}
     Shortcuts {}
