@@ -42,6 +42,7 @@ Singleton {
     readonly property var requirements: root.trace.requirements ?? []
     readonly property var design: root.trace.design ?? []
     readonly property var implementation: root.trace.implementation ?? []
+    readonly property var implementations: root.trace.implementations ?? []
     readonly property var derived: root.trace.derived ?? ({})
     readonly property var broken: root.trace.broken ?? []
     readonly property var untracked: root.inventory.untracked ?? []
@@ -57,8 +58,19 @@ Singleton {
         return (req?.design ?? []).map(p => root.design.find(d => d.file === p)).filter(d => d);
     }
 
-    function implFor(req: var): var {
-        return (req?.implementation ?? []).map(p => root.implementation.find(i => i.path === p)).filter(i => i);
+    // Requisito > Design > Implementacao > itens. A implementacao e um
+    // capitulo do design ("#### Implementação"); os itens sao configuracao,
+    // scripts/pastas e os pacotes e bibliotecas que os scripts instalam.
+    function implsFor(design: var): var {
+        return (design?.implementations ?? []).map(id => root.implementations.find(i => i.id === id)).filter(i => i);
+    }
+
+    function itemsFor(impl: var): var {
+        return (impl?.items ?? []).map(p => root.implementation.find(i => i.path === p)).filter(i => i);
+    }
+
+    function configFor(id: string): var {
+        return (root.trace.configurations ?? []).find(c => c.id === id) ?? null;
     }
 
     function refresh(): void {

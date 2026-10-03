@@ -14,7 +14,14 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    readonly property var unlinkedConfigs: (SoftwareInventory.trace.configurations ?? []).filter(c => !c.design)
+    readonly property var cfgById: Object.fromEntries((SoftwareInventory.trace.configurations ?? []).map(c => [c.id, c]))
+
+    function openNote(rel: string): void {
+        const repo = SoftwareInventory.trace.repo ?? "";
+        const cmd = SoftwareInventory.trace.open_command ?? ["code"];
+        if (repo && rel)
+            Quickshell.execDetached([...cmd, `${repo}/${rel}`]);
+    }
 
     title: qsTr("Repository issues")
     isSubPage: true
@@ -34,7 +41,7 @@ PageBase {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
             Layout.bottomMargin: Tokens.spacing.extraSmall
-            text: qsTr("A requirement points at a path that no longer exists. Renaming a file breaks the trace silently — this is the only place it shows.")
+            text: qsTr("A design or requirement points at something that does not exist — a renamed script, a missing CF — or lists a configuration that belongs to another design. Renaming a file breaks the trace silently; this is the only place it shows.")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -78,7 +85,7 @@ PageBase {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
             Layout.bottomMargin: Tokens.spacing.extraSmall
-            text: qsTr("A requirement declares this file as its implementation, but the file is a placeholder. The requirement would not survive a clean install.")
+            text: qsTr("An implementation lists this file, but the file is a placeholder. The requirement above it would not survive a clean install.")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -156,47 +163,44 @@ PageBase {
             }
         }
 
-        SectionHeader {
-            text: qsTr("CONFIGURATION WITHOUT A DESIGN  ·  %1").arg(root.unlinkedConfigs.length)
+        IssueSection {
+            title: qsTr("OUTSIDE ANY IMPLEMENTATION")
+            help: qsTr("Scripts and config folders in the repository that no design lists under \"#### Implementação\". Nothing above reaches them: find the design that owns each one, or remove it.")
+            values: SoftwareInventory.trace.unplaced ?? []
+            icon: "unknown_document"
+            okText: qsTr("Every script belongs to an implementation")
+            openOf: v => v
+            onOpen: rel => root.openNote(rel)
         }
 
-        StyledText {
-            Layout.fillWidth: true
-            Layout.leftMargin: Tokens.padding.small
-            Layout.bottomMargin: Tokens.spacing.extraSmall
-            text: qsTr("These configuration notes hang off nothing, so no requirement reaches them. Either a design document is missing, or the configuration is for something outside the project.")
-            color: Colours.palette.m3outline
-            font: Tokens.font.body.small
-            wrapMode: Text.WordWrap
+        IssueSection {
+            title: qsTr("CONFIGURATION WITHOUT AN IMPLEMENTATION")
+            help: qsTr("Configuration notes that no implementation lists. List each one in a chapter of the design its header declares.")
+            values: SoftwareInventory.trace.configurations_unplaced ?? []
+            icon: "tune"
+            okText: qsTr("Every configuration hangs off an implementation")
+            labelOf: v => `${v}  ${root.cfgById[v]?.title ?? ""}`
+            subOf: v => root.cfgById[v]?.file ?? ""
+            openOf: v => root.cfgById[v]?.file ?? ""
+            onOpen: rel => root.openNote(rel)
         }
 
-        ItemList {
-            id: unlinkedCfgList
+        IssueSection {
+            title: qsTr("EMPTY IMPLEMENTATIONS")
+            help: qsTr("A design chapter declares \"#### Implementação\" but lists nothing under it.")
+            values: SoftwareInventory.trace.implementations_empty ?? []
+            icon: "inventory"
+            okText: qsTr("No empty implementation")
+        }
 
-            showList: true
-            placeholderIcon: "check_circle"
-            placeholderText: qsTr("Every configuration hangs off a design")
-            list.spacing: Tokens.spacing.extraSmall / 2
-
-            model: ScriptModel {
-                values: [...root.unlinkedConfigs]
-            }
-
-            delegate: InfoRow {
-                id: unlinkedCfgRow
-
-                required property var modelData
-                required property int index
-
-                anchors.left: unlinkedCfgList.list.contentItem.left
-                anchors.right: unlinkedCfgList.list.contentItem.right
-                first: unlinkedCfgRow.index === 0
-                last: unlinkedCfgRow.index === root.unlinkedConfigs.length - 1
-                icon: "tune"
-                iconColour: Colours.palette.m3error
-                label: `${unlinkedCfgRow.modelData.id}  ${unlinkedCfgRow.modelData.title}`
-                subtext: unlinkedCfgRow.modelData.file
-            }
+        IssueSection {
+            title: qsTr("OLD-STYLE LINKS IN A REQUIREMENT")
+            help: qsTr("\"## Implementação\" inside a requirement is the model before 03/10/2026. Move each item to the design chapter that implements it.")
+            values: SoftwareInventory.trace.legacy ?? []
+            icon: "history"
+            okText: qsTr("No requirement links scripts directly")
+            labelOf: v => v.path
+            subOf: v => v.requirement
         }
 
         SectionHeader {
