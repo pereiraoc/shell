@@ -40,7 +40,7 @@ Item {
     readonly property real logoY: height / 2 - logoH / 2
     readonly property real bandY: height / 2 + height * 0.0123
     readonly property real maxT: height * 0.0085
-    readonly property real step: height * 0.0165
+    readonly property real step: height * 0.0195
     readonly property color background: "#282828"
     readonly property list<color> spectrum: ["#d8452f", "#ee8a33", "#e6cd55", "#79ad61", "#5b93d6", "#9a72d6"]
 

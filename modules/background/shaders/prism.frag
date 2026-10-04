@@ -75,28 +75,41 @@ void main() {
         rgb += vec3(glow + refl); a += glow + refl;
     }
 
-    // ---- cordas
+    // ---- faixas: barra continua e estavel (como as faixas do wallpaper
+    // original) com a corda vibrando DENTRO dela -- calmo de olhar, mas vivo.
     float w0 = 2.0 * PI * time;
     for (int i = 0; i < 6; i++) {
         float x0 = xAt(i);
         float L = res.x - x0;
         float u = (p.x - x0) / L;
         if (u < uA || u > uB || L <= 0.0) continue;
-        float e = envAt(i);
         float yi = bandY + (float(i) - 2.5) * stepY;
-        if (abs(p.y - yi) > stepY * 1.6) continue;
-        float A = e * stepY * 0.85;
+        float hb = stepY * 0.42;                 // meia altura da barra
+        float db = abs(p.y - yi);
+        if (db > hb + 1.0) continue;
+        float e = envAt(i);
+        float inBar = band(db, hb);
+
+        // barra: tom fechado da cor, acende um pouco com a batida
+        vec3 base = COL[i] * (0.42 + 0.22 * e);
+        float fill = inBar * 0.92;
+
+        // corda dentro da barra
+        float hw = maxT * (0.22 + 0.16 * e);
+        float A = e * max(0.0, hb - hw - 1.5);
         float k = float(MODES[i]) * PI;
         float w = w0 * HZ[i];
         float s1 = sin(w), s2 = sin(2.0 * w + 1.3);
-        float yc = yi + A * (sin(k * u) * s1 + 0.22 * sin(2.0 * k * u) * s2);
-        float dy = A * (k / L) * (cos(k * u) * s1 + 0.44 * cos(2.0 * k * u) * s2);
+        float yc = yi + A * (sin(k * u) * s1 + 0.22 * sin(2.0 * k * u) * s2) / 1.22;
+        float dy = A / 1.22 * (k / L) * (cos(k * u) * s1 + 0.44 * cos(2.0 * k * u) * s2);
         float d = abs(p.y - yc) / sqrt(1.0 + dy * dy);
-        float hw = maxT * (0.5 + 0.5 * e) * 0.5;
-        float core = band(d, hw) * (0.4 + 0.6 * e);
-        float halo = exp(-pow(d / (hw * 3.5 + 1.0), 2.0)) * 0.16 * e;
-        vec3 c = mix(COL[i], vec3(1.0), 0.18 * e);
-        rgb += c * (core + halo); a += core + halo;
+        float core = band(d, hw) * inBar;
+        float halo = exp(-pow(d / (hw * 3.0 + 1.0), 2.0)) * 0.35 * e * inBar;
+        vec3 bright = mix(COL[i], vec3(1.0), 0.28 + 0.2 * e);
+
+        vec3 c = base * fill;
+        c = mix(c, bright, clamp(core * (0.65 + 0.35 * e) + halo, 0.0, 1.0));
+        rgb += c; a += max(fill, core);
     }
 
     a = clamp(a, 0.0, 1.0);
