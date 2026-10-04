@@ -30,6 +30,13 @@ PageBase {
             key: "flatpak",
             label: qsTr("FLATPAK"),
             icon: "package_2"
+        },
+        // Segurados de proposito no caelestia-update (AUR_HOLD): nao contam
+        // como pendentes e o "Update everything" nao os toca.
+        {
+            key: "held",
+            label: qsTr("HELD ON PURPOSE"),
+            icon: "pause_circle"
         }
     ]
 
@@ -107,6 +114,7 @@ PageBase {
                 readonly property string problem: root.sourceState(section.modelData.key)
 
                 Layout.fillWidth: true
+                visible: section.modelData.key !== "held" || section.items.length > 0
                 spacing: Tokens.spacing.extraSmall / 2
 
                 SectionHeader {
@@ -137,7 +145,10 @@ PageBase {
                         last: row.index === section.items.length - 1
                         icon: section.modelData.icon
                         label: row.modelData.name
-                        subtext: row.modelData.from ? `${row.modelData.from}  →  ${row.modelData.to}` : row.modelData.to
+                        subtext: {
+                            const v = row.modelData.from ? `${row.modelData.from}  →  ${row.modelData.to}` : row.modelData.to;
+                            return section.modelData.key === "held" ? qsTr("%1  ·  kept back until the shell is rebuilt for it").arg(v) : v;
+                        }
                     }
                 }
             }
