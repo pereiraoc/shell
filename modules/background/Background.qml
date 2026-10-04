@@ -50,10 +50,27 @@ Variants {
                 sourceComponent: Wallpaper {}
             }
 
+            // Wallpaper Prism: logo + feixe + arco-iris reagindo ao audio.
+            Loader {
+                id: prism
+
+                readonly property bool on: Config.background.wallpaperEnabled && Wallpapers.current.endsWith("caelestia-prism.png")
+
+                anchors.fill: parent
+                active: on
+
+                sourceComponent: Prism {
+                    reactive: visualiser.visibleOnScreen
+                }
+            }
+
             Visualiser {
+                id: visualiser
+
                 anchors.fill: parent
                 screen: win.modelData
                 wallpaper: wallpaper
+                prismMode: prism.on
             }
         }
 
