@@ -27,11 +27,14 @@ QtObject {
         { page: "devices", sub: 0, title: qsTr("Bluetooth"), subtitle: qsTr("Turn on, paired devices"), keywords: "bt headphones earbuds buds controller" },
         { page: "devices", sub: 2, title: qsTr("Pair new device"), subtitle: qsTr("Bluetooth pairing"), keywords: "add connect pairing discover" },
         { page: "devices", sub: 0, title: qsTr("Peripheral batteries"), subtitle: qsTr("Keyboard, mouse, headphones charge"), keywords: "battery charge azoth razer naga mouse keyboard level" },
+        { page: "devices", sub: 0, title: qsTr("Mouse DPI"), subtitle: qsTr("Sensitivity, polling rate, sleep (Razer)"), keywords: "dpi mouse razer naga polling hz sleep idle sensitivity" },
+        { page: "devices", sub: 0, title: qsTr("Keyboard lighting"), subtitle: qsTr("RGB modes, theme colour, laptop keyboard light"), keywords: "rgb lighting backlight azoth keyboard light led colour aura" },
         { page: "devices", sub: 0, title: qsTr("Keyboard layout"), subtitle: qsTr("Language of the keyboard"), keywords: "keymap abnt br us international typing" },
         { page: "devices", sub: 0, title: qsTr("Key repeat"), subtitle: qsTr("Repeat rate and delay"), keywords: "typing hold delay rate keyboard" },
         { page: "devices", sub: 0, title: qsTr("Pointer speed"), subtitle: qsTr("Mouse and touchpad sensitivity"), keywords: "mouse sensitivity cursor fast slow dpi" },
         { page: "devices", sub: 0, title: qsTr("Mouse acceleration"), subtitle: qsTr("Flat or adaptive"), keywords: "accel profile flat adaptive precision" },
         { page: "devices", sub: 0, title: qsTr("Natural scrolling"), subtitle: qsTr("Touchpad scroll direction"), keywords: "touchpad reverse scroll direction" },
+        { page: "devices", sub: 0, title: qsTr("Sharing"), subtitle: qsTr("Send files to phones and computers nearby"), keywords: "share send receive files localsend snapdrop airdrop phone transfer" },
         { page: "devices", sub: 0, title: qsTr("Cameras"), subtitle: qsTr("Webcam and infrared camera"), keywords: "webcam video ir camera v4l" },
 
         // Display

@@ -23,6 +23,17 @@ PageBase {
     readonly property var pointer: root.input.pointer ?? ({})
     readonly property var peripherals: batteryBridge.info.devices ?? []
 
+    readonly property var periph: periphBridge.info
+
+    function periphRun(id: string): void {
+        periphBridge.run({ id: id });
+    }
+
+    // "Static" -> "static", "Spectrum Cycle" -> "spectrum-cycle" (ids do CLI)
+    function modeSlug(mode: string): string {
+        return (mode ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    }
+
     function inputRun(id: string): void {
         inputBridge.run({ id: id });
     }
@@ -36,6 +47,14 @@ PageBase {
         id: inputBridge
 
         tool: "input"
+    }
+
+    // Configuracoes de cada periferico: mouse Razer (openrazer), luz RGB
+    // (OpenRGB), luz do teclado do notebook (asusctl) -- caelestia-peripherals.
+    ToolBridge {
+        id: periphBridge
+
+        tool: "peripherals"
     }
 
     ToolBridge {
@@ -272,14 +291,127 @@ PageBase {
             }
         }
 
+        // Mouses Razer: DPI, polling, tempo para dormir
+        Repeater {
+            model: root.periph.mice ?? []
+
+            ColumnLayout {
+                id: mouse
+
+                required property var modelData
+
+                readonly property var stages: {
+                    const st = [...(mouse.modelData.dpi_stages ?? [])];
+                    if (mouse.modelData.dpi && !st.includes(mouse.modelData.dpi))
+                        st.push(mouse.modelData.dpi);
+                    return st.sort((a, b) => a - b);
+                }
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
+
+                SectionHeader {
+                    text: mouse.modelData.name.replace(/\s*\(Receiver\)$/, "")
+                }
+
+                ChipSelectRow {
+                    first: true
+                    label: qsTr("Sensitivity (DPI)")
+                    subtext: qsTr("Set in the mouse itself — the same in every app and game. The DPI button on the mouse cycles these stages.")
+                    options: mouse.stages.map(d => ({ value: String(d), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
+                    current: String(mouse.modelData.dpi ?? "")
+                    busy: periphBridge.busyAction.startsWith(`dpi-${mouse.modelData.id}-`)
+                    onPicked: v => root.periphRun(`dpi-${mouse.modelData.id}-${v}`)
+                }
+
+                ChipSelectRow {
+                    visible: mouse.modelData.poll_rate != null
+                    label: qsTr("Polling rate")
+                    subtext: qsTr("Higher is smoother and more responsive, and uses more battery")
+                    options: (mouse.modelData.poll_choices ?? []).map(h => ({ value: String(h), label: `${h} Hz` }))
+                    current: String(mouse.modelData.poll_rate ?? "")
+                    busy: periphBridge.busyAction.startsWith(`poll-${mouse.modelData.id}-`)
+                    onPicked: v => root.periphRun(`poll-${mouse.modelData.id}-${v}`)
+                }
+
+                ChipSelectRow {
+                    last: true
+                    visible: mouse.modelData.idle_s != null
+                    label: qsTr("Sleep after")
+                    subtext: qsTr("Turns the mouse off when you stop using it, to save battery")
+                    options: [60, 300, 600, 900].map(s => ({ value: String(s), label: qsTr("%1 min").arg(s / 60) }))
+                    current: String(mouse.modelData.idle_s ?? "")
+                    busy: periphBridge.busyAction.startsWith(`idle-${mouse.modelData.id}-`)
+                    onPicked: v => root.periphRun(`idle-${mouse.modelData.id}-${v}`)
+                }
+            }
+        }
+
+        // Luz RGB (teclado externo etc.)
+        Repeater {
+            model: root.periph.rgb ?? []
+
+            ColumnLayout {
+                id: rgb
+
+                required property var modelData
+
+                readonly property var known: [
+                    { mode: "Static", value: "static", label: qsTr("Theme colour"), icon: "palette" },
+                    { mode: "Breathing", value: "breathing", label: qsTr("Breathing"), icon: "air" },
+                    { mode: "Reactive", value: "reactive", label: qsTr("On key press"), icon: "touch_app" },
+                    { mode: "Spectrum Cycle", value: "spectrum-cycle", label: qsTr("Cycle"), icon: "autorenew" },
+                    { mode: "Rainbow Wave", value: "rainbow-wave", label: qsTr("Rainbow"), icon: "gradient" }
+                ]
+                readonly property var options: [{ value: "off", label: qsTr("Off"), icon: "light_off" }, ...rgb.known.filter(k => rgb.modelData.modes.includes(k.mode))]
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
+
+                SectionHeader {
+                    text: rgb.modelData.name.replace(/\s*2\.4GHz$/, "")
+                }
+
+                ChipSelectRow {
+                    first: true
+                    last: true
+                    label: qsTr("Lighting")
+                    subtext: root.periph.theme_colour ? qsTr("Theme colour, breathing and key press use the current theme's accent (#%1)").arg(root.periph.theme_colour) : ""
+                    options: rgb.options
+                    current: root.modeSlug(rgb.modelData.mode)
+                    busy: periphBridge.busyAction.startsWith(`rgb-${rgb.modelData.id}-`)
+                    onPicked: v => root.periphRun(`rgb-${rgb.modelData.id}-${v}`)
+                }
+            }
+        }
+
+        ActionErrorRow {
+            bridge: periphBridge
+        }
+
         // Teclado
         SectionHeader {
             visible: !!root.input.keyboard
             text: qsTr("Keyboard")
         }
 
-        RowButton {
+        ChipSelectRow {
             first: true
+            visible: root.periph.laptop_keyboard?.available === true
+            label: qsTr("Laptop keyboard light")
+            options: [
+                { value: "off", label: qsTr("Off"), icon: "light_off" },
+                { value: "low", label: qsTr("Low") },
+                { value: "med", label: qsTr("Medium") },
+                { value: "high", label: qsTr("High") }
+            ]
+            current: root.periph.laptop_keyboard?.brightness ?? ""
+            busy: periphBridge.busyAction.startsWith("kbd-")
+            onPicked: v => root.periphRun(`kbd-${v}`)
+        }
+
+        RowButton {
+            first: root.periph.laptop_keyboard?.available !== true
             visible: root.input.persisted === false
             icon: "save"
             iconLabel.color: Colours.palette.m3tertiary
@@ -290,7 +422,7 @@ PageBase {
         }
 
         ExpandSelectRow {
-            first: root.input.persisted !== false
+            first: root.input.persisted !== false && root.periph.laptop_keyboard?.available !== true
             visible: !!root.input.keyboard
             icon: "keyboard"
             label: qsTr("Layout")
@@ -391,6 +523,36 @@ PageBase {
                         root.nState.openPage("security", 0);
                 }
             }
+        }
+
+        // Compartilhar arquivos (estava na antiga System apps). LocalSend nao
+        // tem CLI; e a linha que abre o app, e o Snapdrop abre no navegador.
+        SectionHeader {
+            text: qsTr("Sharing")
+        }
+
+        RowButton {
+            first: true
+            readonly property var entry: {
+                DesktopEntries.applications.values;
+                return DesktopEntries.byId("localsend") ?? DesktopEntries.byId("localsend_app");
+            }
+
+            visible: !!entry
+            icon: "send_to_mobile"
+            text: qsTr("Send or receive files nearby")
+            subtext: qsTr("Phones and computers on this network, no cable or account (LocalSend)")
+            trailingIcon: "open_in_new"
+            onClicked: entry?.execute()
+        }
+
+        RowButton {
+            last: true
+            icon: "language"
+            text: qsTr("Share through the browser")
+            subtext: qsTr("For a device without LocalSend: open Snapdrop on both")
+            trailingIcon: "open_in_new"
+            onClicked: Quickshell.execDetached(["xdg-open", "https://snapdrop.net"])
         }
 
         AdvancedGroup {
