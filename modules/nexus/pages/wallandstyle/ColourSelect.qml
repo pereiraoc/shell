@@ -123,6 +123,24 @@ PageBase {
                 onPicked: bridge.run({ id: "dynamic" })
             }
 
+            // Tema ativo do Odysseus, traduzido para o Caelestia (caelestia-theme
+            // run odysseus). Reaplicar depois de mudar o tema la.
+            ThemeTile {
+                readonly property var oc: root.info.odysseus?.colors ?? ({})
+
+                visible: !!root.info.odysseus
+                name: qsTr("From Odysseus")
+                flavour: root.info.odysseus ? qsTr("“%1” · click to sync").arg(root.info.odysseus.name) : ""
+                bg: oc.panel ?? "#111111"
+                fg: oc.fg ?? "#eeeeee"
+                swatches: [oc.red ?? "#888888", oc.fg ?? "#888888", oc.border ?? "#888888", oc.bg ?? "#444444"]
+                icon: "sync"
+                selected: false
+                busy: bridge.busyAction === "odysseus"
+                enabledTile: true
+                onPicked: bridge.run({ id: "odysseus" })
+            }
+
             Repeater {
                 model: root.schemes
 
@@ -134,14 +152,15 @@ PageBase {
                     readonly property string shownMode: tile.modelData.modes.includes(root.cur.mode) ? root.cur.mode : tile.modelData.modes[0]
                     readonly property var sw: tile.modelData.swatch[tile.shownMode] ?? ({})
 
-                    name: root.pretty(tile.modelData.name)
+                    name: tile.modelData.user && tile.modelData.name === "odysseus" ? qsTr("Odysseus") : root.pretty(tile.modelData.name)
                     flavour: [root.pretty(tile.modelData.flavour), tile.modelData.modes.length > 1 ? qsTr("dark & light") : tile.modelData.modes[0]].filter(x => x).join(" · ")
                     bg: root.hex(tile.sw.background, "#222222")
                     fg: root.hex(tile.sw.onSurface, "#eeeeee")
                     swatches: [root.hex(tile.sw.primary, "#888888"), root.hex(tile.sw.secondary, "#888888"), root.hex(tile.sw.tertiary, "#888888"), root.hex(tile.sw.surfaceContainer, "#444444")]
                     selected: root.cur.name === tile.modelData.name && root.cur.flavour === tile.modelData.flavour
                     busy: bridge.busyAction === `scheme-${tile.modelData.name}-${tile.modelData.flavour}`
-                    enabledTile: root.cli.ok === true
+                    // Esquemas do usuario nao dependem do CLI para trocar.
+                    enabledTile: root.cli.ok === true || tile.modelData.user
                     onPicked: bridge.run({ id: `scheme-${tile.modelData.name}-${tile.modelData.flavour}` })
                 }
             }
