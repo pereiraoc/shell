@@ -139,11 +139,11 @@ ColumnLayout {
         id: extrasProc
 
         running: true
-        command: [`${Quickshell.env("HOME")}/.local/bin/caelestia-peripheral-battery`]
+        command: [`${Quickshell.env("HOME")}/.local/bin/caelestia-peripheral-battery`, "status", "--json"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.extras = JSON.parse(text);
+                    root.extras = JSON.parse(text).data?.devices ?? [];
                 } catch (e) {
                     root.extras = [];
                 }

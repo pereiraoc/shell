@@ -83,6 +83,16 @@ PageBase {
             onSelected: node => Audio.setAudioSource(node)
         }
 
+        // Ganho de hardware do mic interno: o PipeWire usa soft-mixer e nao
+        // toca no ALSA, entao quem fixa o ganho e o caelestia-mic-gain.
+        ToolSection {
+            Layout.topMargin: Tokens.spacing.large - parent.spacing
+            tool: "mic-gain"
+            title: qsTr("MICROPHONE HARDWARE GAIN")
+            icon: "mic"
+            hint: qsTr("Internal mic, set by caelestia-mic-gain at login. The Input slider above is software volume on top of this.")
+        }
+
         // Per-app volumes
         NavRow {
             Layout.topMargin: Tokens.spacing.large - parent.spacing
