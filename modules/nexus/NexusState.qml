@@ -18,6 +18,7 @@ QtObject {
     property string selectedNetworkSsid
     property string selectedEthernetInterface
     property bool networkDetailsFromSaved
+    property string storagePath
 
     signal close
     signal subPageOpened(idx: int)
@@ -29,9 +30,18 @@ QtObject {
         const idx = PageRegistry.indexOf(id);
         if (idx < 0)
             return;
+        if (idx === currentPageIdx) {
+            if (sub > 0)
+                openSubPage(sub);
+            return;
+        }
+        // Trocando de pagina: so empilha. O StackPage NOVO reaplica
+        // subPageIdxStack ao nascer; emitir subPageOpened agora acertaria o
+        // StackPage ANTIGO, ainda vivo durante o fade (ele nao tem o indice,
+        // loga "invalid sub-page" e desempilha -- o atalho se perdia).
         currentPageIdx = idx;
         if (sub > 0)
-            Qt.callLater(() => openSubPage(sub));
+            subPageIdxStack.push(sub);
     }
 
     function openSubPage(idx: int): void {

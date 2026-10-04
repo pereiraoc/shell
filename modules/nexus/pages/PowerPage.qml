@@ -145,6 +145,10 @@ PageBase {
             }
         }
 
+        ActionErrorRow {
+            bridge: bridge
+        }
+
         // Desempenho
         SectionHeader {
             text: qsTr("Performance")
@@ -199,7 +203,7 @@ PageBase {
 
         ChipSelectRow {
             first: true
-            visible: root.hasBattery && root.battery.charge_limit !== undefined
+            visible: root.hasBattery && root.battery.charge_limit != null
             label: qsTr("Charge limit")
             subtext: qsTr("Stopping at 80% makes the battery last years longer if the laptop is mostly plugged in")
             options: [
@@ -214,7 +218,7 @@ PageBase {
 
         MeterRow {
             last: true
-            visible: root.hasBattery && root.battery.health_pct !== undefined
+            visible: root.hasBattery && root.battery.health_pct != null
             icon: "favorite"
             label: qsTr("Battery health")
             valueText: `${Math.round(root.battery.health_pct ?? 0)}%`
@@ -279,17 +283,10 @@ PageBase {
             }
         }
 
-        SectionHeader {
-            text: qsTr("Advanced")
-        }
-
-        AdvancedAppRow {
-            first: true
-            last: true
-            desktopId: "rog-control-center"
-            altIds: ["org.opengamingcollective.rog-control-center"]
-            text: qsTr("ROG Control Center")
-            subtext: qsTr("Fan curves, keyboard lighting, firmware settings")
+        AdvancedGroup {
+            apps: [
+                { id: "rog-control-center", alt: ["org.opengamingcollective.rog-control-center"], text: qsTr("ROG Control Center"), subtext: qsTr("Fan curves, keyboard lighting, firmware settings") }
+            ]
         }
     }
 }

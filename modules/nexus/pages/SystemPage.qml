@@ -229,13 +229,8 @@ PageBase {
             }
         }
 
-        InfoRow {
-            last: true
-            visible: bridge.lastResult !== null && bridge.lastResult !== undefined && !bridge.lastResult.ok && (bridge.last.id ?? "").startsWith("kill-")
-            icon: "error"
-            iconColour: Colours.palette.m3error
-            label: qsTr("Could not end the process")
-            subtext: bridge.lastResult?.message ?? ""
+        ActionErrorRow {
+            bridge: bridge
         }
 
         // Saude
@@ -302,22 +297,11 @@ PageBase {
             }
         }
 
-        SectionHeader {
-            text: qsTr("Advanced")
-        }
-
-        AdvancedAppRow {
-            first: true
-            desktopId: "gnome-system-monitor-kde"
-            text: qsTr("System Monitor")
-            subtext: qsTr("Every process, per-core graphs, file systems")
-        }
-
-        AdvancedAppRow {
-            last: true
-            desktopId: "org.gnome.Logs"
-            text: qsTr("Logs")
-            subtext: qsTr("Search the full system log")
+        AdvancedGroup {
+            apps: [
+                { id: "gnome-system-monitor-kde", text: qsTr("System Monitor"), subtext: qsTr("Every process, per-core graphs, file systems") },
+                { id: "org.gnome.Logs", text: qsTr("Logs"), subtext: qsTr("Search the full system log") }
+            ]
         }
     }
 }

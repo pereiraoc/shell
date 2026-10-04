@@ -88,6 +88,10 @@ PageBase {
             onRevert: bridge.run({ id: "revert" })
         }
 
+        ActionErrorRow {
+            bridge: bridge
+        }
+
         Repeater {
             model: root.monitors
 
@@ -176,16 +180,10 @@ PageBase {
             onPicked: v => bridge.run({ id: `dpi-${v}` })
         }
 
-        SectionHeader {
-            text: qsTr("Advanced")
-        }
-
-        AdvancedAppRow {
-            first: true
-            last: true
-            desktopId: "nwg-displays"
-            text: qsTr("Arrange displays")
-            subtext: qsTr("Position screens side by side, mirror (nwg-displays)")
+        AdvancedGroup {
+            apps: [
+                { id: "nwg-displays", text: qsTr("Arrange displays"), subtext: qsTr("Position screens side by side, mirror (nwg-displays)") }
+            ]
         }
     }
 }

@@ -153,6 +153,10 @@ PageBase {
             onClicked: micBridge.run({ id: "apply" })
         }
 
+        ActionErrorRow {
+            bridge: micBridge
+        }
+
         // Quem toca e quem grava: a pergunta que levava ao qpwgraph.
         SectionHeader {
             text: qsTr("Apps")
@@ -234,6 +238,7 @@ PageBase {
         }
 
         ExpandSelectRow {
+            last: (root.effects.input_presets ?? []).length === 0
             visible: root.effects.running === true && (root.effects.output_presets ?? []).length > 0
             icon: "speaker"
             label: qsTr("Output preset")
@@ -254,29 +259,16 @@ PageBase {
             onPicked: v => soundBridge.run({ id: `ee-input-${v}` })
         }
 
-        SectionHeader {
-            text: qsTr("Advanced")
+        ActionErrorRow {
+            bridge: soundBridge
         }
 
-        AdvancedAppRow {
-            first: true
-            desktopId: "org.rncbc.qpwgraph"
-            text: qsTr("Audio routing graph")
-            subtext: qsTr("Connect any app to any device by hand (qpwgraph)")
-        }
-
-        AdvancedAppRow {
-            desktopId: "com.github.wwmm.easyeffects"
-            text: qsTr("EasyEffects")
-            subtext: qsTr("Edit equalizer, compressor and noise presets")
-        }
-
-        AdvancedAppRow {
-            last: true
-            desktopId: "pavucontrol"
-            altIds: ["org.pulseaudio.pavucontrol"]
-            text: qsTr("Volume control")
-            subtext: qsTr("Card profiles and per-device settings (pavucontrol)")
+        AdvancedGroup {
+            apps: [
+                { id: "org.rncbc.qpwgraph", text: qsTr("Audio routing graph"), subtext: qsTr("Connect any app to any device by hand (qpwgraph)") },
+                { id: "com.github.wwmm.easyeffects", text: qsTr("EasyEffects"), subtext: qsTr("Edit equalizer, compressor and noise presets") },
+                { id: "pavucontrol", alt: ["org.pulseaudio.pavucontrol"], text: qsTr("Volume control"), subtext: qsTr("Card profiles and per-device settings (pavucontrol)") }
+            ]
         }
     }
 }

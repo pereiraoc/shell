@@ -207,5 +207,9 @@ PageBase {
             active: root.clockItems[GlobalConfig.services.useTwelveHourClock ? 1 : 0]
             onSelected: item => GlobalConfig.services.useTwelveHourClock = root.clockItems.indexOf(item) === 1
         }
+
+        ActionErrorRow {
+            bridge: regionBridge
+        }
     }
 }

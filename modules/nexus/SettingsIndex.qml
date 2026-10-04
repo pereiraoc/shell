@@ -70,6 +70,7 @@ QtObject {
         { page: "storage", sub: 0, title: qsTr("Disk usage"), subtitle: qsTr("Free space per partition"), keywords: "disk space free full partition" },
         { page: "storage", sub: 0, title: qsTr("Safe cleanups"), subtitle: qsTr("Package cache, journal, trash"), keywords: "clean cache trash free space pacman flatpak" },
         { page: "storage", sub: 0, title: qsTr("Largest folders"), subtitle: qsTr("What takes the most space"), keywords: "big folders baobab size" },
+        { page: "storage", sub: 1, title: qsTr("Browse disk usage"), subtitle: qsTr("Folder tree, largest first"), keywords: "tree browse folders files baobab du size explore" },
 
         // Security
         { page: "security", sub: 0, title: qsTr("Face recognition"), subtitle: qsTr("Howdy models, turn off"), keywords: "face howdy unlock camera biometric login" },
@@ -90,6 +91,7 @@ QtObject {
 
         // Personalization
         { page: "appearance", sub: 0, title: qsTr("Dark theme"), subtitle: qsTr("Light or dark"), keywords: "dark light mode theme night" },
+        { page: "appearance", sub: 3, title: qsTr("Theme"), subtitle: qsTr("Colour scheme: catppuccin, gruvbox, onedark, wallpaper colours"), keywords: "theme colours colors scheme palette catppuccin gruvbox onedark rosepine dynamic wallpaper accent" },
         { page: "appearance", sub: 1, title: qsTr("Wallpaper"), subtitle: qsTr("Choose wallpaper"), keywords: "background wallpaper image picture" },
         { page: "appearance", sub: 0, title: qsTr("Transparency"), subtitle: qsTr("Translucent panels"), keywords: "transparent blur opacity" },
         { page: "panels", sub: 2, title: qsTr("Taskbar"), subtitle: qsTr("Bar components, clock, tray"), keywords: "bar taskbar panel tray clock workspaces" },

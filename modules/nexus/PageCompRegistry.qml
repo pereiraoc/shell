@@ -111,6 +111,9 @@ QtObject {
             Component {
                 StoragePage {}
             }
+            Component {
+                StorageBrowser {}
+            }
         }
     }
 

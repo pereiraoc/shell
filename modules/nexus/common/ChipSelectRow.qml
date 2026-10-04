@@ -59,7 +59,8 @@ ConnectedRect {
             }
 
             StyledText {
-                text: root.busy ? qsTr("Applying…") : (root.currentOption?.label ?? "")
+                // Valor atual fora dos presets (ex.: repeticao 25/600 do hyprland.conf).
+                text: root.busy ? qsTr("Applying…") : (root.currentOption?.label ?? (root.current !== "" ? qsTr("Custom") : ""))
                 color: Colours.palette.m3primary
                 font: Tokens.font.label.medium
             }
@@ -90,31 +91,6 @@ ConnectedRect {
                 running: visible
             }
 
-            StyledRect {
-                id: indicator
-
-                readonly property Item sel: {
-                    const i = root.options.findIndex(o => o.value === root.current);
-                    return i >= 0 ? repeater.itemAt(i) : null;
-                }
-
-                visible: !root.busy && sel !== null
-                x: chips.x + (sel?.x ?? 0)
-                y: chips.y + (sel?.y ?? 0)
-                width: sel?.width ?? 0
-                height: sel?.height ?? 0
-                color: Colours.palette.m3primary
-                radius: Tokens.rounding.full
-
-                Behavior on x {
-                    Anim {}
-                }
-
-                Behavior on width {
-                    Anim {}
-                }
-            }
-
             RowLayout {
                 id: chips
 
@@ -128,7 +104,11 @@ ConnectedRect {
 
                     model: root.options
 
-                    Item {
+                    // Fundo proprio por chip (nao um indicador deslizante): o
+                    // indicador dependia de repeater.itemAt() numa binding, que
+                    // nao reavalia quando os itens nascem -- ficava invisivel e o
+                    // texto do selecionado (onPrimary) sumia no fundo claro.
+                    StyledRect {
                         id: chip
 
                         required property var modelData
@@ -139,6 +119,9 @@ ConnectedRect {
                         Layout.fillWidth: true
                         implicitWidth: chipRow.implicitWidth + Tokens.padding.medium * 2
                         implicitHeight: chipRow.implicitHeight + Tokens.padding.small * 2
+                        radius: Tokens.rounding.full
+                        // StyledRect ja anima a cor.
+                        color: isCurrent ? Colours.palette.m3primary : "transparent"
 
                         StateLayer {
                             radius: Tokens.rounding.full

@@ -73,9 +73,18 @@ Item {
         Quickshell.execDetached([root.runner, "action", root.tool, action.id]);
     }
 
+    // Texto bruto do ultimo parse de cada arquivo. O executor regrava o cache a
+    // cada refresh mesmo sem mudanca; reatribuir o objeto recriaria todo
+    // Repeater que depende dele (listas abertas fechavam, linhas piscavam).
+    property var lastText: ({})
+
     function parse(view: FileView, target: string): void {
+        const text = view.text();
+        if (root.lastText[target] === text)
+            return;
+        root.lastText[target] = text;
         try {
-            root[target] = JSON.parse(view.text());
+            root[target] = JSON.parse(text);
         } catch (e) {
             root.error = qsTr("%1: unreadable %2 cache").arg(root.tool).arg(target);
         }

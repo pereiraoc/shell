@@ -78,8 +78,12 @@ Singleton {
         }
     }
 
+    // Pelo caelestia-theme (repositorio de setup) e nao direto pelo CLI: o
+    // `caelestia` quebrou com o Python 3.14 e a ferramenta tem o modo de
+    // compatibilidade. Esquema sem o modo pedido (onedark so tem dark): a
+    // ferramenta recusa e nada muda.
     function setMode(mode: string): void {
-        Quickshell.execDetached(["caelestia", "scheme", "set", "--notify", "-m", mode]);
+        Quickshell.execDetached([`${Quickshell.env("HOME")}/.local/bin/caelestia-tool-run`, "action", "theme", `mode-${mode}`]);
     }
 
     function reloadHyprRules(): void {

@@ -49,7 +49,14 @@ PageBase {
         storage.run(action);
     }
 
+    // Abre a arvore (subpagina 1) numa pasta.
+    function browse(path: string): void {
+        root.nState.storagePath = path;
+        root.nState.openSubPage(1);
+    }
+
     title: qsTr("Storage")
+    description: qsTr("Disk usage, what takes space, safe cleanups")
 
     // O PageBase so aceita Item como filho; o Timer mora dentro da ponte
     // (que e Item). Direto na pagina, "Type StoragePage unavailable" -- e no
@@ -113,6 +120,11 @@ PageBase {
                 first: part.index === 0
                 last: part.index === root.partitions.length - 1
 
+                // Clicar na particao abre a arvore nela.
+                StateLayer {
+                    onClicked: root.browse(part.modelData.mount)
+                }
+
                 ColumnLayout {
                     id: partCol
 
@@ -143,6 +155,12 @@ PageBase {
                             text: qsTr("%1 free of %2  ·  %3%").arg(root.fmt(part.modelData.avail)).arg(root.fmt(part.modelData.size)).arg(part.modelData.pct)
                             color: Colours.palette.m3onSurfaceVariant
                             font: Tokens.font.body.small
+                        }
+
+                        MaterialIcon {
+                            text: "chevron_right"
+                            color: Colours.palette.m3onSurfaceVariant
+                            fontStyle: Tokens.font.icon.small
                         }
                     }
 
@@ -259,8 +277,8 @@ PageBase {
                         icon: "folder"
                         text: dir.modelData.path
                         subtext: root.fmt(dir.modelData.size)
-                        trailingIcon: "open_in_new"
-                        onClicked: Quickshell.execDetached([...GlobalConfig.general.apps.explorer, dir.modelData.path])
+                        trailingIcon: "chevron_right"
+                        onClicked: root.browse(dir.modelData.path)
                     }
                 }
             }

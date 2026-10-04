@@ -159,14 +159,14 @@ PageBase {
 
             IconTextButton {
                 icon: "palette"
-                text: qsTr("Colours")
+                text: qsTr("Theme")
                 font: Tokens.font.body.large
                 isRound: true
                 shapeMorph: true
                 type: IconTextButton.Tonal
                 horizontalPadding: Tokens.padding.extraLarge
                 verticalPadding: Tokens.padding.medium
-                onClicked: root.nState.openSubPage(3) // Colours page
+                onClicked: root.nState.openSubPage(3) // Theme page (ColourSelect)
             }
         }
 

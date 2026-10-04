@@ -330,7 +330,7 @@ PageBase {
             first: true
             visible: !!root.input.pointer
             label: qsTr("Pointer speed")
-            subtext: qsTr("Applies to every mouse and the touchpad")
+            subtext: qsTr("Multiplies the speed of every mouse and the touchpad, instantly. Gaming mice also have their own DPI in hardware — change that under Advanced › Razer devices.")
             options: [
                 { value: "-0.5", label: qsTr("Slower") },
                 { value: "-0.25", label: qsTr("Slow") },
@@ -363,6 +363,10 @@ PageBase {
             onToggled: root.inputRun(checked ? "natural-scroll-on" : "natural-scroll-off")
         }
 
+        ActionErrorRow {
+            bridge: inputBridge
+        }
+
         // Cameras
         SectionHeader {
             visible: (root.input.cameras ?? []).length > 0
@@ -389,36 +393,13 @@ PageBase {
             }
         }
 
-        SectionHeader {
-            text: qsTr("Advanced")
-        }
-
-        AdvancedAppRow {
-            first: true
-            desktopId: "app.polychromatic.controller"
-            altIds: ["polychromatic"]
-            text: qsTr("Razer devices")
-            subtext: qsTr("Buttons, DPI and lighting (Polychromatic)")
-        }
-
-        AdvancedAppRow {
-            desktopId: "org.openrgb.OpenRGB"
-            altIds: ["openrgb"]
-            text: qsTr("RGB lighting")
-            subtext: qsTr("Keyboard and peripheral lighting (OpenRGB)")
-        }
-
-        AdvancedAppRow {
-            desktopId: "org.freedesktop.Piper"
-            text: qsTr("Gaming mouse")
-            subtext: qsTr("Buttons and DPI profiles (Piper)")
-        }
-
-        AdvancedAppRow {
-            last: true
-            desktopId: "qcam"
-            text: qsTr("Camera viewer")
-            subtext: qsTr("Preview a camera (qcam)")
+        AdvancedGroup {
+            apps: [
+                { id: "app.polychromatic.controller", alt: ["polychromatic"], text: qsTr("Razer devices"), subtext: qsTr("Buttons, DPI and lighting (Polychromatic)") },
+                { id: "org.openrgb.OpenRGB", alt: ["openrgb"], text: qsTr("RGB lighting"), subtext: qsTr("Keyboard and peripheral lighting (OpenRGB)") },
+                { id: "org.freedesktop.Piper", text: qsTr("Gaming mouse"), subtext: qsTr("Buttons and DPI profiles (Piper)") },
+                { id: "qcam", text: qsTr("Camera viewer"), subtext: qsTr("Preview a camera (qcam)") }
+            ]
         }
     }
 }
