@@ -3,7 +3,7 @@
 // impacto, reflexo, e 6 cordas (ondas estacionarias) com antialias por
 // distancia ate a curva. O QML so atualiza os uniforms por quadro -- antes as
 // cordas eram polylines refeitas em JS a cada quadro e travavam o shell.
-// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-bars.frag.qsb prism-bars.frag
+// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v3.frag.qsb prism-v3.frag
 // (nome novo a cada mudanca grande: o ShaderEffect guarda o shader em cache
 // pela URL e o hot-reload continuaria com o antigo)
 
@@ -88,13 +88,15 @@ void main() {
         float yi = bandY + (float(i) - 2.5) * stepY;
         float hb = stepY * 0.42;                 // meia altura da barra
         float db = abs(p.y - yi);
-        if (db > hb + 1.0) continue;
+        if (db > hb * 2.0 + 2.0) continue;
         float e = envAt(i);
         float inBar = band(db, hb);
 
-        // barra: a cor cheia do arco-iris, espessura fixa; acende com a batida
-        vec3 base = COL[i] * (0.80 + 0.20 * e);
+        // barra: o BRILHO segue a forca da faixa -- apagada quando fraca,
+        // cor cheia (e um halo leve em volta) quando bate forte
+        vec3 base = COL[i] * (0.38 + 0.62 * e);
         float fill = inBar;
+        float outer = exp(-pow(max(0.0, db - hb) / (hb * 0.9 + 1.0), 2.0)) * (1.0 - inBar) * 0.28 * e * e;
 
         // corda dentro da barra
         float hw = maxT * (0.22 + 0.16 * e);
@@ -106,13 +108,14 @@ void main() {
         float dy = A / 1.22 * (k / L) * (cos(k * u) * s1 + 0.44 * cos(2.0 * k * u) * s2);
         float d = abs(p.y - yc) / sqrt(1.0 + dy * dy);
         float core = band(d, hw) * inBar;
-        float halo = exp(-pow(d / (hw * 2.5 + 1.0), 2.0)) * 0.30 * e * inBar;
-        // corda: linha clara dentro da barra (quase branca no pico)
-        vec3 bright = mix(COL[i], vec3(1.0), 0.55 + 0.3 * e);
+        float halo = exp(-pow(d / (hw * 2.5 + 1.0), 2.0)) * 0.25 * e * inBar;
+        // corda: a MESMA cor, so mais clara e viva que a barra (nada de branco)
+        vec3 bright = min(mix(COL[i] * (1.0 + 0.35 * e), vec3(1.0), 0.12 + 0.12 * e), vec3(1.0));
 
         vec3 c = base * fill;
-        c = mix(c, bright, clamp(core * (0.65 + 0.35 * e) + halo, 0.0, 1.0));
-        rgb += c; a += max(fill, core);
+        c = mix(c, bright, clamp(core * (0.7 + 0.3 * e) + halo, 0.0, 1.0));
+        c += COL[i] * outer;
+        rgb += c; a += max(max(fill, core), outer);
     }
 
     a = clamp(a, 0.0, 1.0);
