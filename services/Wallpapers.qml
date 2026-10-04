@@ -33,9 +33,12 @@ Searcher {
         Quickshell.execDetached(["caelestia", "wallpaper", "-r", ...smartArg]);
     }
 
+    // Pelo caelestia-theme: o `caelestia wallpaper` quebrou com o Python 3.14
+    // e a ferramenta cai para gravar o path.txt direto (com o CLI de pe, usa
+    // ele e o esquema dinamico continua sendo gerado).
     function setWallpaper(path: string): void {
         actualCurrent = path;
-        Quickshell.execDetached(["caelestia", "wallpaper", "-f", path, ...smartArg]);
+        Quickshell.execDetached([`${Quickshell.env("HOME")}/.local/bin/caelestia-tool-run`, "action", "theme", `wallpaper-${path}`]);
     }
 
     function preview(path: string): void {

@@ -51,10 +51,9 @@ Item {
 
     // Por corda: meias-ondas na corda (comprimento de onda ~ faixa), vibracao
     // em Hz (visual) e quanto tempo o "som" sustenta.
-    readonly property list<int> modes: [1, 2, 3, 5, 8, 12]
+    readonly property list<int> modes: [4, 6, 9, 13, 18, 24]
     readonly property list<real> hz: [1.7, 2.4, 3.3, 4.6, 6.2, 8.0]
     readonly property list<real> sustain: [1.25, 1.0, 0.8, 0.62, 0.48, 0.36]
-    readonly property int samples: 140
 
     property list<real> env: [0, 0, 0, 0, 0, 0]
     property list<real> raw: [0, 0, 0, 0, 0, 0]
@@ -141,29 +140,6 @@ Item {
         return Math.max(0, Math.min(1, (f - root.beamPart) / (1 - root.beamPart)));
     }
 
-    // Pontos de uma corda: onda estacionaria (modo n + um pouco do 2n, como
-    // corda real), presa nas duas pontas.
-    function stringPoints(i: int): var {
-        const x0 = root.edgeAt(root.edgeR, root.lineY(i));
-        const x1 = root.width;
-        // so o trecho iluminado: da cauda ate a frente da luz
-        const ua = root.rainFrac(root.tail);
-        const ub = root.rainFrac(root.head);
-        if (ub <= ua)
-            return [];
-        const y0 = root.lineY(i);
-        const a = root.env[i] * root.step * 0.85;
-        const w = 2 * Math.PI * root.hz[i] * root.time;
-        const k = root.modes[i] * Math.PI;
-        const pts = [];
-        for (let s = 0; s <= root.samples; s++) {
-            const u = ua + (ub - ua) * s / root.samples;
-            const y = y0 + a * (Math.sin(k * u) * Math.sin(w) + 0.22 * Math.sin(2 * k * u) * Math.sin(2 * w + 1.3));
-            pts.push(Qt.point(x0 + (x1 - x0) * u, y));
-        }
-        return pts;
-    }
-
     Loader {
         active: root.reactive
 
@@ -188,162 +164,40 @@ Item {
         }
     }
 
-    // ------------------------------------------------------------ feixe
-    Item {
-        id: beam
+    // ------------------------------------------------------------ luz
+    // Feixe, brilho, reflexo e cordas num shader (shaders/prism.frag): por
+    // quadro so mudam os uniforms. As cordas em JS/Shape refaziam ~2000
+    // pontos por quadro na thread da interface e travavam a barra/popouts.
+    ShaderEffect {
+        readonly property real hitXv: root.edgeAt(root.edgeL, root.bandY)
+        readonly property real beamEnd: hitXv + root.logoH * 0.04
 
-        readonly property real hitX: root.edgeAt(root.edgeL, root.bandY)
-        readonly property real k: root.presence * (0.35 + 0.65 * root.level)
-        readonly property real fromX: hitX * root.beamFrac(root.tail)
-        readonly property real toX: hitX * root.beamFrac(root.head)
-        // a luz esta chegando no logo (frente passou da face, cauda ainda nao)
-        readonly property bool hitting: root.beamFrac(root.head) >= 1 && root.beamFrac(root.tail) < 1
+        // luz comeca um pouco POR BAIXO do logo: a face corta no angulo dela
+        function startX(i: int): real {
+            return root.edgeAt(root.edgeR, root.lineY(i)) - root.logoH * 0.06;
+        }
 
         anchors.fill: parent
-        visible: k > 0.01
+        visible: root.presence > 0
+        fragmentShader: Qt.resolvedUrl("shaders/prism.frag.qsb")
 
-        // corpo: quase apagado na borda da tela, acende chegando no logo
-        Rectangle {
-            x: beam.fromX
-            width: Math.max(0, beam.toX - beam.fromX)
-            visible: width > 0.5
-            height: Math.max(1.5, root.maxT * (0.55 + 0.45 * root.level))
-            y: root.bandY - height / 2
-            opacity: beam.k
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-
-                GradientStop {
-                    position: 0
-                    color: Qt.rgba(1, 1, 1, 0.12)
-                }
-                GradientStop {
-                    position: 0.55
-                    color: Qt.rgba(1, 1, 1, 0.45)
-                }
-                GradientStop {
-                    position: 0.9
-                    color: Qt.rgba(1, 1, 1, 0.85)
-                }
-                GradientStop {
-                    position: 1
-                    color: "white"
-                }
-            }
-        }
-
-        // reflexo curto na face (angulo de reflexao da face esquerda: ~53
-        // graus para cima e para tras)
-        Rectangle {
-            x: beam.hitX
-            y: root.bandY - height / 2
-            width: root.logoH * 0.38
-            height: Math.max(1, root.maxT * 0.45)
-            transformOrigin: Item.Left
-            rotation: 233
-            visible: beam.hitting
-            opacity: beam.k * 0.55
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-
-                GradientStop {
-                    position: 0
-                    color: Qt.rgba(1, 1, 1, 0.8)
-                }
-                GradientStop {
-                    position: 1
-                    color: Qt.rgba(1, 1, 1, 0)
-                }
-            }
-        }
-
-        // brilho no ponto de impacto
-        Shape {
-            id: glow
-
-            readonly property real r: root.logoH * (0.07 + 0.11 * root.level)
-
-            anchors.fill: parent
-            visible: beam.hitting
-            opacity: beam.k
-
-            ShapePath {
-                strokeColor: "transparent"
-                fillGradient: RadialGradient {
-                    centerX: beam.hitX
-                    centerY: root.bandY
-                    centerRadius: glow.r
-                    focalX: beam.hitX
-                    focalY: root.bandY
-
-                    GradientStop {
-                        position: 0
-                        color: Qt.rgba(1, 1, 1, 0.55)
-                    }
-                    GradientStop {
-                        position: 0.35
-                        color: Qt.rgba(1, 1, 1, 0.18)
-                    }
-                    GradientStop {
-                        position: 1
-                        color: Qt.rgba(1, 1, 1, 0)
-                    }
-                }
-
-                PathAngleArc {
-                    centerX: beam.hitX
-                    centerY: root.bandY
-                    radiusX: glow.r
-                    radiusY: glow.r
-                    startAngle: 0
-                    sweepAngle: 360
-                }
-            }
-        }
-    }
-
-    // ------------------------------------------------------------ cordas
-    Repeater {
-        model: 6
-
-        Shape {
-            id: str
-
-            required property int index
-
-            readonly property real e: root.env[index] ?? 0
-            readonly property var pts: root.presence > 0.01 ? root.stringPoints(index) : []
-
-            anchors.fill: parent
-            visible: root.presence > 0.01
-            opacity: root.presence
-
-            // halo: mais largo e fraco, cresce com o brilho da batida
-            ShapePath {
-                strokeColor: Qt.alpha(root.spectrum[str.index], 0.22 * str.e)
-                strokeWidth: root.maxT * (1.2 + 2.2 * str.e)
-                fillColor: "transparent"
-                capStyle: ShapePath.FlatCap
-                joinStyle: ShapePath.RoundJoin
-
-                PathPolyline {
-                    path: str.pts
-                }
-            }
-
-            // corda
-            ShapePath {
-                strokeColor: Qt.alpha(Qt.lighter(root.spectrum[str.index], 1 + 0.35 * str.e), 0.4 + 0.6 * str.e)
-                strokeWidth: root.maxT * (0.5 + 0.5 * str.e)
-                fillColor: "transparent"
-                capStyle: ShapePath.FlatCap
-                joinStyle: ShapePath.RoundJoin
-
-                PathPolyline {
-                    path: str.pts
-                }
-            }
-        }
+        property vector2d res: Qt.vector2d(width, height)
+        property real time: root.time
+        property real level: root.level
+        property real beamK: root.presence * (0.35 + 0.65 * root.level)
+        property real beamFrom: beamEnd * root.beamFrac(root.tail)
+        property real beamTo: beamEnd * root.beamFrac(root.head)
+        property real hitX: hitXv
+        property real bandY: root.bandY
+        property real maxT: root.maxT
+        property real stepY: root.step
+        property real hitting: root.beamFrac(root.head) >= 1 && root.beamFrac(root.tail) < 1 ? 1 : 0
+        property real uA: root.rainFrac(root.tail)
+        property real uB: root.rainFrac(root.head)
+        property vector4d env0: Qt.vector4d(root.env[0], root.env[1], root.env[2], root.env[3])
+        property vector4d env1: Qt.vector4d(root.env[4], root.env[5], 0, 0)
+        property vector4d xs0: Qt.vector4d(startX(0), startX(1), startX(2), startX(3))
+        property vector4d xs1: Qt.vector4d(startX(4), startX(5), 0, 0)
     }
 
     // ------------------------------------------------------------ logo

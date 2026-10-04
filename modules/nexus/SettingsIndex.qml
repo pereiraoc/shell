@@ -99,6 +99,7 @@ QtObject {
         { page: "appearance", sub: 0, title: qsTr("Transparency"), subtitle: qsTr("Translucent panels"), keywords: "transparent blur opacity" },
         { page: "panels", sub: 2, title: qsTr("Taskbar"), subtitle: qsTr("Bar components, clock, tray"), keywords: "bar taskbar panel tray clock workspaces" },
         { page: "panels", sub: 1, title: qsTr("Dashboard"), subtitle: qsTr("Tabs, performance widgets"), keywords: "dashboard widgets" },
+        { page: "panels", sub: 8, title: qsTr("Tray icons"), subtitle: qsTr("Show or hide app icons in the bar (Spotify, Discord…)"), keywords: "tray icons systray hide show spotify discord steam bar" },
         { page: "panels", sub: 3, title: qsTr("Launcher"), subtitle: qsTr("App launcher options"), keywords: "launcher search apps menu" },
         { page: "windows", sub: 0, title: qsTr("Gaps"), subtitle: qsTr("Space between windows"), keywords: "gaps windows tiling spacing border" },
         { page: "apps", sub: 0, title: qsTr("Default applications"), subtitle: qsTr("Terminal, file manager, media"), keywords: "default terminal browser file manager" },

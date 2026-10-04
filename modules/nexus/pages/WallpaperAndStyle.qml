@@ -7,6 +7,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.components.images
+import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
@@ -170,8 +171,28 @@ PageBase {
             }
         }
 
+        // Wallpaper animado Prism (modules/background/Prism.qml): liga gerando
+        // o fundo e lembrando o anterior; desliga voltando a ele. Pelo
+        // caelestia-theme, porque o `caelestia wallpaper` esta quebrado.
+        ToolBridge {
+            id: themeBridge
+
+            tool: "theme"
+        }
+
         ToggleRow {
             first: true
+            readonly property var w: themeBridge.info.wallpaper ?? ({})
+
+            text: qsTr("Animated Prism wallpaper")
+            subtext: w.prism ? qsTr("Arch logo with a beam of light and a rainbow that follow the music") : (w.path ? qsTr("Off — light, rainbow and logo that react to music") : qsTr("Arch logo with light that reacts to music"))
+            checked: !!w.prism
+            disabled: themeBridge.busyAction !== "" || (w.prism && !w.previous)
+            onToggled: themeBridge.run({ id: checked ? "wallpaper-prism" : "wallpaper-previous" })
+        }
+
+        ToggleRow {
+            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
             text: qsTr("Display wallpaper")
             checked: Config.background.wallpaperEnabled
             onToggled: GlobalConfig.background.wallpaperEnabled = checked
