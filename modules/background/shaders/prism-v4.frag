@@ -3,7 +3,7 @@
 // impacto, reflexo, e 6 cordas (ondas estacionarias) com antialias por
 // distancia ate a curva. O QML so atualiza os uniforms por quadro -- antes as
 // cordas eram polylines refeitas em JS a cada quadro e travavam o shell.
-// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v3.frag.qsb prism-v3.frag
+// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v4.frag.qsb prism-v4.frag
 // (nome novo a cada mudanca grande: o ShaderEffect guarda o shader em cache
 // pela URL e o hot-reload continuaria com o antigo)
 
@@ -88,15 +88,24 @@ void main() {
         float yi = bandY + (float(i) - 2.5) * stepY;
         float hb = stepY * 0.42;                 // meia altura da barra
         float db = abs(p.y - yi);
-        if (db > hb * 2.0 + 2.0) continue;
+        // saida da luz: perto da face do logo a faixa e mais intensa e vaza
+        // um brilho na propria cor, que assenta ao longo do caminho
+        float logoH = res.y * 0.1856;
+        float face = x0 + logoH * 0.06;
+        float near = exp(-max(0.0, p.x - face) / (logoH * 0.55));
+        if (db > hb * (2.0 + 3.5 * near) + 2.0) continue;
         float e = envAt(i);
         float inBar = band(db, hb);
+        float exitK = near * (0.45 + 0.55 * e) * (0.5 + 0.5 * level);
+        // brilho fora da barra so nasce A PARTIR da face, suave (sem borda
+        // vertical onde o logo nao cobre)
+        float fromFace = smoothstep(face - 1.0, face + logoH * 0.08, p.x);
 
         // barra: o BRILHO segue a forca da faixa -- apagada quando fraca,
         // cor cheia (e um halo leve em volta) quando bate forte
-        vec3 base = COL[i] * (0.38 + 0.62 * e);
+        vec3 base = min(COL[i] * (0.38 + 0.62 * e) * (1.0 + 0.75 * exitK) + vec3(0.10 * exitK), vec3(1.0));
         float fill = inBar;
-        float outer = exp(-pow(max(0.0, db - hb) / (hb * 0.9 + 1.0), 2.0)) * (1.0 - inBar) * 0.28 * e * e;
+        float outer = exp(-pow(max(0.0, db - hb) / (hb * 0.9 + 1.0), 2.0)) * (1.0 - inBar) * 0.28 * e * e * fromFace;
 
         // corda dentro da barra
         float hw = maxT * (0.22 + 0.16 * e);
@@ -115,7 +124,10 @@ void main() {
         vec3 c = base * fill;
         c = mix(c, bright, clamp(core * (0.7 + 0.3 * e) + halo, 0.0, 1.0));
         c += COL[i] * outer;
-        rgb += c; a += max(max(fill, core), outer);
+        // brilho que vaza na saida (para cima e para baixo da faixa)
+        float spill = exp(-pow(max(0.0, db - hb) / (hb * 2.4 + 1.0), 2.0)) * (1.0 - inBar) * 0.42 * exitK * fromFace;
+        c += COL[i] * spill;
+        rgb += c; a += max(max(fill, core), outer + spill);
     }
 
     a = clamp(a, 0.0, 1.0);
