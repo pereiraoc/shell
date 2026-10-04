@@ -7,8 +7,8 @@
 #include <qfileinfo.h>
 #include <qhash.h>
 #include <qloggingcategory.h>
-#include <qstorageinfo.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/sysmacros.h>
 
 Q_LOGGING_CATEGORY(lcStorage, "caelestia.services.storage", QtInfoMsg)
@@ -93,6 +93,62 @@ QStringList resolveAtNode(const QString& node, int depth) {
 
 QStringList resolveByDevt(uint major, uint minor, int depth) {
     return resolveAtNode(sysfsRealPath(major, minor), depth);
+}
+
+// mountinfo escapa espaco, tab, \n e \\ como \ooo octal.
+QByteArray unescapeMountField(const QByteArray& in) {
+    QByteArray out;
+    out.reserve(in.size());
+    for (qsizetype i = 0; i < in.size(); ++i) {
+        if (in.at(i) == '\\' && i + 3 < in.size()) {
+            bool ok = false;
+            const int c = in.mid(i + 1, 3).toInt(&ok, 8);
+            if (ok) {
+                out.append(static_cast<char>(c));
+                i += 3;
+                continue;
+            }
+        }
+        out.append(in.at(i));
+    }
+    return out;
+}
+
+struct MountLine {
+    QByteArray mountPoint;
+    QByteArray fsType;
+    QByteArray device;
+};
+
+// Le /proc/self/mountinfo SEM tocar nenhum ponto de montagem. Nao usar
+// QStorageInfo::mountedVolumes(): ele abre e faz statfs em TODA montagem antes
+// de qualquer filtro, inclusive pontos autofs -- e isso dispara o automount
+// (ex.: sshfs com x-systemd.automount). Na hora de suspender a rede ja caiu, o
+// quickshell fica em D (autofs_wait) e o kernel aborta o sono.
+QList<MountLine> readMountInfo() {
+    QList<MountLine> out;
+    QFile f(QStringLiteral("/proc/self/mountinfo"));
+    if (!f.open(QIODevice::ReadOnly)) {
+        return out;
+    }
+    // Montagem sobreposta no mesmo ponto: vale a ultima linha (a de cima).
+    QHash<QByteArray, qsizetype> byMountPoint;
+    const QList<QByteArray> lines = f.readAll().split('\n');
+    for (const QByteArray& line : lines) {
+        const QList<QByteArray> fields = line.split(' ');
+        const qsizetype sep = fields.indexOf(QByteArray("-"));
+        if (fields.size() < 5 || sep < 6 || sep + 2 >= fields.size()) {
+            continue;
+        }
+        MountLine m{ unescapeMountField(fields.at(4)), fields.at(sep + 1), unescapeMountField(fields.at(sep + 2)) };
+        if (const auto it = byMountPoint.constFind(m.mountPoint); it != byMountPoint.constEnd()) {
+            out[it.value()] = m;
+        } else {
+            byMountPoint.insert(m.mountPoint, out.size());
+            out.append(m);
+        }
+    }
+    return out;
 }
 
 } // namespace
@@ -189,6 +245,21 @@ bool Storage::isPseudoFs(QByteArrayView fsType) {
     return fsType.startsWith(QByteArrayView("fuse."));
 }
 
+bool Storage::isRemoteFs(QByteArrayView fsType) {
+    // statfs em filesystem de rede pode travar sem rede (e nao e disco local).
+    // "fuse" puro e de rede/virtual; "fuseblk" (ntfs-3g, exfat) e disco local
+    // e continua passando.
+    static constexpr const char* kRemote[] = {
+        "nfs", "nfs4", "cifs", "smb3", "smbfs", "9p", "ceph", "glusterfs", "afs", "sshfs", "fuse", "davfs",
+    };
+    for (const char* p : kRemote) {
+        if (fsType == QByteArrayView(p)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 QStringList Storage::resolveToPhysicalDisks(const QString& devicePath) {
     if (devicePath.isEmpty() || !devicePath.startsWith(QLatin1Char('/'))) {
         return {};
@@ -220,24 +291,29 @@ void Storage::tick() {
 
     QHash<QByteArray, DeviceEntry> byDevice;
 
-    const auto mountedVols = QStorageInfo::mountedVolumes();
-    for (const QStorageInfo& v : mountedVols) {
-        if (!v.isReady() || !v.isValid() || v.bytesTotal() <= 0) {
+    // Filtra pelo tipo ANTES de qualquer statfs: so filesystem local chega a
+    // ser consultado (ver readMountInfo).
+    const auto mounts = readMountInfo();
+    for (const MountLine& m : mounts) {
+        if (isPseudoFs(QByteArrayView(m.fsType)) || isRemoteFs(QByteArrayView(m.fsType))) {
             continue;
         }
-        if (isPseudoFs(QByteArrayView(v.fileSystemType()))) {
+        struct statfs64 buf{};
+        if (::statfs64(m.mountPoint.constData(), &buf) != 0) {
             continue;
         }
-
-        const QByteArray device = v.device();
-        const auto totalBytes = static_cast<quint64>(v.bytesTotal());
-        const auto availBytes = static_cast<quint64>(v.bytesAvailable());
+        const quint64 totalBytes = static_cast<quint64>(buf.f_blocks) * static_cast<quint64>(buf.f_frsize);
+        if (totalBytes == 0) {
+            continue;
+        }
+        const quint64 availBytes = static_cast<quint64>(buf.f_bavail) * static_cast<quint64>(buf.f_frsize);
         const quint64 usedBytes = totalBytes > availBytes ? totalBytes - availBytes : 0;
-        const bool isRoot = v.rootPath() == QStringLiteral("/");
+        const bool isRoot = m.mountPoint == "/";
+        const QByteArray& device = m.device;
 
         DeviceEntry& e = byDevice[device];
         e.device = device;
-        e.fsType = v.fileSystemType();
+        e.fsType = m.fsType;
         e.totalBytes = totalBytes;
         e.usedBytes = usedBytes;
         e.hasRoot = e.hasRoot || isRoot;
