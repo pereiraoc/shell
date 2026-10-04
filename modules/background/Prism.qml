@@ -59,6 +59,9 @@ Item {
     property list<real> raw: [0, 0, 0, 0, 0, 0]
     property real level
     property real presence
+    // Aura do logo: intensidade propria, suavizada (acende ~0,25 s, apaga
+    // ~1,4 s) -- presence vai a zero de uma vez no fim da saida da luz.
+    property real aura
     property real silentFor: 1
     // Frente (head) e cauda (tail) da luz no caminho desdobrado 0..1:
     // 0..beamPart = feixe (borda esquerda -> logo), resto = arco-iris
@@ -130,6 +133,10 @@ Item {
             }
         }
         root.presence = root.head > 0 ? 1 : 0;
+        const at = playing ? 0.35 + 0.65 * root.level : 0;
+        root.aura += (at - root.aura) * (1 - Math.exp(-dt / (at > root.aura ? 0.25 : 1.4)));
+        if (root.aura < 0.002)
+            root.aura = 0;
     }
 
     function beamFrac(f: real): real {
@@ -161,11 +168,12 @@ Item {
             root.silentFor = 1;
             root.head = 0;
             root.tail = 0;
+            root.aura = 0;
         }
     }
 
     // ------------------------------------------------------------ luz
-    // Feixe, brilho, reflexo e cordas num shader (shaders/prism-v5.frag): por
+    // Feixe, brilho, reflexo e cordas num shader (shaders/prism-v6.frag): por
     // quadro so mudam os uniforms. As cordas em JS/Shape refaziam ~2000
     // pontos por quadro na thread da interface e travavam a barra/popouts.
     ShaderEffect {
@@ -178,8 +186,8 @@ Item {
         }
 
         anchors.fill: parent
-        visible: root.presence > 0
-        fragmentShader: Qt.resolvedUrl("shaders/prism-v5.frag.qsb")
+        visible: root.presence > 0 || root.aura > 0
+        fragmentShader: Qt.resolvedUrl("shaders/prism-v6.frag.qsb")
 
         property vector2d res: Qt.vector2d(width, height)
         property real time: root.time
@@ -198,6 +206,7 @@ Item {
         property vector4d env1: Qt.vector4d(root.env[4], root.env[5], 0, 0)
         property vector4d xs0: Qt.vector4d(startX(0), startX(1), startX(2), startX(3))
         property vector4d xs1: Qt.vector4d(startX(4), startX(5), 0, 0)
+        property real auraK: root.aura
     }
 
     // ------------------------------------------------------------ logo
@@ -225,7 +234,7 @@ Item {
             ShapePath {
                 fillColor: "#eadbb2"
                 strokeColor: root.background
-                strokeWidth: 3
+                strokeWidth: 0.8
                 joinStyle: ShapePath.RoundJoin
                 fillRule: ShapePath.OddEvenFill
 

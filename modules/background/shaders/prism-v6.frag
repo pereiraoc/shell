@@ -3,7 +3,7 @@
 // impacto, reflexo, e 6 cordas (ondas estacionarias) com antialias por
 // distancia ate a curva. O QML so atualiza os uniforms por quadro -- antes as
 // cordas eram polylines refeitas em JS a cada quadro e travavam o shell.
-// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v5.frag.qsb prism-v5.frag
+// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v6.frag.qsb prism-v6.frag
 // (nome novo a cada mudanca grande: o ShaderEffect guarda o shader em cache
 // pela URL e o hot-reload continuaria com o antigo)
 
@@ -30,6 +30,7 @@ layout(std140, binding = 0) uniform buf {
     vec4 env1;         // 4..5 (zw livres)
     vec4 xs0;          // x inicial de cada corda (px)
     vec4 xs1;
+    float auraK;       // aura do logo, suavizada no tempo (apaga devagar)
 };
 
 const int MODES[6] = int[6](4, 6, 9, 13, 18, 24);
@@ -66,10 +67,11 @@ void main() {
     float a = 0.0;
 
     // ---- aura do logo: branco quente bem leve, so com musica, respira com
-    // a intensidade (beamK ja e presenca * nivel). O logo e desenhado por
+    // a intensidade (auraK: suavizada no QML, acende rapido e apaga devagar,
+    // independente da saida da luz). O logo e desenhado por
     // cima, entao so a parte de fora aparece; mais fraca embaixo (a base do
     // logo e concava).
-    if (beamK > 0.001) {
+    if (auraK > 0.001) {
         float lh = res.y * 0.1856;
         vec2 c0 = vec2(res.x * 0.5, res.y * 0.5 - lh * 0.5);
         float dT = sdTriangle(p, c0, vec2(c0.x - lh * 0.5, c0.y + lh), vec2(c0.x + lh * 0.5, c0.y + lh));
@@ -77,7 +79,7 @@ void main() {
             // some na base: ela e concava, e aura so "fora do triangulo"
             // desenharia uma sombra com o formato dele sob o arco
             float fadeBottom = 1.0 - smoothstep(c0.y + lh * 0.55, c0.y + lh * 0.92, p.y);
-            float aura = exp(-pow(max(dT, 0.0) / (lh * 0.11), 2.0)) * 0.13 * beamK * fadeBottom;
+            float aura = exp(-pow(max(dT, 0.0) / (lh * 0.11), 2.0)) * 0.13 * auraK * fadeBottom;
             rgb += vec3(1.0, 0.97, 0.90) * aura; a += aura;
         }
     }
