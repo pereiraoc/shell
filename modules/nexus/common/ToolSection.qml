@@ -14,7 +14,8 @@ import qs.services
 //     ToolSection { tool: "mic-gain"; title: qsTr("MICROPHONE HARDWARE GAIN") }
 //
 // Acao com risk "medium" pede dois cliques (o shell nao tem dialogo de
-// confirmacao); as "low" rodam no primeiro. Root: pkexec abre a caixa de senha
+// confirmacao); as "low" rodam no primeiro. `group` so troca o icone: "preset"
+// (tune), "remove" (delete). Root: pkexec abre a caixa de senha
 // do Caelestia (modules/polkit).
 ColumnLayout {
     id: root
@@ -94,7 +95,7 @@ ColumnLayout {
 
             last: act.index === bridge.actions.length - 1
             color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
-            icon: act.isBusy ? "hourglass_top" : act.modelData.group === "preset" ? "tune" : "play_arrow"
+            icon: act.isBusy ? "hourglass_top" : act.modelData.group === "preset" ? "tune" : act.modelData.group === "remove" ? "delete" : "play_arrow"
             text: act.isArmed ? qsTr("Click again: %1").arg(act.modelData.label) : act.isBusy ? qsTr("%1 — running…").arg(act.modelData.label) : act.modelData.label
             subtext: act.modelData.detail ?? ""
             trailingIcon: act.modelData.root ? "lock" : ""

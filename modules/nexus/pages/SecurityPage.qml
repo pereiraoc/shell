@@ -113,14 +113,14 @@ PageBase {
             onSelected: item => GlobalConfig.lock.defaultMethod = root.methodValues[root.methodItems.indexOf(item)]
         }
 
-        // Modelos do Howdy: cadastrar um novo por condicao de luz e o que mais
-        // reduz falha. Logica no caelestia-face (repositorio de setup).
+        // Howdy: modelos, interruptor global. Sempre visivel -- os modelos valem
+        // tambem para o login (PAM), nao so para a tela de bloqueio. Logica no
+        // caelestia-face (repositorio de setup); substitui o howdy-manager.sh.
         ToolSection {
-            visible: Config.lock.enableFaceAuth
             tool: "face"
-            title: qsTr("Face models")
+            title: qsTr("Face recognition")
             icon: "face"
-            hint: qsTr("One model per lighting condition improves recognition. Asks for your password; look at the camera for ~3 s.")
+            hint: qsTr("One model per lighting condition improves recognition. Every action asks for your password; adding a model turns the camera on for ~3 s.")
         }
 
         // Lock screen

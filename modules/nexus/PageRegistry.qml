@@ -70,7 +70,7 @@ QtObject {
         {
             label: qsTr("System apps"),
             icon: "apps",
-            description: qsTr("Quick launchers for config tools"),
+            description: qsTr("Display scale, config tools"),
             category: "system"
         },
 
