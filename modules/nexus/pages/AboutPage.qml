@@ -1,9 +1,12 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Io
 import Caelestia
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
+import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -11,19 +14,71 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    // Plugin support is not wired up yet; always 0 for now
-    readonly property int pluginCount: 0
-
     property string quickshellVersion
+    property string hyprlandVersion
+    property bool copied
+
+    readonly property string memoryText: {
+        const f = UsageFmt.formatKib(Memory.total, Memory.total);
+        return f.total > 0 ? `${Math.round(f.total)} ${f.unit}` : "…";
+    }
+
+    // Texto para colar em relato de bug (padrao Win11/GNOME "Copy").
+    function systemInfoText(): string {
+        return [
+            `Device: ${SysInfo.device}`,
+            `OS: ${SysInfo.osPrettyName || SysInfo.osName}`,
+            `Kernel: ${SysInfo.kernel}`,
+            `Firmware: ${SysInfo.firmware}`,
+            `CPU: ${systemBridge.info.cpu_model ?? Cpu.name}`,
+            `GPU: ${Gpu.name}`,
+            `Memory: ${root.memoryText}`,
+            `Hyprland: ${root.hyprlandVersion}`,
+            `Quickshell: ${root.quickshellVersion}`,
+            `Caelestia shell: ${CUtils.version}`,
+            `Qt: ${CUtils.qtVersion}`,
+            `Graphics mode: ${GpuModeService.getModeName(GpuModeService.activeMode)}`
+        ].join("\n");
+    }
     property string cliVersion
 
     title: qsTr("About")
+    description: qsTr("Hardware, versions and system information")
+
+    ToolBridge {
+        id: systemBridge
+
+        tool: "system"
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        ServiceRef {
+            service: Gpu
+        }
+
+        ServiceRef {
+            service: Memory
+        }
+
+        Process {
+            running: true
+            command: ["hyprctl", "version", "-j"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const v = JSON.parse(text);
+                        root.hyprlandVersion = v.version || v.tag || "";
+                    } catch (e) {
+                        root.hyprlandVersion = "";
+                    }
+                }
+            }
+        }
 
         // e.g. "Quickshell 0.3.0 (revision ...)"
         Process {
@@ -115,6 +170,28 @@ PageBase {
             value: SysInfo.firmware
         }
 
+        // Hardware
+        SectionHeader {
+            text: qsTr("Hardware")
+        }
+
+        InfoRow {
+            first: true
+            label: qsTr("Processor")
+            value: systemBridge.info.cpu_model ?? Cpu.name
+        }
+
+        InfoRow {
+            label: qsTr("Graphics")
+            value: Gpu.name || "…"
+        }
+
+        InfoRow {
+            last: true
+            label: qsTr("Memory")
+            value: root.memoryText
+        }
+
         // Software
         SectionHeader {
             text: qsTr("Software")
@@ -132,6 +209,11 @@ PageBase {
         }
 
         InfoRow {
+            label: qsTr("Hyprland")
+            value: root.hyprlandVersion || "…"
+        }
+
+        InfoRow {
             label: qsTr("Quickshell")
             value: root.quickshellVersion || "…"
         }
@@ -142,16 +224,25 @@ PageBase {
             value: CUtils.qtVersion || "…"
         }
 
-        // Plugins
-        SectionHeader {
-            text: qsTr("Plugins")
-        }
-
-        InfoRow {
+        RowButton {
+            Layout.topMargin: Tokens.spacing.large
             first: true
             last: true
-            label: qsTr("Loaded plugins")
-            value: root.pluginCount.toString()
+            icon: root.copied ? "check" : "content_copy"
+            text: root.copied ? qsTr("Copied") : qsTr("Copy system information")
+            subtext: qsTr("Paste it into a bug report or a support chat")
+            onClicked: {
+                Quickshell.clipboardText = root.systemInfoText();
+                root.copied = true;
+                copiedTimer.restart();
+            }
+
+            Timer {
+                id: copiedTimer
+
+                interval: 2500
+                onTriggered: root.copied = false
+            }
         }
     }
 }

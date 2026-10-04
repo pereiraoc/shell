@@ -13,6 +13,8 @@ ColumnLayout {
     id: root
 
     required property string title
+    // Uma linha sob o titulo: o que a pagina cobre (template unico de pagina).
+    property string description
     required property NexusState nState
     property bool isSubPage
     readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
@@ -49,11 +51,25 @@ ColumnLayout {
                 }
             }
 
-            StyledText {
+            ColumnLayout {
                 Layout.fillWidth: true
-                text: root.title
-                font: Tokens.font.title.large
-                elide: Text.ElideRight
+                spacing: 0
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: root.title
+                    font: Tokens.font.title.large
+                    elide: Text.ElideRight
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: root.description !== ""
+                    text: root.description
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.body.small
+                    elide: Text.ElideRight
+                }
             }
         }
     }

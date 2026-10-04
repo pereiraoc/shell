@@ -54,7 +54,8 @@ PageBase {
         return 3; // None
     }
 
-    title: qsTr("Services")
+    title: qsTr("Shell behaviour")
+    description: qsTr("Notifications, polling, media and step sizes")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter

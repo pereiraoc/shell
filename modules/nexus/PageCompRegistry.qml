@@ -21,220 +21,236 @@ import qs.modules.nexus.pages.panels.taskbar
 QtObject {
     id: root
 
-    readonly property list<Component> pageComps: [
-        // Appearance
-        Component {
-            // Wallpaper & style
-            StackPage {
-                Component {
-                    WallpaperAndStyle {}
-                }
-                Component {
-                    WallpaperSelect {}
-                }
-                Component {
-                    WallpaperCategory {}
-                }
-                Component {
-                    ColourSelect {}
-                }
-            }
-        },
-
-        // Connectivity
-        Component {
-            // Network
-            StackPage {
-                Component {
-                    NetworkPage {}
-                }
-                Component {
-                    EthernetDetailPage {}
-                }
-                Component {
-                    AddNetworkPage {}
-                }
-                Component {
-                    NetworkDetailPage {}
-                }
-                Component {
-                    AddVpnPage {}
-                }
-                Component {
-                    AllNetworksPage {}
-                }
-                Component {
-                    SavedNetworksPage {}
-                }
-            }
-        },
-        Component {
-            // Bluetooth
-            StackPage {
-                Component {
-                    BluetoothPage {}
-                }
-                Component {
-                    BtDeviceInfo {}
-                }
-                Component {
-                    BluetoothPairing {}
-                }
-            }
-        },
-        Component {
-            // Audio
-            StackPage {
-                Component {
-                    AudioPage {}
-                }
-                Component {
-                    AppVolumes {}
-                }
-            }
-        },
-
-        // System
-        Component {
-            // Software
-            StackPage {
-                Component {
-                    SoftwarePage {}
-                }
-                Component {
-                    DerivedPage {}
-                }
-                Component {
-                    UntrackedPage {}
-                }
-                Component {
-                    RepoIssuesPage {}
-                }
-                Component {
-                    UpdatesPage {}
-                }
-            }
-        },
-        Component {
-            // Storage
-            StackPage {
-                Component {
-                    StoragePage {}
-                }
-            }
-        },
-        Component {
-            PlaceholderComp {}
-        },
-        Component {
-            // Security
-            StackPage {
-                Component {
-                    SecurityPage {}
-                }
-            }
-        },
-        Component {
-            // System apps
-            StackPage {
-                Component {
-                    SystemAppsPage {}
-                }
-            }
-        },
-
-        // Shell
-        Component {
-            // Panels
-            StackPage {
-                Component {
-                    PanelsPage {}
-                }
-                Component {
-                    DashboardPanel {}
-                }
-                Component {
-                    TaskbarPanel {}
-                }
-                Component {
-                    LauncherPanel {}
-                }
-                Component {
-                    SidebarPanel {}
-                }
-                Component {
-                    UtilitiesPanel {}
-                }
-
-                // Taskbar component sub-pages
-                Component {
-                    BarWorkspaces {}
-                }
-                Component {
-                    BarActiveWindow {}
-                }
-                Component {
-                    BarTray {}
-                }
-                Component {
-                    BarStatusIcons {}
-                }
-                Component {
-                    BarClock {}
-                }
-            }
-        },
-        Component {
-            // Apps
-            StackPage {
-                Component {
-                    AppsPage {}
-                }
-                Component {
-                    AllApps {}
-                }
-                Component {
-                    AppInfo {}
-                }
-            }
-        },
-        Component {
-            // Window management
-            StackPage {
-                Component {
-                    WindowManagement {}
-                }
-            }
-        },
-        Component {
-            // Services
-            StackPage {
-                Component {
-                    ServicesPage {}
-                }
-                Component {
-                    NotificationsPage {}
-                }
-            }
-        },
-        Component {
-            // Language & region
-            StackPage {
-                Component {
-                    LanguageAndRegion {}
-                }
-            }
-        },
-
-        // About
-        Component {
-            StackPage {
-                Component {
-                    AboutPage {}
-                }
+    // id da pagina (PageRegistry) -> componente `<id>Comp`. Por nome, nao por
+    // indice: casar por indice quebrava toda vez que a ordem do menu mudava.
+    readonly property Component homeComp: Component {
+        StackPage {
+            Component {
+                HomePage {}
             }
         }
-    ]
+    }
+
+    readonly property Component networkComp: Component {
+        StackPage {
+            Component {
+                NetworkPage {}
+            }
+            Component {
+                EthernetDetailPage {}
+            }
+            Component {
+                AddNetworkPage {}
+            }
+            Component {
+                NetworkDetailPage {}
+            }
+            Component {
+                AddVpnPage {}
+            }
+            Component {
+                AllNetworksPage {}
+            }
+            Component {
+                SavedNetworksPage {}
+            }
+        }
+    }
+
+    readonly property Component devicesComp: Component {
+        StackPage {
+            Component {
+                BluetoothPage {}
+            }
+            Component {
+                BtDeviceInfo {}
+            }
+            Component {
+                BluetoothPairing {}
+            }
+        }
+    }
+
+    readonly property Component displayComp: Component {
+        StackPage {
+            Component {
+                DisplayPage {}
+            }
+        }
+    }
+
+    readonly property Component soundComp: Component {
+        StackPage {
+            Component {
+                AudioPage {}
+            }
+            Component {
+                AppVolumes {}
+            }
+        }
+    }
+
+    readonly property Component powerComp: Component {
+        StackPage {
+            Component {
+                PowerPage {}
+            }
+        }
+    }
+
+    readonly property Component systemComp: Component {
+        StackPage {
+            Component {
+                SystemPage {}
+            }
+        }
+    }
+
+    readonly property Component storageComp: Component {
+        StackPage {
+            Component {
+                StoragePage {}
+            }
+        }
+    }
+
+    readonly property Component securityComp: Component {
+        StackPage {
+            Component {
+                SecurityPage {}
+            }
+        }
+    }
+
+    readonly property Component softwareComp: Component {
+        StackPage {
+            Component {
+                SoftwarePage {}
+            }
+            Component {
+                DerivedPage {}
+            }
+            Component {
+                UntrackedPage {}
+            }
+            Component {
+                RepoIssuesPage {}
+            }
+            Component {
+                UpdatesPage {}
+            }
+        }
+    }
+
+    readonly property Component regionComp: Component {
+        StackPage {
+            Component {
+                LanguageAndRegion {}
+            }
+        }
+    }
+
+    readonly property Component appearanceComp: Component {
+        StackPage {
+            Component {
+                WallpaperAndStyle {}
+            }
+            Component {
+                WallpaperSelect {}
+            }
+            Component {
+                WallpaperCategory {}
+            }
+            Component {
+                ColourSelect {}
+            }
+        }
+    }
+
+    readonly property Component panelsComp: Component {
+        StackPage {
+            Component {
+                PanelsPage {}
+            }
+            Component {
+                DashboardPanel {}
+            }
+            Component {
+                TaskbarPanel {}
+            }
+            Component {
+                LauncherPanel {}
+            }
+            Component {
+                SidebarPanel {}
+            }
+            Component {
+                UtilitiesPanel {}
+            }
+
+            // Taskbar component sub-pages
+            Component {
+                BarWorkspaces {}
+            }
+            Component {
+                BarActiveWindow {}
+            }
+            Component {
+                BarTray {}
+            }
+            Component {
+                BarStatusIcons {}
+            }
+            Component {
+                BarClock {}
+            }
+        }
+    }
+
+    readonly property Component windowsComp: Component {
+        StackPage {
+            Component {
+                WindowManagement {}
+            }
+        }
+    }
+
+    readonly property Component appsComp: Component {
+        StackPage {
+            Component {
+                AppsPage {}
+            }
+            Component {
+                AllApps {}
+            }
+            Component {
+                AppInfo {}
+            }
+        }
+    }
+
+    readonly property Component shellComp: Component {
+        StackPage {
+            Component {
+                ServicesPage {}
+            }
+            Component {
+                NotificationsPage {}
+            }
+        }
+    }
+
+    readonly property Component aboutComp: Component {
+        StackPage {
+            Component {
+                AboutPage {}
+            }
+        }
+    }
+
+    function forId(id: string): Component {
+        return root[`${id}Comp`] ?? root.placeholderComp;
+    }
 
     readonly property Component placeholderComp: Component {
         PlaceholderComp {}

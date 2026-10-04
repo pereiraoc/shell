@@ -36,7 +36,24 @@ ColumnLayout {
         Binding {
             target: root.nState
             property: "searchOpen"
-            value: searchField.text.length > 0
+            value: searchField.text.trim().length > 0
+        }
+
+        Binding {
+            target: root.nState
+            property: "searchText"
+            value: searchField.text
+        }
+
+        // Enter abre o melhor resultado; Esc limpa a busca.
+        onAccepted: results.openFirst()
+        Keys.onEscapePressed: event => {
+            if (searchField.text.length > 0) {
+                searchField.text = "";
+                event.accepted = true;
+            } else {
+                event.accepted = false;
+            }
         }
     }
 
@@ -45,6 +62,20 @@ ColumnLayout {
         Layout.fillHeight: true
         Layout.topMargin: -topMargin
         Layout.bottomMargin: -bottomMargin
+        visible: !root.nState.searchOpen
         nState: root.nState
+    }
+
+    SearchResults {
+        id: results
+
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.topMargin: -topMargin
+        Layout.bottomMargin: -bottomMargin
+        visible: root.nState.searchOpen
+        nState: root.nState
+        query: searchField.text
+        onPicked: searchField.text = ""
     }
 }

@@ -7,6 +7,7 @@ import Quickshell.Bluetooth
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -17,13 +18,49 @@ PageBase {
     readonly property BluetoothAdapter adapter: Bluetooth.defaultAdapter // qmllint disable unresolved-type
     readonly property bool btEnabled: adapter?.enabled ?? false
 
-    title: qsTr("Connected devices")
+    readonly property var input: inputBridge.info
+    readonly property var kb: root.input.keyboard ?? ({})
+    readonly property var pointer: root.input.pointer ?? ({})
+    readonly property var peripherals: batteryBridge.info.devices ?? []
+
+    function inputRun(id: string): void {
+        inputBridge.run({ id: id });
+    }
+
+    title: qsTr("Devices")
+    description: qsTr("Bluetooth, batteries, keyboard, mouse and cameras")
+
+    // Entrada (teclado/mouse/cameras) pelo caelestia-input; baterias de
+    // perifericos que o UPower nao ve pelo caelestia-peripheral-battery.
+    ToolBridge {
+        id: inputBridge
+
+        tool: "input"
+    }
+
+    ToolBridge {
+        id: batteryBridge
+
+        tool: "peripheral-battery"
+
+        Timer {
+            interval: 60000
+            repeat: true
+            running: root.visible
+            onTriggered: batteryBridge.refresh()
+        }
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        SectionHeader {
+            first: true
+            text: qsTr("Bluetooth")
+        }
 
         ToggleRow {
             first: true
@@ -208,6 +245,180 @@ PageBase {
             Behavior on opacity {
                 Anim {}
             }
+        }
+
+        // Baterias de perifericos (Razer, Azoth) + UPower
+        SectionHeader {
+            visible: root.peripherals.length > 0
+            text: qsTr("Peripheral batteries")
+        }
+
+        Repeater {
+            model: root.peripherals
+
+            MeterRow {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === root.peripherals.length - 1
+                icon: modelData.kind === "keyboard" ? "keyboard" : modelData.kind === "mouse" ? "mouse" : modelData.kind === "headset" ? "headphones" : "battery_full"
+                label: modelData.name
+                valueText: `${Math.round(modelData.pct * 100)}%`
+                value: modelData.pct
+                warnAt: 0.2
+                warnBelow: true
+                subtext: modelData.charging ? qsTr("Charging") : modelData.stale ? qsTr("Last known level — the device is asleep") : ""
+            }
+        }
+
+        // Teclado
+        SectionHeader {
+            visible: !!root.input.keyboard
+            text: qsTr("Keyboard")
+        }
+
+        RowButton {
+            first: true
+            visible: root.input.persisted === false
+            icon: "save"
+            iconLabel.color: Colours.palette.m3tertiary
+            text: qsTr("Keep keyboard and mouse settings after a restart")
+            subtext: qsTr("One-time setup: lets these settings survive reloading Hyprland")
+            disabled: inputBridge.busyAction !== ""
+            onClicked: root.inputRun("setup")
+        }
+
+        ExpandSelectRow {
+            first: root.input.persisted !== false
+            visible: !!root.input.keyboard
+            icon: "keyboard"
+            label: qsTr("Layout")
+            subtext: root.kb.variant ? qsTr("Variant: %1").arg(root.kb.variant) : ""
+            options: [
+                { value: "us", label: qsTr("English (US)") },
+                { value: "br", label: qsTr("Portuguese (Brazil, ABNT2)") },
+                { value: "us,br", label: qsTr("Both — switch with the layout key") }
+            ]
+            current: root.kb.layout ?? ""
+            busy: inputBridge.busyAction.startsWith("layout-")
+            onPicked: v => root.inputRun(`layout-${v}`)
+        }
+
+        ChipSelectRow {
+            last: true
+            visible: !!root.input.keyboard
+            label: qsTr("Key repeat")
+            subtext: qsTr("How fast a held key repeats. Now: %1 per second after %2 ms").arg(root.kb.repeat_rate ?? "?").arg(root.kb.repeat_delay ?? "?")
+            options: [
+                { value: "20-600", label: qsTr("Slow") },
+                { value: "25-400", label: qsTr("Default") },
+                { value: "35-300", label: qsTr("Fast") }
+            ]
+            current: `${root.kb.repeat_rate}-${root.kb.repeat_delay}`
+            busy: inputBridge.busyAction.startsWith("repeat-")
+            onPicked: v => root.inputRun(`repeat-${v}`)
+        }
+
+        // Mouse e touchpad
+        SectionHeader {
+            visible: !!root.input.pointer
+            text: qsTr("Mouse & touchpad")
+        }
+
+        ChipSelectRow {
+            first: true
+            visible: !!root.input.pointer
+            label: qsTr("Pointer speed")
+            subtext: qsTr("Applies to every mouse and the touchpad")
+            options: [
+                { value: "-0.5", label: qsTr("Slower") },
+                { value: "-0.25", label: qsTr("Slow") },
+                { value: "0", label: qsTr("Default") },
+                { value: "0.25", label: qsTr("Fast") },
+                { value: "0.5", label: qsTr("Faster") }
+            ]
+            current: String(Number(root.pointer.sensitivity ?? 0))
+            busy: inputBridge.busyAction.startsWith("sensitivity-")
+            onPicked: v => root.inputRun(`sensitivity-${v}`)
+        }
+
+        ToggleRow {
+            last: !root.input.touchpad?.present
+            visible: !!root.input.pointer
+            text: qsTr("Mouse acceleration")
+            subtext: qsTr("Off is better for games: the pointer moves the same distance at any speed")
+            checked: root.pointer.accel_profile !== "flat"
+            disabled: inputBridge.busyAction !== ""
+            onToggled: root.inputRun(checked ? "accel-adaptive" : "accel-flat")
+        }
+
+        ToggleRow {
+            last: true
+            visible: !!root.input.touchpad?.present
+            text: qsTr("Natural scrolling (touchpad)")
+            subtext: qsTr("Content follows your fingers, like a phone")
+            checked: !!root.pointer.natural_scroll_touchpad
+            disabled: inputBridge.busyAction !== ""
+            onToggled: root.inputRun(checked ? "natural-scroll-on" : "natural-scroll-off")
+        }
+
+        // Cameras
+        SectionHeader {
+            visible: (root.input.cameras ?? []).length > 0
+            text: qsTr("Cameras")
+        }
+
+        Repeater {
+            model: root.input.cameras ?? []
+
+            RowButton {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === (root.input.cameras ?? []).length - 1
+                icon: modelData.ir ? "face" : "videocam"
+                text: modelData.ir ? qsTr("Infrared camera") : qsTr("Webcam")
+                subtext: modelData.face_unlock ? qsTr("%1 · used by face unlock").arg(modelData.node) : `${modelData.node} · ${modelData.name}`
+                trailingIcon: modelData.face_unlock ? "chevron_right" : ""
+                onClicked: {
+                    if (modelData.face_unlock)
+                        root.nState.openPage("security", 0);
+                }
+            }
+        }
+
+        SectionHeader {
+            text: qsTr("Advanced")
+        }
+
+        AdvancedAppRow {
+            first: true
+            desktopId: "app.polychromatic.controller"
+            altIds: ["polychromatic"]
+            text: qsTr("Razer devices")
+            subtext: qsTr("Buttons, DPI and lighting (Polychromatic)")
+        }
+
+        AdvancedAppRow {
+            desktopId: "org.openrgb.OpenRGB"
+            altIds: ["openrgb"]
+            text: qsTr("RGB lighting")
+            subtext: qsTr("Keyboard and peripheral lighting (OpenRGB)")
+        }
+
+        AdvancedAppRow {
+            desktopId: "org.freedesktop.Piper"
+            text: qsTr("Gaming mouse")
+            subtext: qsTr("Buttons and DPI profiles (Piper)")
+        }
+
+        AdvancedAppRow {
+            last: true
+            desktopId: "qcam"
+            text: qsTr("Camera viewer")
+            subtext: qsTr("Preview a camera (qcam)")
         }
     }
 }

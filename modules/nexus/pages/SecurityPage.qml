@@ -12,6 +12,7 @@ PageBase {
     id: root
 
     title: qsTr("Security")
+    description: qsTr("Unlock methods, face recognition and PIN")
 
     property string newPin: ""
     property string confirmPin: ""

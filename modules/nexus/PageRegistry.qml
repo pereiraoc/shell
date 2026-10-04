@@ -2,116 +2,150 @@ pragma Singleton
 
 import QtQuick
 
+// Menu do Nexus. A ordem aqui e a ordem na navegacao; o componente de cada
+// pagina e casado por `id` em PageCompRegistry (nunca por indice). Quem abre o
+// Nexus numa pagina usa NexusState.openPage(id) ou indexOf(id).
+//
+// Grupos seguem a pesquisa de IA de paineis de controle (Win11, GNOME 46,
+// KDE 6, Android 16): conexoes -> hardware -> sistema -> personalizacao ->
+// About. Spec: docs/superpowers/specs/2026-10-04-painel-de-controle-nexus-design.md
+// (repositorio caelestia-arch-setup).
 QtObject {
     id: root
 
     readonly property list<var> pages: [
-        // Appearance
         {
-            label: qsTr("Wallpaper & style"),
-            icon: "palette",
-            description: qsTr("Wallpaper, fonts, colours"),
-            category: "appearance"
+            id: "home",
+            label: qsTr("Home"),
+            icon: "home",
+            description: qsTr("Status at a glance"),
+            group: ""
         },
 
-        // Connectivity
-        // TODO
-        // {
-        //     label: qsTr("Display"),
-        //     icon: "monitor",
-        //     description: qsTr("Output configuration"),
-        //     category: "connectivity"
-        // },
         {
+            id: "network",
             label: qsTr("Network"),
             icon: "wifi",
             description: qsTr("Wi-Fi, ethernet, VPN"),
-            category: "connectivity"
+            group: qsTr("Connectivity")
         },
         {
-            label: qsTr("Connected devices"),
+            id: "devices",
+            label: qsTr("Devices"),
             icon: "devices_other",
-            description: qsTr("Bluetooth, pairing"),
-            category: "connectivity",
+            description: qsTr("Bluetooth, keyboard, mouse, cameras"),
+            group: qsTr("Connectivity"),
             noFill: true
         },
+
         {
-            label: qsTr("Audio"),
+            id: "display",
+            label: qsTr("Display"),
+            icon: "monitor",
+            description: qsTr("Resolution, scale, brightness"),
+            group: qsTr("Hardware")
+        },
+        {
+            id: "sound",
+            label: qsTr("Sound"),
             icon: "volume_up",
-            description: qsTr("App volumes, sound devices"),
-            category: "connectivity"
+            description: qsTr("Devices, apps, effects, microphone"),
+            group: qsTr("Hardware")
+        },
+        {
+            id: "power",
+            label: qsTr("Power"),
+            icon: "battery_charging_full",
+            description: qsTr("Battery, performance, graphics"),
+            group: qsTr("Hardware")
         },
 
-        // System
         {
-            label: qsTr("Software"),
-            icon: "inventory_2",
-            description: qsTr("Traceability, packages, loose ends"),
-            category: "system"
+            id: "system",
+            label: qsTr("System"),
+            icon: "memory",
+            description: qsTr("Resources, processes, health"),
+            group: qsTr("System")
         },
         {
+            id: "storage",
             label: qsTr("Storage"),
             icon: "hard_drive",
             description: qsTr("Disk usage, safe cleanups"),
-            category: "system"
+            group: qsTr("System")
         },
         {
-            label: qsTr("Plugins"),
-            icon: "extension",
-            description: qsTr("Manage plugins"),
-            category: "system"
-        },
-        {
+            id: "security",
             label: qsTr("Security"),
             icon: "security",
-            description: qsTr("PIN, face authentication"),
-            category: "system"
+            description: qsTr("PIN, face recognition, lock screen"),
+            group: qsTr("System")
         },
         {
-            label: qsTr("System apps"),
-            icon: "apps",
-            description: qsTr("Display scale, config tools"),
-            category: "system"
+            id: "software",
+            label: qsTr("Software"),
+            icon: "inventory_2",
+            description: qsTr("Updates, packages, traceability"),
+            group: qsTr("System")
+        },
+        {
+            id: "region",
+            label: qsTr("Language & region"),
+            icon: "globe",
+            description: qsTr("Time zone, language, units"),
+            group: qsTr("System")
         },
 
-        // Shell
         {
+            id: "appearance",
+            label: qsTr("Wallpaper & style"),
+            icon: "palette",
+            description: qsTr("Wallpaper, fonts, colours"),
+            group: qsTr("Personalization")
+        },
+        {
+            id: "panels",
             label: qsTr("Panels"),
             icon: "dock_to_bottom",
             description: qsTr("Dashboard, taskbar, launcher, sidebar"),
-            category: "shell"
+            group: qsTr("Personalization")
         },
         {
-            label: qsTr("Apps"),
-            icon: "apps",
-            description: qsTr("Default apps, favourites, hidden apps"),
-            category: "shell"
-        },
-        {
+            id: "windows",
             label: qsTr("Window management"),
             icon: "select_window",
             description: qsTr("Gaps"),
-            category: "shell"
+            group: qsTr("Personalization")
         },
         {
-            label: qsTr("Services"),
-            icon: "build",
-            description: qsTr("Poll intervals, lyrics backend"),
-            category: "shell"
+            id: "apps",
+            label: qsTr("Apps"),
+            icon: "apps",
+            description: qsTr("Default apps, favourites, hidden apps"),
+            group: qsTr("Personalization")
         },
         {
-            label: qsTr("Language & region"),
-            icon: "globe",
-            description: qsTr("UI language, weather location, display units"),
-            category: "shell"
+            id: "shell",
+            label: qsTr("Shell behaviour"),
+            icon: "tune",
+            description: qsTr("Notifications, polling, media"),
+            group: qsTr("Personalization")
         },
 
-        // About
         {
+            id: "about",
             label: qsTr("About"),
             icon: "info",
-            description: qsTr("System information, credits"),
-            category: "about"
-        },
+            description: qsTr("System information, versions"),
+            group: ""
+        }
     ]
+
+    function indexOf(id: string): int {
+        return root.pages.findIndex(p => p.id === id);
+    }
+
+    function page(id: string): var {
+        return root.pages.find(p => p.id === id) ?? null;
+    }
 }

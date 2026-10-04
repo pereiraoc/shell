@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
@@ -29,7 +30,18 @@ PageBase {
         }
     ]
 
+    readonly property var region: regionBridge.info
+
     title: qsTr("Language & region")
+    description: qsTr("Time zone, language, weather and units")
+
+    // Fuso, NTP, locale e keymap pelo caelestia-region (timedatectl/localectl;
+    // mudar fuso/NTP pede senha pelo polkit do proprio systemd).
+    ToolBridge {
+        id: regionBridge
+
+        tool: "region"
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -47,7 +59,7 @@ PageBase {
         ConnectedRect {
             Layout.fillWidth: true
             first: true
-            last: true
+            last: !root.region.locale
             implicitHeight: localeLayout.implicitHeight + localeLayout.anchors.margins * 2
 
             RowLayout {
@@ -85,6 +97,14 @@ PageBase {
                     font: Tokens.font.body.small
                 }
             }
+        }
+
+        InfoRow {
+            visible: !!root.region.locale
+            last: true
+            icon: "keyboard"
+            label: qsTr("System locale %1 · console keyboard %2").arg(root.region.locale ?? "").arg(root.region.keymap_console ?? "")
+            subtext: qsTr("Changing these needs a terminal (localectl) and a new session. Keyboard layout for apps is in Devices.")
         }
 
         // Weather
@@ -159,8 +179,27 @@ PageBase {
             text: qsTr("Time & date")
         }
 
-        SelectRow {
+        ExpandSelectRow {
             first: true
+            icon: "schedule"
+            label: qsTr("Time zone")
+            subtext: qsTr("Asks for your password")
+            filterable: true
+            options: (root.region.timezones ?? []).map(z => ({ value: z, label: z.replace(/_/g, " ") }))
+            current: root.region.timezone ?? ""
+            busy: regionBridge.busyAction.startsWith("timezone-")
+            onPicked: v => regionBridge.run({ id: `timezone-${v}` })
+        }
+
+        ToggleRow {
+            text: qsTr("Set time automatically")
+            subtext: root.region.ntp ? (root.region.synced ? qsTr("Synchronized with network time") : qsTr("Waiting for network time…")) : qsTr("The clock is not corrected automatically")
+            checked: !!root.region.ntp
+            disabled: regionBridge.busyAction !== "" || root.region.ntp === undefined
+            onToggled: regionBridge.run({ id: checked ? "ntp-on" : "ntp-off" })
+        }
+
+        SelectRow {
             last: true
             label: qsTr("Clock format")
             subtext: qsTr("How times are shown across the shell")
