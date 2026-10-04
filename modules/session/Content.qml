@@ -46,7 +46,7 @@ Column {
         command: Config.session.commands.shutdown
 
         KeyNavigation.up: logout
-        KeyNavigation.down: hibernate
+        KeyNavigation.down: suspend
     }
 
     AnimatedImage {
@@ -61,13 +61,25 @@ Column {
         fillMode: AnimatedImage.PreserveAspectFit
     }
 
+    // Suspender (RAM, volta em segundos) e hibernar (disco, sobrevive a falta
+    // de bateria) sao coisas diferentes: os dois botoes ficam.
+    SessionButton {
+        id: suspend
+
+        icon: Config.session.icons.suspend
+        command: Config.session.commands.suspend
+
+        KeyNavigation.up: shutdown
+        KeyNavigation.down: hibernate
+    }
+
     SessionButton {
         id: hibernate
 
         icon: Config.session.icons.hibernate
         command: Config.session.commands.hibernate
 
-        KeyNavigation.up: shutdown
+        KeyNavigation.up: suspend
         KeyNavigation.down: reboot
     }
 
