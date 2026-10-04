@@ -173,7 +173,7 @@ Item {
     }
 
     // ------------------------------------------------------------ luz
-    // Feixe, brilho, reflexo e cordas num shader (shaders/prism-v6.frag): por
+    // Feixe, brilho, reflexo e cordas num shader (shaders/prism-v7.frag): por
     // quadro so mudam os uniforms. As cordas em JS/Shape refaziam ~2000
     // pontos por quadro na thread da interface e travavam a barra/popouts.
     ShaderEffect {
@@ -187,7 +187,7 @@ Item {
 
         anchors.fill: parent
         visible: root.presence > 0 || root.aura > 0
-        fragmentShader: Qt.resolvedUrl("shaders/prism-v6.frag.qsb")
+        fragmentShader: Qt.resolvedUrl("shaders/prism-v7.frag.qsb")
 
         property vector2d res: Qt.vector2d(width, height)
         property real time: root.time
@@ -234,7 +234,7 @@ Item {
             ShapePath {
                 fillColor: "#eadbb2"
                 strokeColor: root.background
-                strokeWidth: 0.8
+                strokeWidth: 3
                 joinStyle: ShapePath.RoundJoin
                 fillRule: ShapePath.OddEvenFill
 

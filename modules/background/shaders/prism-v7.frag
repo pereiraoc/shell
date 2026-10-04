@@ -3,7 +3,7 @@
 // impacto, reflexo, e 6 cordas (ondas estacionarias) com antialias por
 // distancia ate a curva. O QML so atualiza os uniforms por quadro -- antes as
 // cordas eram polylines refeitas em JS a cada quadro e travavam o shell.
-// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v6.frag.qsb prism-v6.frag
+// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-v7.frag.qsb prism-v7.frag
 // (nome novo a cada mudanca grande: o ShaderEffect guarda o shader em cache
 // pela URL e o hot-reload continuaria com o antigo)
 
@@ -79,7 +79,9 @@ void main() {
             // some na base: ela e concava, e aura so "fora do triangulo"
             // desenharia uma sombra com o formato dele sob o arco
             float fadeBottom = 1.0 - smoothstep(c0.y + lh * 0.55, c0.y + lh * 0.92, p.y);
-            float aura = exp(-pow(max(dT, 0.0) / (lh * 0.11), 2.0)) * 0.13 * auraK * fadeBottom;
+            // e some no lado direito: ali saem as cores, a aura nao deve competir
+            float fadeRight = 1.0 - smoothstep(c0.x - lh * 0.05, c0.x + lh * 0.28, p.x);
+            float aura = exp(-pow(max(dT, 0.0) / (lh * 0.11), 2.0)) * 0.13 * auraK * fadeBottom * fadeRight;
             rgb += vec3(1.0, 0.97, 0.90) * aura; a += aura;
         }
     }
@@ -125,7 +127,10 @@ void main() {
         // saida da luz: perto da face do logo a faixa e mais intensa e vaza
         // um brilho na propria cor, que assenta ao longo do caminho
         float logoH = res.y * 0.1856;
-        float face = x0 + logoH * 0.06;
+        // a face e INCLINADA (x cresce ~0,4975 por pixel descendo): calcula
+        // ela na altura deste pixel, nao no centro da faixa -- senao o brilho
+        // acima da faixa comecava longe do logo
+        float face = x0 + logoH * 0.06 + (p.y - yi) * 0.4975;
         float near = exp(-max(0.0, p.x - face) / (logoH * 0.16));
         if (db > hb * (2.0 + 1.5 * near) + 2.0) continue;
         float e = envAt(i);
