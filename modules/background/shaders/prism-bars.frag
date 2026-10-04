@@ -3,7 +3,9 @@
 // impacto, reflexo, e 6 cordas (ondas estacionarias) com antialias por
 // distancia ate a curva. O QML so atualiza os uniforms por quadro -- antes as
 // cordas eram polylines refeitas em JS a cada quadro e travavam o shell.
-// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism.frag.qsb prism.frag
+// Recompilar: qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o prism-bars.frag.qsb prism-bars.frag
+// (nome novo a cada mudanca grande: o ShaderEffect guarda o shader em cache
+// pela URL e o hot-reload continuaria com o antigo)
 
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
@@ -90,9 +92,9 @@ void main() {
         float e = envAt(i);
         float inBar = band(db, hb);
 
-        // barra: tom fechado da cor, acende um pouco com a batida
-        vec3 base = COL[i] * (0.42 + 0.22 * e);
-        float fill = inBar * 0.92;
+        // barra: a cor cheia do arco-iris, espessura fixa; acende com a batida
+        vec3 base = COL[i] * (0.80 + 0.20 * e);
+        float fill = inBar;
 
         // corda dentro da barra
         float hw = maxT * (0.22 + 0.16 * e);
@@ -104,8 +106,9 @@ void main() {
         float dy = A / 1.22 * (k / L) * (cos(k * u) * s1 + 0.44 * cos(2.0 * k * u) * s2);
         float d = abs(p.y - yc) / sqrt(1.0 + dy * dy);
         float core = band(d, hw) * inBar;
-        float halo = exp(-pow(d / (hw * 3.0 + 1.0), 2.0)) * 0.35 * e * inBar;
-        vec3 bright = mix(COL[i], vec3(1.0), 0.28 + 0.2 * e);
+        float halo = exp(-pow(d / (hw * 2.5 + 1.0), 2.0)) * 0.30 * e * inBar;
+        // corda: linha clara dentro da barra (quase branca no pico)
+        vec3 bright = mix(COL[i], vec3(1.0), 0.55 + 0.3 * e);
 
         vec3 c = base * fill;
         c = mix(c, bright, clamp(core * (0.65 + 0.35 * e) + halo, 0.0, 1.0));
