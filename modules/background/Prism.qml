@@ -9,40 +9,90 @@ import qs.services
 
 // Wallpaper "Prism" (capa do Dark Side of the Moon com o logo do Arch no lugar
 // do prisma), ativo quando o wallpaper e o caelestia-prism.png gerado pelo
-// setup. O logo fica sempre; o feixe branco que entra pela esquerda e o
-// arco-iris que sai pela direita SO existem com audio tocando:
-//   feixe    -> forca geral do som (espessura e brilho)
-//   6 linhas -> uma faixa de frequencia cada, como a luz: vermelho = graves
-//               (menor frequencia) ... violeta = agudos (maior frequencia)
-// Silencio por ~0,4 s: feixe e arco-iris somem com fade, fica so o logo.
-// Medidas copiadas do wallpaper anterior (pink-floyd-...-arch-linux.jpg, 4K):
-// logo com 18,6% da altura da tela, centrado, creme #eadbb2; fundo #282828;
-// faixa das linhas um pouco abaixo do meio.
+// setup. O logo fica sempre; o resto so existe com audio tocando:
+//
+//   feixe branco  entra pela esquerda ate a FACE esquerda do logo; gradiente
+//                 que acende perto do logo, brilho no ponto de impacto e um
+//                 reflexo curto -- tudo pela forca geral do som.
+//   6 cordas      saem da FACE direita (nunca do meio do logo), uma por faixa
+//                 de frequencia como a luz: vermelho = graves ... violeta =
+//                 agudos. Cada uma e uma corda de violao presa no logo e na
+//                 borda da tela: onda estacionaria com comprimento de onda
+//                 ligado a faixa (grave = onda longa, agudo = curta).
+//                 "Dedilhar": quando a faixa bate, amplitude E brilho saltam
+//                 para o valor NOVO (nao somam com o que sobrava) e decaem
+//                 com o tempo; grave sustenta mais, como corda grossa.
+//
+// A luz VIAJA da esquerda para a direita: quando o som comeca, a frente entra
+// pela borda esquerda, chega no logo e so entao o arco-iris se espalha ate a
+// direita. Silencio por ~0,4 s: a "fonte" sai -- o fim do feixe anda ate o
+// logo e depois o fim do arco-iris anda ate a borda direita. Fica so o logo.
+// Medidas do wallpaper anterior (pink-floyd-...-arch-linux.jpg, 4K): logo
+// com 18,6% da altura da tela, centrado, creme #eadbb2; fundo #282828.
 Item {
     id: root
 
-    // Le o audio e anima o feixe (o visualizer ligado e a tela visivel).
+    // Le o audio e anima (visualizer ligado e a tela visivel).
     property bool reactive
 
     readonly property real logoH: height * 0.1856
+    readonly property real logoX: width / 2 - logoH / 2
+    readonly property real logoY: height / 2 - logoH / 2
     readonly property real bandY: height / 2 + height * 0.0123
-    readonly property real maxT: height * 0.0105
+    readonly property real maxT: height * 0.0085
     readonly property real step: height * 0.0165
     readonly property color background: "#282828"
-    readonly property list<color> spectrum: ["#cf3a2c", "#e97d2b", "#e2c64c", "#6c9f58", "#4e86c8", "#8b63c8"]
+    readonly property list<color> spectrum: ["#d8452f", "#ee8a33", "#e6cd55", "#79ad61", "#5b93d6", "#9a72d6"]
 
-    property list<real> bands: [0, 0, 0, 0, 0, 0]
+    // Contorno externo do logo medido no archlinux-logo.svg (101 linhas, 0 =
+    // topo, x em fracao da caixa do logo); entalhes alisados.
+    readonly property list<real> edgeL: [0.4998, 0.4959, 0.4916, 0.4877, 0.4838, 0.4799, 0.4756, 0.4717, 0.4674, 0.4635, 0.4596, 0.4553, 0.4514, 0.4471, 0.4432, 0.4389, 0.4350, 0.4307, 0.4264, 0.4221, 0.4178, 0.4135, 0.4091, 0.4048, 0.4001, 0.3958, 0.3910, 0.3867, 0.3820, 0.3772, 0.3725, 0.3678, 0.3630, 0.3582, 0.3530, 0.3483, 0.3435, 0.3384, 0.3336, 0.3284, 0.3233, 0.3185, 0.3133, 0.3086, 0.3034, 0.2978, 0.2931, 0.2879, 0.2827, 0.2775, 0.2719, 0.2667, 0.2615, 0.2564, 0.2512, 0.2460, 0.2404, 0.2352, 0.2300, 0.2244, 0.2192, 0.2141, 0.2085, 0.2028, 0.1977, 0.1925, 0.1869, 0.1813, 0.1761, 0.1705, 0.1653, 0.1597, 0.1545, 0.1489, 0.1433, 0.1381, 0.1325, 0.1273, 0.1213, 0.1161, 0.1105, 0.1053, 0.0997, 0.0941, 0.0885, 0.0829, 0.0777, 0.0721, 0.0665, 0.0609, 0.0552, 0.0496, 0.0445, 0.0388, 0.0332, 0.0276, 0.0220, 0.0164, 0.0112, 0.0056, 0.0000]
+    readonly property list<real> edgeR: [0.4998, 0.5041, 0.5084, 0.5127, 0.5170, 0.5209, 0.5252, 0.5296, 0.5339, 0.5382, 0.5421, 0.5464, 0.5507, 0.5550, 0.5593, 0.5637, 0.5680, 0.5727, 0.5770, 0.5814, 0.5857, 0.5904, 0.5947, 0.5995, 0.6042, 0.6085, 0.6133, 0.6180, 0.6228, 0.6275, 0.6323, 0.6370, 0.6418, 0.6470, 0.6517, 0.6569, 0.6616, 0.6664, 0.6716, 0.6767, 0.6819, 0.6867, 0.6918, 0.6970, 0.7018, 0.7074, 0.7121, 0.7173, 0.7225, 0.7277, 0.7328, 0.7380, 0.7432, 0.7484, 0.7536, 0.7587, 0.7644, 0.7695, 0.7747, 0.7799, 0.7851, 0.7907, 0.7959, 0.8010, 0.8066, 0.8118, 0.8170, 0.8226, 0.8278, 0.8330, 0.8386, 0.8438, 0.8489, 0.8546, 0.8597, 0.8653, 0.8705, 0.8757, 0.8811, 0.8866, 0.8921, 0.8975, 0.9030, 0.9084, 0.9139, 0.9193, 0.9245, 0.9297, 0.9353, 0.9409, 0.9461, 0.9512, 0.9568, 0.9620, 0.9676, 0.9732, 0.9784, 0.9840, 0.9892, 0.9948, 1.0000]
+
+    // Por corda: meias-ondas na corda (comprimento de onda ~ faixa), vibracao
+    // em Hz (visual) e quanto tempo o "som" sustenta.
+    readonly property list<int> modes: [1, 2, 3, 5, 8, 12]
+    readonly property list<real> hz: [1.7, 2.4, 3.3, 4.6, 6.2, 8.0]
+    readonly property list<real> sustain: [1.25, 1.0, 0.8, 0.62, 0.48, 0.36]
+    readonly property int samples: 140
+
+    property list<real> env: [0, 0, 0, 0, 0, 0]
+    property list<real> raw: [0, 0, 0, 0, 0, 0]
     property real level
     property real presence
     property real silentFor: 1
+    // Frente (head) e cauda (tail) da luz no caminho desdobrado 0..1:
+    // 0..beamPart = feixe (borda esquerda -> logo), resto = arco-iris
+    // (face do logo -> borda direita).
+    property real head
+    property real tail
+    readonly property real beamPart: 0.42
+    readonly property real arriveSecs: 0.75
+    readonly property real leaveSecs: 1.1
+    property real time
 
-    // Um quadro de audio -> alvos suavizados (sobe rapido, desce devagar).
+    function edgeAt(table: list<real>, y: real): real {
+        const t = Math.max(0, Math.min(1, (y - root.logoY) / root.logoH)) * 100;
+        const i = Math.floor(t);
+        const f = t - i;
+        const a = table[Math.min(100, i)];
+        const b = table[Math.min(100, i + 1)];
+        return root.logoX + (a + (b - a) * f) * root.logoH;
+    }
+
+    function lineY(i: int): real {
+        return root.bandY + (i - 2.5) * root.step;
+    }
+
+    // Um quadro: bandas do cava -> envelope de corda dedilhada.
     function advance(dt: real): void {
+        root.time += dt;
         const v = Audio.cava.values;
         const n = v.length;
         let peak = 0;
         let sum = 0;
-        const next = [];
+        const nextEnv = [];
+        const nextRaw = [];
         for (let b = 0; b < 6; b++) {
             const from = Math.floor(b * n / 6);
             const to = Math.max(from + 1, Math.floor((b + 1) * n / 6));
@@ -52,18 +102,66 @@ Item {
                 s += v[i];
                 m = Math.max(m, v[i]);
             }
-            const target = Math.min(1, (s / Math.max(1, to - from)) * 0.6 + m * 0.4);
-            const cur = root.bands[b] ?? 0;
-            next.push(cur + (target - cur) * (target > cur ? 0.5 : 0.12));
+            const val = Math.min(1, (s / Math.max(1, to - from)) * 0.5 + m * 0.5);
+            // decai como corda; uma batida nova SUBSTITUI (max), nao soma
+            const decayed = (root.env[b] ?? 0) * Math.exp(-dt / root.sustain[b]);
+            nextEnv.push(Math.max(decayed, val));
+            nextRaw.push(val);
             peak = Math.max(peak, m);
             sum += s;
         }
-        root.bands = next;
+        root.env = nextEnv;
+        root.raw = nextRaw;
         const lt = Math.min(1, n ? sum / n * 1.6 : 0);
-        root.level += (lt - root.level) * (lt > root.level ? 0.45 : 0.1);
+        root.level += (lt - root.level) * (lt > root.level ? 0.5 : 0.08);
         root.silentFor = peak < 0.015 ? root.silentFor + dt : 0;
-        const pt = root.silentFor > 0.4 ? 0 : 1;
-        root.presence += (pt - root.presence) * (pt > root.presence ? 0.18 : 0.06);
+        const playing = root.silentFor <= 0.4;
+        if (playing) {
+            if (root.tail > 0) {
+                // a fonte voltou no meio da saida: luz nova entrando da esquerda
+                root.tail = 0;
+                root.head = 0;
+            }
+            root.head = Math.min(1, root.head + dt / root.arriveSecs);
+        } else if (root.head > 0) {
+            root.tail = Math.min(1, root.tail + dt / root.leaveSecs);
+            if (root.tail >= 1) {
+                root.head = 0;
+                root.tail = 0;
+            }
+        }
+        root.presence = root.head > 0 ? 1 : 0;
+    }
+
+    function beamFrac(f: real): real {
+        return Math.max(0, Math.min(1, f / root.beamPart));
+    }
+
+    function rainFrac(f: real): real {
+        return Math.max(0, Math.min(1, (f - root.beamPart) / (1 - root.beamPart)));
+    }
+
+    // Pontos de uma corda: onda estacionaria (modo n + um pouco do 2n, como
+    // corda real), presa nas duas pontas.
+    function stringPoints(i: int): var {
+        const x0 = root.edgeAt(root.edgeR, root.lineY(i));
+        const x1 = root.width;
+        // so o trecho iluminado: da cauda ate a frente da luz
+        const ua = root.rainFrac(root.tail);
+        const ub = root.rainFrac(root.head);
+        if (ub <= ua)
+            return [];
+        const y0 = root.lineY(i);
+        const a = root.env[i] * root.step * 0.85;
+        const w = 2 * Math.PI * root.hz[i] * root.time;
+        const k = root.modes[i] * Math.PI;
+        const pts = [];
+        for (let s = 0; s <= root.samples; s++) {
+            const u = ua + (ub - ua) * s / root.samples;
+            const y = y0 + a * (Math.sin(k * u) * Math.sin(w) + 0.22 * Math.sin(2 * k * u) * Math.sin(2 * w + 1.3));
+            pts.push(Qt.point(x0 + (x1 - x0) * u, y));
+        }
+        return pts;
     }
 
     Loader {
@@ -81,53 +179,183 @@ Item {
         }
     }
 
-    // Visualizer desligado/escondido: some o feixe junto.
     onReactiveChanged: {
         if (!reactive) {
             root.presence = 0;
             root.silentFor = 1;
+            root.head = 0;
+            root.tail = 0;
         }
     }
 
-    // Feixe branco: da borda esquerda ate o centro (o logo cobre o resto).
-    Rectangle {
-        x: 0
-        width: root.width / 2
-        height: Math.max(1, root.maxT * (0.35 + 0.65 * root.level))
-        y: root.bandY - height / 2
-        color: "#d9d9d6"
-        opacity: root.presence * (0.35 + 0.65 * root.level)
-        visible: opacity > 0.01
+    // ------------------------------------------------------------ feixe
+    Item {
+        id: beam
+
+        readonly property real hitX: root.edgeAt(root.edgeL, root.bandY)
+        readonly property real k: root.presence * (0.35 + 0.65 * root.level)
+        readonly property real fromX: hitX * root.beamFrac(root.tail)
+        readonly property real toX: hitX * root.beamFrac(root.head)
+        // a luz esta chegando no logo (frente passou da face, cauda ainda nao)
+        readonly property bool hitting: root.beamFrac(root.head) >= 1 && root.beamFrac(root.tail) < 1
+
+        anchors.fill: parent
+        visible: k > 0.01
+
+        // corpo: quase apagado na borda da tela, acende chegando no logo
+        Rectangle {
+            x: beam.fromX
+            width: Math.max(0, beam.toX - beam.fromX)
+            visible: width > 0.5
+            height: Math.max(1.5, root.maxT * (0.55 + 0.45 * root.level))
+            y: root.bandY - height / 2
+            opacity: beam.k
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+
+                GradientStop {
+                    position: 0
+                    color: Qt.rgba(1, 1, 1, 0.12)
+                }
+                GradientStop {
+                    position: 0.55
+                    color: Qt.rgba(1, 1, 1, 0.45)
+                }
+                GradientStop {
+                    position: 0.9
+                    color: Qt.rgba(1, 1, 1, 0.85)
+                }
+                GradientStop {
+                    position: 1
+                    color: "white"
+                }
+            }
+        }
+
+        // reflexo curto na face (angulo de reflexao da face esquerda: ~53
+        // graus para cima e para tras)
+        Rectangle {
+            x: beam.hitX
+            y: root.bandY - height / 2
+            width: root.logoH * 0.38
+            height: Math.max(1, root.maxT * 0.45)
+            transformOrigin: Item.Left
+            rotation: 233
+            visible: beam.hitting
+            opacity: beam.k * 0.55
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+
+                GradientStop {
+                    position: 0
+                    color: Qt.rgba(1, 1, 1, 0.8)
+                }
+                GradientStop {
+                    position: 1
+                    color: Qt.rgba(1, 1, 1, 0)
+                }
+            }
+        }
+
+        // brilho no ponto de impacto
+        Shape {
+            id: glow
+
+            readonly property real r: root.logoH * (0.07 + 0.11 * root.level)
+
+            anchors.fill: parent
+            visible: beam.hitting
+            opacity: beam.k
+
+            ShapePath {
+                strokeColor: "transparent"
+                fillGradient: RadialGradient {
+                    centerX: beam.hitX
+                    centerY: root.bandY
+                    centerRadius: glow.r
+                    focalX: beam.hitX
+                    focalY: root.bandY
+
+                    GradientStop {
+                        position: 0
+                        color: Qt.rgba(1, 1, 1, 0.55)
+                    }
+                    GradientStop {
+                        position: 0.35
+                        color: Qt.rgba(1, 1, 1, 0.18)
+                    }
+                    GradientStop {
+                        position: 1
+                        color: Qt.rgba(1, 1, 1, 0)
+                    }
+                }
+
+                PathAngleArc {
+                    centerX: beam.hitX
+                    centerY: root.bandY
+                    radiusX: glow.r
+                    radiusY: glow.r
+                    startAngle: 0
+                    sweepAngle: 360
+                }
+            }
+        }
     }
 
-    // Arco-iris: do centro ate a borda direita, uma linha por faixa.
+    // ------------------------------------------------------------ cordas
     Repeater {
         model: 6
 
-        Rectangle {
+        Shape {
+            id: str
+
             required property int index
 
-            readonly property real v: root.bands[index] ?? 0
+            readonly property real e: root.env[index] ?? 0
+            readonly property var pts: root.presence > 0.01 ? root.stringPoints(index) : []
 
-            x: root.width / 2
-            width: root.width / 2
-            height: Math.max(1, root.maxT * (0.3 + 0.7 * v))
-            y: root.bandY + (index - 2.5) * root.step - height / 2
-            color: root.spectrum[index]
-            opacity: root.presence * (0.2 + 0.8 * v)
-            visible: opacity > 0.01
+            anchors.fill: parent
+            visible: root.presence > 0.01
+            opacity: root.presence
+
+            // halo: mais largo e fraco, cresce com o brilho da batida
+            ShapePath {
+                strokeColor: Qt.alpha(root.spectrum[str.index], 0.22 * str.e)
+                strokeWidth: root.maxT * (1.2 + 2.2 * str.e)
+                fillColor: "transparent"
+                capStyle: ShapePath.FlatCap
+                joinStyle: ShapePath.RoundJoin
+
+                PathPolyline {
+                    path: str.pts
+                }
+            }
+
+            // corda
+            ShapePath {
+                strokeColor: Qt.alpha(Qt.lighter(root.spectrum[str.index], 1 + 0.35 * str.e), 0.4 + 0.6 * str.e)
+                strokeWidth: root.maxT * (0.5 + 0.5 * str.e)
+                fillColor: "transparent"
+                capStyle: ShapePath.FlatCap
+                joinStyle: ShapePath.RoundJoin
+
+                PathPolyline {
+                    path: str.pts
+                }
+            }
         }
     }
 
-    // Logo do Arch (caminho do archlinux-logo.svg oficial; caixa 12,1..243,8).
-    // O contorno na cor do fundo abre o respiro entre o logo e as linhas.
+    // ------------------------------------------------------------ logo
+    // Caminho do archlinux-logo.svg oficial (caixa 12,1..243,8). O contorno
+    // na cor do fundo abre o respiro entre o logo e a luz.
     Item {
         id: logoBox
 
         readonly property real unit: root.logoH / 231.7
 
-        x: root.width / 2 - root.logoH / 2
-        y: root.height / 2 - root.logoH / 2
+        x: root.logoX
+        y: root.logoY
         width: root.logoH
         height: root.logoH
 
@@ -143,7 +371,7 @@ Item {
             ShapePath {
                 fillColor: "#eadbb2"
                 strokeColor: root.background
-                strokeWidth: 5
+                strokeWidth: 3
                 joinStyle: ShapePath.RoundJoin
                 fillRule: ShapePath.OddEvenFill
 
