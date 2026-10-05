@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Mpris
 import Caelestia.Services
 import qs.components
@@ -224,6 +225,103 @@ Item {
         property real auraK: root.aura
     }
 
+    // ------------------------------------------------------------ boot
+    // Fim do boot (configs/plymouth/caelestia-prism + caelestia-boot-bridge):
+    // o Plymouth e a ponte deixam um ponto de luz no feixe; na PRIMEIRA carga
+    // da sessao o ponto explode no logo (mesma matematica do tema) -- o logo
+    // sozinho no centro = ligou. No fim cria $XDG_RUNTIME_DIR/
+    // caelestia-desktop-ready: a ponte sai e o Plymouth e encerrado. Reload do
+    // shell: o arquivo existe, o logo so aparece suave.
+    readonly property string readyPath: `${Quickshell.env("XDG_RUNTIME_DIR")}/caelestia-desktop-ready`
+    property bool booting
+    property real burstP        // explosao 0..1 (0,35 s)
+    property real settleP       // logo esfriando 0..1 (1 s)
+
+    function easeOut(p: real): real {
+        const q = 1 - p;
+        return 1 - q * q * q;
+    }
+    function easeBack(p: real): real {
+        const q = p - 1;
+        return 1 + q * q * (2.6 * q + 1.6);
+    }
+
+    FileView {
+        path: root.readyPath
+        printErrors: false
+        // So na primeira carga: depois o arquivo existe e nada mais acontece.
+        onLoadFailed: if (!root.booting && root.burstP === 0) {
+            root.booting = true;
+            bootAnim.start();
+        }
+        onLoaded: if (!root.booting)
+            root.burstP = root.settleP = 1
+    }
+
+    SequentialAnimation {
+        id: bootAnim
+
+        NumberAnimation {
+            target: root
+            property: "burstP"
+            from: 0
+            to: 1
+            duration: 350
+        }
+        NumberAnimation {
+            target: root
+            property: "settleP"
+            from: 0
+            to: 1
+            duration: 1000
+        }
+        ScriptAction {
+            script: {
+                root.booting = false;
+                Quickshell.execDetached(["touch", root.readyPath]);
+            }
+        }
+    }
+
+    // Ponto de luz (o mesmo da ponte), clarao e anel -- abaixo do logo
+    Image {
+        readonly property real size: root.logoH * 0.08 * 1.3 / 0.225
+        visible: root.booting && root.burstP < 1
+        source: Quickshell.shellPath("assets/boot/dot.png")
+        x: root.width / 2 - size / 2
+        y: root.bandY - size / 2
+        width: size
+        height: size
+        opacity: 1 - root.burstP
+        smooth: true
+    }
+
+    Image {
+        readonly property real r: root.logoH * (0.12 + 1.2 * root.easeOut(root.burstP))
+        readonly property real size: Math.min(r / 0.20, root.logoH * 3)
+        readonly property real q: 1 - root.burstP
+        visible: root.booting
+        source: Quickshell.shellPath("assets/boot/glow.png")
+        x: root.width / 2 - size / 2
+        y: root.bandY - size / 2
+        width: size
+        height: size
+        opacity: root.burstP < 1 ? Math.min(1, 3 * q * Math.sqrt(q)) : 0.55 * (1 - root.settleP) * (1 - root.settleP)
+        smooth: true
+    }
+
+    Image {
+        readonly property real size: Math.min(root.logoH * (0.1 + 1.9 * root.easeOut(root.burstP)) / 0.40, root.logoH * 3)
+        visible: root.booting && root.burstP < 1
+        source: Quickshell.shellPath("assets/boot/ring.png")
+        x: root.width / 2 - size / 2
+        y: root.bandY - size / 2
+        width: size
+        height: size
+        opacity: 0.9 * (1 - root.burstP) * (1 - root.burstP)
+        smooth: true
+    }
+
     // ------------------------------------------------------------ logo
     // Caminho do archlinux-logo.svg oficial (caixa 12,1..243,8). O contorno
     // na cor do fundo abre o respiro entre o logo e a luz.
@@ -236,13 +334,14 @@ Item {
         y: root.logoY
         width: root.logoH
         height: root.logoH
-        // No boot o Plymouth (tema caelestia-prism) termina com este mesmo
-        // logo; entre ele e o shell o Hyprland mostra so o fundo #282828.
-        // O logo volta suave em vez de "estalar".
-        opacity: 0
-        Component.onCompleted: opacity = 1
+        // Boot: nasce da explosao (0,7 -> 1 com overshoot, quente -> creme).
+        // Reload do shell: so aparece suave.
+        opacity: root.booting ? Math.min(1, root.burstP * 1.6) : (root.burstP === 1 ? 1 : 0)
+        scale: root.booting ? 0.7 + 0.3 * root.easeBack(root.burstP) : 1
+        transformOrigin: Item.Center
 
         Behavior on opacity {
+            enabled: !root.booting
             NumberAnimation {
                 duration: 600
                 easing.type: Easing.OutCubic
@@ -259,7 +358,8 @@ Item {
             }
 
             ShapePath {
-                fillColor: "#eadbb2"
+                // quente (quase branco) na explosao, esfria ate o creme
+                fillColor: root.booting ? Qt.tint("#eadbb2", Qt.rgba(1, 0.98, 0.94, 1 - root.easeOut(root.settleP))) : "#eadbb2"
                 strokeColor: root.background
                 strokeWidth: 3
                 joinStyle: ShapePath.RoundJoin
