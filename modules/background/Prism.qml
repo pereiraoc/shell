@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Services.Mpris
 import Caelestia.Services
 import qs.components
 import qs.services
@@ -25,8 +26,9 @@ import qs.services
 //
 // A luz VIAJA da esquerda para a direita: quando o som comeca, a frente entra
 // pela borda esquerda, chega no logo e so entao o arco-iris se espalha ate a
-// direita. Silencio por ~0,4 s: a "fonte" sai -- o fim do feixe anda ate o
-// logo e depois o fim do arco-iris anda ate a borda direita. Fica so o logo.
+// direita. Parou de tocar (player pausado, ou ~2,5 s sem som): a "fonte"
+// sai -- o fim do feixe anda ate o logo e depois o fim do arco-iris anda ate
+// a borda direita. Fica so o logo.
 // Medidas do wallpaper anterior (pink-floyd-...-arch-linux.jpg, 4K): logo
 // com 18,6% da altura da tela, centrado, creme #eadbb2; fundo #282828.
 Item {
@@ -62,7 +64,8 @@ Item {
     // Aura do logo: intensidade propria, suavizada (acende ~0,25 s, apaga
     // ~1,4 s) -- presence vai a zero de uma vez no fim da saida da luz.
     property real aura
-    property real silentFor: 1
+    property real silentFor: 99
+    readonly property bool mprisPlaying: Players.list.some(p => p.playbackState === MprisPlaybackState.Playing)
     // Frente (head) e cauda (tail) da luz no caminho desdobrado 0..1:
     // 0..beamPart = feixe (borda esquerda -> logo), resto = arco-iris
     // (face do logo -> borda direita).
@@ -116,8 +119,11 @@ Item {
         root.raw = nextRaw;
         const lt = Math.min(1, n ? sum / n * 1.6 : 0);
         root.level += (lt - root.level) * (lt > root.level ? 0.5 : 0.08);
-        root.silentFor = peak < 0.015 ? root.silentFor + dt : 0;
-        const playing = root.silentFor <= 0.4;
+        // Tocando = um player MPRIS em Playing (volume baixo ou trecho calmo
+        // nao apagam) OU som no cava, com folga de 2,5 s entre batidas para
+        // audio sem player (jogo, Discord) nao piscar em trechos baixos.
+        root.silentFor = peak < 0.008 ? root.silentFor + dt : 0;
+        const playing = root.mprisPlaying || root.silentFor <= 2.5;
         if (playing) {
             if (root.tail > 0) {
                 // a fonte voltou no meio da saida: luz nova entrando da esquerda
@@ -165,7 +171,7 @@ Item {
     onReactiveChanged: {
         if (!reactive) {
             root.presence = 0;
-            root.silentFor = 1;
+            root.silentFor = 99;
             root.head = 0;
             root.tail = 0;
             root.aura = 0;
