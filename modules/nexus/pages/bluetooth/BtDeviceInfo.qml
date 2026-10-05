@@ -2,12 +2,15 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import Quickshell.Bluetooth
 import Caelestia.Components
 import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
@@ -32,8 +35,30 @@ PageBase {
             nState.closeSubPage();
     }
 
+    // Fone com modos proprios (caelestia-headphones)? Le so o cache da
+    // ferramenta: rodar o status aqui abriria o canal de controle do fone.
+    readonly property var headphone: {
+        let doc = {};
+        try {
+            doc = JSON.parse(hpCache.text() || "{}");
+        } catch (e) {}
+        return (doc.data?.headphones ?? []).find(h => h.address?.toLowerCase() === root.device?.address?.toLowerCase()) ?? null;
+    }
+
     title: device?.name ?? qsTr("Device")
     isSubPage: true
+
+    // PageBase so aceita Item como filho direto.
+    Item {
+        FileView {
+            id: hpCache
+
+            path: `${Paths.cache}/tools/headphones.status.json`
+            watchChanges: true
+            printErrors: false
+            onFileChanged: reload()
+        }
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -145,8 +170,23 @@ PageBase {
             }
         }
 
+        RowButton {
+            first: true
+            last: true
+            visible: !!root.headphone
+            icon: root.headphone?.buds ? "earbuds" : "headphones"
+            text: qsTr("Headphone modes")
+            subtext: qsTr("Noise cancelling, equalizer and more — in Sound")
+            trailingIcon: "chevron_right"
+            onClicked: {
+                root.nState.selectedHeadphone = root.headphone.id;
+                root.nState.openPage("sound", 2);
+            }
+        }
+
         // Connection group
         ToggleRow {
+            Layout.topMargin: root.headphone ? Tokens.spacing.large - parent.spacing : 0
             verticalPadding: Tokens.padding.large
             first: true
             text: qsTr("Trusted")

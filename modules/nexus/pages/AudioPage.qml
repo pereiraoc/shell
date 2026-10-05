@@ -19,9 +19,22 @@ PageBase {
     readonly property var routes: soundBridge.info
     readonly property var effects: root.routes.easyeffects ?? ({})
     readonly property var mic: micBridge.info
+    readonly property var headphones: hpBridge.info.headphones ?? []
+
+    function hpText(h: var): string {
+        if (!h.connected)
+            return qsTr("Not connected");
+        const st = h.state;
+        if (!st)
+            return h.error ?? qsTr("Connected");
+        const mode = ({ nc: qsTr("Cancelling noise"), ambient: qsTr("Ambient sound"), off: qsTr("Noise control off") })[st.noise?.mode] ?? "";
+        const b = st.battery ?? {};
+        const bat = b.level != null ? `${b.level}%` : b.left != null ? qsTr("L %1% · R %2%").arg(b.left).arg(b.right ?? "–") : "";
+        return [mode, st.eq && !mode ? qsTr("EQ: %1").arg(st.eq) : "", bat].filter(x => x).join(" · ") || qsTr("Connected");
+    }
 
     title: qsTr("Sound")
-    description: qsTr("Devices, apps, effects and microphone gain")
+    description: qsTr("Devices, headphone modes, apps, effects and microphone")
 
     ToolBridge {
         id: soundBridge
@@ -35,6 +48,13 @@ PageBase {
             running: root.visible
             onTriggered: soundBridge.refresh()
         }
+    }
+
+    // Modos dos fones (cancelamento de ruido, EQ...) -- caelestia-headphones
+    ToolBridge {
+        id: hpBridge
+
+        tool: "headphones"
     }
 
     ToolBridge {
@@ -88,6 +108,33 @@ PageBase {
             Layout.fillWidth: true
             // Aqui ha espaco para explicar; no popout da barra, nao.
             showDescription: true
+        }
+
+        // Fones com controle proprio (Sony, Huawei): modos na subpagina
+        SectionHeader {
+            visible: root.headphones.length > 0
+            text: qsTr("Headphones")
+        }
+
+        Repeater {
+            model: root.headphones
+
+            RowButton {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === root.headphones.length - 1
+                icon: modelData.buds ? "earbuds" : "headphones"
+                iconLabel.color: modelData.connected ? Colours.palette.m3primary : Colours.palette.m3outline
+                text: modelData.name
+                subtext: root.hpText(modelData)
+                trailingIcon: "chevron_right"
+                onClicked: {
+                    root.nState.selectedHeadphone = modelData.id;
+                    root.nState.openSubPage(2);
+                }
+            }
         }
 
         SectionHeader {

@@ -93,6 +93,14 @@ QtObject {
         }
     }
 
+    readonly property Component cameraComp: Component {
+        StackPage {
+            Component {
+                CameraPage {}
+            }
+        }
+    }
+
     readonly property Component displayComp: Component {
         StackPage {
             Component {
@@ -108,6 +116,9 @@ QtObject {
             }
             Component {
                 AppVolumes {}
+            }
+            Component {
+                HeadphoneModes {}
             }
         }
     }

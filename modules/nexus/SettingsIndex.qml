@@ -39,7 +39,9 @@ QtObject {
         { page: "mouse", sub: 0, title: qsTr("Touchpad"), subtitle: qsTr("Tap to click, ignore while typing"), keywords: "tap click palm typing dwt trackpad" },
         { page: "mouse", sub: 0, title: qsTr("Left-handed mouse"), subtitle: qsTr("Swap left and right buttons"), keywords: "left handed swap buttons" },
         { page: "bluetooth", sub: 0, title: qsTr("Sharing"), subtitle: qsTr("Send files to phones and computers nearby"), keywords: "share send receive files localsend snapdrop airdrop phone transfer" },
-        { page: "security", sub: 0, title: qsTr("Cameras"), subtitle: qsTr("Webcam and infrared camera"), keywords: "webcam video ir camera v4l" },
+        { page: "camera", sub: 0, title: qsTr("Camera"), subtitle: qsTr("Preview, brightness, exposure, white balance, anti-flicker"), keywords: "webcam video ir camera v4l preview brightness contrast exposure white balance flicker privacy in use" },
+
+        { page: "sound", sub: 0, title: qsTr("Headphone modes"), subtitle: qsTr("Noise cancelling, ambient sound, equalizer, gestures"), keywords: "anc noise cancelling ambient transparency sony wh-1000xm5 wf-1000xm5 huawei freeclip buds earbuds equalizer eq speak to chat low latency gesture tap" },
 
         // Display
         { page: "display", sub: 0, title: qsTr("Scale"), subtitle: qsTr("Make everything bigger or smaller"), keywords: "zoom size text bigger smaller hidpi dpi scaling" },

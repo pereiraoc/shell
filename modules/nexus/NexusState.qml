@@ -21,6 +21,7 @@ QtObject {
     property string storagePath
     property string selectedRgbDevice
     property string selectedMouse
+    property string selectedHeadphone
 
     signal close
     signal subPageOpened(idx: int)
