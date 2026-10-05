@@ -236,6 +236,18 @@ Item {
         y: root.logoY
         width: root.logoH
         height: root.logoH
+        // No boot o Plymouth (tema caelestia-prism) termina com este mesmo
+        // logo; entre ele e o shell o Hyprland mostra so o fundo #282828.
+        // O logo volta suave em vez de "estalar".
+        opacity: 0
+        Component.onCompleted: opacity = 1
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 600
+                easing.type: Easing.OutCubic
+            }
+        }
 
         Shape {
             x: -12.1 * logoBox.unit
