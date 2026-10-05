@@ -226,21 +226,28 @@ Item {
     }
 
     // ------------------------------------------------------------ boot
-    // Fim do boot (configs/plymouth/caelestia-prism): o Plymouth termina com
-    // o ponto de luz se apagando no feixe e a tela parada no fundo liso. Na
-    // PRIMEIRA carga da sessao o ponto reacende no mesmo lugar e explode no
-    // logo (mesma matematica do tema) -- o logo sozinho no centro = ligou. No fim cria $XDG_RUNTIME_DIR/
-    // caelestia-desktop-ready: a ponte sai e o Plymouth e encerrado. Reload do
-    // shell: o arquivo existe, o logo so aparece suave.
+    // O filme de boot inteiro toca aqui, na PRIMEIRA carga da sessao: ate o
+    // shell subir a tela fica no fundo liso (Plymouth -- configs/plymouth/
+    // caelestia-prism -- e Hyprland pintam o mesmo #282828; nada se mexe antes,
+    // porque cada troca de programa congelaria o movimento). Aqui: a linha
+    // branca entra pela esquerda, as pontas contraem ate o centro, o ponto de
+    // luz explode no logo e o logo esfria ate o creme -- o logo sozinho no
+    // centro = ligou. No fim cria $XDG_RUNTIME_DIR/caelestia-desktop-ready.
+    // Reload do shell: o arquivo existe, o logo so aparece suave.
     readonly property string readyPath: `${Quickshell.env("XDG_RUNTIME_DIR")}/caelestia-desktop-ready`
     property bool booting
-    property real dotIn         // o ponto reacende 0..1 (0,35 s)
+    property real growP         // a linha entra 0..1 (0,55 s)
+    property real shrinkP       // as pontas contraem 0..1 (0,35 s)
     property real burstP        // explosao 0..1 (0,35 s)
     property real settleP       // logo esfriando 0..1 (1 s)
+    readonly property real glowW: height * 0.010
 
     function easeOut(p: real): real {
         const q = 1 - p;
         return 1 - q * q * q;
+    }
+    function easeIO(p: real): real {
+        return p * p * (3 - 2 * p);
     }
     function easeBack(p: real): real {
         const q = p - 1;
@@ -262,13 +269,24 @@ Item {
     SequentialAnimation {
         id: bootAnim
 
+        // os primeiros quadros do shell engasgam (shaders, imagens): o filme
+        // so comeca depois, com a tela ainda no fundo liso
+        PauseAnimation {
+            duration: 300
+        }
         NumberAnimation {
             target: root
-            property: "dotIn"
+            property: "growP"
+            from: 0
+            to: 1
+            duration: 550
+        }
+        NumberAnimation {
+            target: root
+            property: "shrinkP"
             from: 0
             to: 1
             duration: 350
-            easing.type: Easing.OutCubic
         }
         NumberAnimation {
             target: root
@@ -292,16 +310,32 @@ Item {
         }
     }
 
-    // Ponto de luz (o mesmo do fim do Plymouth), clarao e anel -- abaixo do logo
+    // A linha: entra deslizando (gradiente, cabeca mais forte) e contrai ate
+    // o centro, engrossando um pouco enquanto a luz se concentra
     Image {
-        readonly property real size: root.logoH * 0.08 * 1.3 / 0.225 * (0.3 + 0.7 * root.dotIn)
-        visible: root.booting && root.burstP < 1
+        readonly property real ep: root.shrinkP * root.shrinkP * root.shrinkP
+        readonly property bool growing: root.shrinkP === 0
+        visible: root.booting && root.growP > 0 && root.shrinkP < 1
+        source: Quickshell.shellPath(growing ? "assets/boot/line-grad.png" : "assets/boot/line.png")
+        width: growing ? root.width : Math.max(1, root.width * (1 - ep))
+        height: root.glowW * (growing ? 1 : 1 + 0.8 * ep) * 8
+        x: growing ? root.width * root.easeIO(root.growP) - root.width : root.width / 2 - width / 2
+        y: root.bandY - height / 2
+        smooth: true
+    }
+
+    // Ponto de luz: cabeca da linha, depois o foco no centro que explode
+    Image {
+        readonly property real ep: root.shrinkP * root.shrinkP * root.shrinkP
+        readonly property bool growing: root.shrinkP === 0
+        readonly property real size: growing ? root.glowW * 6.2 : root.logoH * 0.08 * (0.3 + ep) / 0.225
+        visible: root.booting && root.growP > 0 && root.burstP < 1
         source: Quickshell.shellPath("assets/boot/dot.png")
-        x: root.width / 2 - size / 2
+        x: (growing ? root.width * root.easeIO(root.growP) : root.width / 2) - size / 2
         y: root.bandY - size / 2
         width: size
         height: size
-        opacity: root.dotIn * (1 - root.burstP)
+        opacity: growing ? 0.9 : Math.max(0.9 * (1 - root.shrinkP), Math.min(1, 1.5 * ep)) * (1 - root.burstP)
         smooth: true
     }
 
@@ -309,7 +343,7 @@ Item {
         readonly property real r: root.logoH * (0.12 + 1.2 * root.easeOut(root.burstP))
         readonly property real size: Math.min(r / 0.20, root.logoH * 3)
         readonly property real q: 1 - root.burstP
-        visible: root.booting
+        visible: root.booting && root.shrinkP === 1
         source: Quickshell.shellPath("assets/boot/glow.png")
         x: root.width / 2 - size / 2
         y: root.bandY - size / 2
@@ -321,7 +355,7 @@ Item {
 
     Image {
         readonly property real size: Math.min(root.logoH * (0.1 + 1.9 * root.easeOut(root.burstP)) / 0.40, root.logoH * 3)
-        visible: root.booting && root.burstP < 1
+        visible: root.booting && root.shrinkP === 1 && root.burstP < 1
         source: Quickshell.shellPath("assets/boot/ring.png")
         x: root.width / 2 - size / 2
         y: root.bandY - size / 2
