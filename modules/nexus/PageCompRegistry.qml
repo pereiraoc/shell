@@ -71,6 +71,9 @@ QtObject {
             Component {
                 RgbLighting {}
             }
+            Component {
+                MouseSettings {}
+            }
         }
     }
 

@@ -20,6 +20,7 @@ QtObject {
     property bool networkDetailsFromSaved
     property string storagePath
     property string selectedRgbDevice
+    property string selectedMouse
 
     signal close
     signal subPageOpened(idx: int)

@@ -34,6 +34,10 @@ PageBase {
     property string direction
     readonly property bool pending: !!root.dev?.settings?.pending
     readonly property var dirs: root.modeCaps.directions ?? []
+    // Velocidades que o aparelho tem (o do notebook: 3; o Azoth: 4)
+    readonly property var speeds: root.modeCaps.speeds ?? [25, 50, 75, 100]
+    readonly property bool laptop: root.dev?.backend === "asusd"
+    readonly property var power: root.dev?.power ?? ({})
     property int slot: 0
 
     property string wanted
@@ -48,6 +52,7 @@ PageBase {
         { mode: "Starry Night", label: qsTr("Starry night"), icon: "star" },
         { mode: "Current", label: qsTr("Current"), icon: "bolt" },
         { mode: "Quicksand", label: qsTr("Quicksand"), icon: "hourglass_bottom" },
+        { mode: "Pulse", label: qsTr("Pulse"), icon: "favorite" },
         { mode: "Rainbow Wave", label: qsTr("Wave"), icon: "waves" },
         { mode: "Spectrum Cycle", label: qsTr("Cycle"), icon: "autorenew" }
     ].filter(e => !!root.caps[e.mode])
@@ -62,7 +67,9 @@ PageBase {
 
     // Ajusta o numero de cores ao modo: completa com a paleta, corta o excesso.
     function fitColors(list: var, m: string): var {
-        const [lo, hi] = (root.caps[m] ?? { colors: [0, 0] }).colors;
+        // dev.caps, nao root.caps: no onDevChanged o binding de caps ainda nao
+        // foi reavaliado.
+        const [lo, hi] = ((root.dev?.caps ?? {})[m] ?? { colors: [0, 0] }).colors;
         let out = (list ?? []).slice(0, hi);
         const fill = lo > 1 ? root.rainbow : [root.theme];
         let i = 0;
@@ -106,16 +113,20 @@ PageBase {
             return;
         root.inited = true;
         const s = root.dev.settings;
-        if (s && root.caps[s.mode]) {
+        const caps = root.dev.caps ?? {};
+        if (s && caps[s.mode]) {
             root.off = s.mode === "Static" && (s.colors ?? [])[0] === "000000";
             root.mode = root.off ? "Static" : s.mode;
             root.colors = root.fitColors(root.off ? [root.theme] : s.colors, root.mode);
             root.random = !!s.random;
             root.brightness = s.brightness ?? 100;
             root.speed = s.speed ?? 50;
+            const speeds = caps[root.mode]?.speeds ?? [25, 50, 75, 100];
+            if (!speeds.includes(root.speed))
+                root.speed = speeds.reduce((a, b) => Math.abs(b - root.speed) < Math.abs(a - root.speed) ? b : a, speeds[0]);
             root.direction = s.direction ?? "";
         } else {
-            root.mode = root.caps["Static"] ? "Static" : (Object.keys(root.caps)[0] ?? "Static");
+            root.mode = caps["Static"] ? "Static" : (Object.keys(caps)[0] ?? "Static");
             root.colors = root.fitColors([root.theme], root.mode);
         }
         root.sent = root.actionId();
@@ -125,7 +136,7 @@ PageBase {
     description: qsTr("Lighting effect, colours, brightness and speed")
     isSubPage: true
 
-    onDevChanged: root.init()
+    onDevChanged: Qt.callLater(root.init)
     Component.onCompleted: root.init()
 
     ToolBridge {
@@ -215,7 +226,7 @@ PageBase {
 
                         StyledText {
                             Layout.fillWidth: true
-                            text: bridge.busyAction.startsWith("rgb-") ? qsTr("Applying…") : root.pending ? qsTr("The keyboard is asleep — press any key on it and this applies by itself") : root.dev?.backend === "hid" ? qsTr("Changes apply right away and are saved in the keyboard") : qsTr("Changes apply right away and come back when you log in")
+                            text: bridge.busyAction.startsWith("rgb-") ? qsTr("Applying…") : root.pending ? qsTr("The keyboard is asleep — press any key on it and this applies by itself") : root.dev?.backend === "hid" ? qsTr("Changes apply right away and are saved in the keyboard") : root.laptop ? qsTr("Changes apply right away and the laptop keeps them") : qsTr("Changes apply right away and come back when you log in")
                             color: root.pending ? Colours.palette.m3tertiary : Colours.palette.m3outline
                             font: Tokens.font.label.small
                             wrapMode: Text.WordWrap
@@ -467,12 +478,10 @@ PageBase {
             last: root.dirs.length === 0
             visible: !!root.dev && !root.off && root.modeCaps.speed
             label: qsTr("Speed")
-            options: [
-                { value: "25", label: qsTr("Slow") },
-                { value: "50", label: qsTr("Normal") },
-                { value: "75", label: qsTr("Fast") },
-                { value: "100", label: qsTr("Fastest") }
-            ]
+            options: root.speeds.map(v => ({
+                        value: String(v),
+                        label: ({ 25: qsTr("Slow"), 50: qsTr("Normal"), 75: qsTr("Fast"), 100: qsTr("Fastest") })[v] ?? `${v}%`
+                    }))
             current: String(root.speed)
             onPicked: v => {
                 root.speed = Number(v);
@@ -494,6 +503,33 @@ PageBase {
             onPicked: v => {
                 root.direction = v;
                 root.changed();
+            }
+        }
+
+        // Teclado do notebook: em que fases a luz acende (asusd LedPower)
+        SectionHeader {
+            visible: root.laptop && Object.keys(root.power).length > 0
+            text: qsTr("Light also")
+        }
+
+        Repeater {
+            model: root.laptop && Object.keys(root.power).length > 0 ? [
+                { phase: "boot", label: qsTr("While starting up"), sub: qsTr("From power-on until the login screen") },
+                { phase: "sleep", label: qsTr("While asleep"), sub: qsTr("With the laptop suspended") },
+                { phase: "shutdown", label: qsTr("While shutting down"), sub: "" }
+            ] : []
+
+            ToggleRow {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === 2
+                text: modelData.label
+                subtext: modelData.sub
+                checked: !!root.power[modelData.phase]
+                disabled: bridge.busyAction !== ""
+                onToggled: bridge.run({ id: `kbd-power-${modelData.phase}-${checked ? "on" : "off"}` })
             }
         }
     }

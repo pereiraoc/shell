@@ -25,12 +25,51 @@ PageBase {
 
     readonly property var periph: periphBridge.info
 
+    // Luzes: a do notebook (asusd) vai em Keyboard > Laptop keyboard; teclados
+    // externos ganham subsecao propria; o resto fica em "Lighting".
+    readonly property var laptopRgb: (root.periph.rgb ?? []).find(d => d.backend === "asusd") ?? null
+    readonly property var keyboards: (root.periph.rgb ?? []).filter(d => d.type === "Keyboard" && d.backend !== "asusd")
+    readonly property var otherRgb: (root.periph.rgb ?? []).filter(d => d.type !== "Keyboard")
+
     // Bateria de cada periferico vai na secao DELE (teclado RGB <- bateria de
     // teclado, mouse Razer <- bateria de mouse); o que sobrar fica em "Other
     // batteries".
-    readonly property var kbBattery: (root.periph.rgb ?? []).some(d => d.type === "Keyboard") ? (root.peripherals.find(b => b.kind === "keyboard") ?? null) : null
+    readonly property var kbBattery: root.keyboards.length > 0 ? (root.peripherals.find(b => b.kind === "keyboard") ?? null) : null
     readonly property var mouseBattery: (root.periph.mice ?? []).length > 0 ? (root.peripherals.find(b => b.kind === "mouse") ?? null) : null
     readonly property var otherBatteries: root.peripherals.filter(b => b !== root.kbBattery && b !== root.mouseBattery)
+
+    readonly property var scrollOptions: [
+        { value: "0.5", label: qsTr("Slow") },
+        { value: "1", label: qsTr("Default") },
+        { value: "1.5", label: qsTr("Fast") },
+        { value: "2", label: qsTr("Faster") }
+    ]
+
+    // 1.0 -> "1", 1.5 -> "1.5" (o valor dos chips)
+    function num(v: var): string {
+        return String(Number(v ?? 1));
+    }
+
+    function mouseName(n: string): string {
+        return (n ?? "").replace(/\s*\(.*?\)\s*$/, "");
+    }
+
+    function isOff(s: var): bool {
+        return s?.mode === "Static" && (s?.colors ?? [])[0] === "000000";
+    }
+
+    function lightingText(s: var): string {
+        if (!s)
+            return qsTr("Effect, colours, brightness and speed");
+        if (root.isOff(s))
+            return qsTr("Off");
+        return [s.mode, s.random ? qsTr("random colours") : (s.colors ?? []).map(c => `#${c}`).join(" "), s.brightness !== null && s.brightness !== undefined ? qsTr("%1% brightness").arg(s.brightness) : ""].filter(x => x).join(" · ");
+    }
+
+    function openLighting(id: string): void {
+        root.nState.selectedRgbDevice = id;
+        root.nState.openSubPage(3);
+    }
 
     function batteryText(b: var): string {
         return b.charging ? qsTr("Charging") : b.stale ? qsTr("Last known level — the device is asleep") : "";
@@ -38,11 +77,6 @@ PageBase {
 
     function periphRun(id: string): void {
         periphBridge.run({ id: id });
-    }
-
-    // "Static" -> "static", "Spectrum Cycle" -> "spectrum-cycle" (ids do CLI)
-    function modeSlug(mode: string): string {
-        return (mode ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     }
 
     function inputRun(id: string): void {
@@ -277,177 +311,8 @@ PageBase {
             }
         }
 
-        // Mouses Razer: DPI, polling, tempo para dormir
-        Repeater {
-            model: root.periph.mice ?? []
-
-            ColumnLayout {
-                id: mouse
-
-                required property var modelData
-                required property int index
-
-                readonly property var stages: {
-                    const st = [...(mouse.modelData.dpi_stages ?? [])];
-                    if (mouse.modelData.dpi && !st.includes(mouse.modelData.dpi))
-                        st.push(mouse.modelData.dpi);
-                    return st.sort((a, b) => a - b);
-                }
-
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
-
-                SectionHeader {
-                    text: mouse.modelData.name.replace(/\s*\(Receiver\)$/, "")
-                }
-
-                MeterRow {
-                    first: true
-                    visible: mouse.index === 0 && !!root.mouseBattery
-                    icon: "battery_full"
-                    label: qsTr("Battery")
-                    valueText: root.mouseBattery ? `${Math.round(root.mouseBattery.pct * 100)}%` : ""
-                    value: root.mouseBattery?.pct ?? 0
-                    warnAt: 0.2
-                    warnBelow: true
-                    subtext: root.mouseBattery ? root.batteryText(root.mouseBattery) : ""
-                }
-
-                ChipSelectRow {
-                    first: !(mouse.index === 0 && !!root.mouseBattery)
-                    label: qsTr("Sensitivity (DPI)")
-                    subtext: qsTr("Set in the mouse itself — the same in every app and game. The DPI button on the mouse cycles these stages.")
-                    options: mouse.stages.map(d => ({ value: String(d), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
-                    current: String(mouse.modelData.dpi ?? "")
-                    busy: periphBridge.busyAction.startsWith(`dpi-${mouse.modelData.id}-`)
-                    onPicked: v => root.periphRun(`dpi-${mouse.modelData.id}-${v}`)
-                }
-
-                ChipSelectRow {
-                    visible: mouse.modelData.poll_rate != null
-                    label: qsTr("Polling rate")
-                    subtext: qsTr("Higher is smoother and more responsive, and uses more battery")
-                    options: (mouse.modelData.poll_choices ?? []).map(h => ({ value: String(h), label: `${h} Hz` }))
-                    current: String(mouse.modelData.poll_rate ?? "")
-                    busy: periphBridge.busyAction.startsWith(`poll-${mouse.modelData.id}-`)
-                    onPicked: v => root.periphRun(`poll-${mouse.modelData.id}-${v}`)
-                }
-
-                ChipSelectRow {
-                    last: true
-                    visible: mouse.modelData.idle_s != null
-                    label: qsTr("Sleep after")
-                    subtext: qsTr("Turns the mouse off when you stop using it, to save battery")
-                    options: [60, 300, 600, 900].map(s => ({ value: String(s), label: qsTr("%1 min").arg(s / 60) }))
-                    current: String(mouse.modelData.idle_s ?? "")
-                    busy: periphBridge.busyAction.startsWith(`idle-${mouse.modelData.id}-`)
-                    onPicked: v => root.periphRun(`idle-${mouse.modelData.id}-${v}`)
-                }
-            }
-        }
-
-        // Luz RGB (teclado externo etc.)
-        Repeater {
-            model: root.periph.rgb ?? []
-
-            ColumnLayout {
-                id: rgb
-
-                required property var modelData
-                required property int index
-
-                readonly property var battery: rgb.modelData.type === "Keyboard" && rgb.index === 0 ? root.kbBattery : null
-
-                readonly property var saved: rgb.modelData.settings ?? null
-                readonly property bool isOff: rgb.saved?.mode === "Static" && (rgb.saved?.colors ?? [])[0] === "000000"
-
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
-
-                SectionHeader {
-                    text: rgb.modelData.name.replace(/\s*(2\.4GHz|USB)$/, "")
-                }
-
-                MeterRow {
-                    first: true
-                    visible: !!rgb.battery
-                    icon: "battery_full"
-                    label: qsTr("Battery")
-                    valueText: rgb.battery ? `${Math.round(rgb.battery.pct * 100)}%` : ""
-                    value: rgb.battery?.pct ?? 0
-                    warnAt: 0.2
-                    warnBelow: true
-                    subtext: rgb.battery ? root.batteryText(rgb.battery) : ""
-                }
-
-                // Efeito, cores, brilho e velocidade: subpagina RgbLighting.
-                RowButton {
-                    first: !rgb.battery
-                    last: true
-                    icon: rgb.isOff ? "light_off" : "palette"
-                    text: qsTr("Lighting")
-                    subtext: !rgb.saved ? qsTr("Effect, colours, brightness and speed") : rgb.isOff ? qsTr("Off") : [rgb.saved.mode, rgb.saved.random ? qsTr("random colours") : (rgb.saved.colors ?? []).map(c => `#${c}`).join(" "), rgb.saved.brightness !== null && rgb.saved.brightness !== undefined ? qsTr("%1% brightness").arg(rgb.saved.brightness) : ""].filter(x => x).join(" · ")
-                    trailingIcon: "chevron_right"
-                    onClicked: {
-                        root.nState.selectedRgbDevice = rgb.modelData.id;
-                        root.nState.openSubPage(3);
-                    }
-                }
-            }
-        }
-
-        // Baterias sem secao propria (UPower etc.)
-        SectionHeader {
-            visible: root.otherBatteries.length > 0
-            text: qsTr("Other batteries")
-        }
-
-        Repeater {
-            model: root.otherBatteries
-
-            MeterRow {
-                required property var modelData
-                required property int index
-
-                first: index === 0
-                last: index === root.otherBatteries.length - 1
-                icon: modelData.kind === "keyboard" ? "keyboard" : modelData.kind === "mouse" ? "mouse" : modelData.kind === "headset" ? "headphones" : "battery_full"
-                label: modelData.name
-                valueText: `${Math.round(modelData.pct * 100)}%`
-                value: modelData.pct
-                warnAt: 0.2
-                warnBelow: true
-                subtext: root.batteryText(modelData)
-            }
-        }
-
-        ActionErrorRow {
-            bridge: periphBridge
-        }
-
-        // Teclado do notebook (asusctl): so a luz dele
-        SectionHeader {
-            visible: root.periph.laptop_keyboard?.available === true
-            text: qsTr("Laptop keyboard")
-        }
-
-        ChipSelectRow {
-            first: true
-            last: true
-            visible: root.periph.laptop_keyboard?.available === true
-            label: qsTr("Backlight")
-            options: [
-                { value: "off", label: qsTr("Off"), icon: "light_off" },
-                { value: "low", label: qsTr("Low") },
-                { value: "med", label: qsTr("Medium") },
-                { value: "high", label: qsTr("High") }
-            ]
-            current: root.periph.laptop_keyboard?.brightness ?? ""
-            busy: periphBridge.busyAction.startsWith("kbd-")
-            onPicked: v => root.periphRun(`kbd-${v}`)
-        }
-
-        // Teclado: o que vale para qualquer teclado (layout, repeticao)
+        // ---------------------------------------------------------- Keyboard
+        // Geral (vale para qualquer teclado) e, embaixo, cada teclado.
         SectionHeader {
             visible: !!root.input.keyboard
             text: qsTr("Keyboard")
@@ -495,17 +360,102 @@ PageBase {
             onPicked: v => root.inputRun(`repeat-${v}`)
         }
 
-        // Mouse e touchpad
+        // Teclado do notebook: brilho (asusctl) + efeito (asusd)
+        SubsectionHeader {
+            visible: root.periph.laptop_keyboard?.available === true || !!root.laptopRgb
+            icon: "laptop"
+            text: qsTr("Laptop keyboard")
+        }
+
+        ChipSelectRow {
+            first: true
+            last: !root.laptopRgb
+            visible: root.periph.laptop_keyboard?.available === true
+            label: qsTr("Backlight")
+            subtext: qsTr("Fn + F2 / F3 on the laptop change this too")
+            options: [
+                { value: "off", label: qsTr("Off"), icon: "light_off" },
+                { value: "low", label: qsTr("Low") },
+                { value: "med", label: qsTr("Medium") },
+                { value: "high", label: qsTr("High") }
+            ]
+            current: root.periph.laptop_keyboard?.brightness ?? ""
+            busy: periphBridge.busyAction.startsWith("kbd-")
+            onPicked: v => root.periphRun(`kbd-${v}`)
+        }
+
+        RowButton {
+            first: root.periph.laptop_keyboard?.available !== true
+            last: true
+            visible: !!root.laptopRgb
+            icon: root.isOff(root.laptopRgb?.settings) ? "light_off" : "palette"
+            text: qsTr("Lighting")
+            subtext: root.lightingText(root.laptopRgb?.settings)
+            trailingIcon: "chevron_right"
+            onClicked: root.openLighting(root.laptopRgb.id)
+        }
+
+        // Teclados externos com luz (Azoth...): bateria + iluminacao
+        Repeater {
+            model: root.keyboards
+
+            ColumnLayout {
+                id: kbd
+
+                required property var modelData
+                required property int index
+
+                readonly property var battery: kbd.index === 0 ? root.kbBattery : null
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
+
+                SubsectionHeader {
+                    icon: "keyboard"
+                    text: kbd.modelData.name.replace(/\s*(2\.4GHz|USB)$/, "")
+                    status: kbd.battery ? (kbd.battery.stale ? qsTr("Asleep · %1%") : "%1%").arg(Math.round(kbd.battery.pct * 100)) : ""
+                    warn: !!kbd.battery && kbd.battery.pct < 0.2
+                }
+
+                MeterRow {
+                    first: true
+                    visible: !!kbd.battery
+                    icon: "battery_full"
+                    label: qsTr("Battery")
+                    valueText: kbd.battery ? `${Math.round(kbd.battery.pct * 100)}%` : ""
+                    value: kbd.battery?.pct ?? 0
+                    warnAt: 0.2
+                    warnBelow: true
+                    subtext: kbd.battery ? root.batteryText(kbd.battery) : ""
+                }
+
+                RowButton {
+                    first: !kbd.battery
+                    last: true
+                    icon: root.isOff(kbd.modelData.settings) ? "light_off" : "palette"
+                    text: qsTr("Lighting")
+                    subtext: root.lightingText(kbd.modelData.settings)
+                    trailingIcon: "chevron_right"
+                    onClicked: root.openLighting(kbd.modelData.id)
+                }
+            }
+        }
+
+        ActionErrorRow {
+            bridge: periphBridge
+        }
+
+        // ------------------------------------------------------------- Mouse
         SectionHeader {
             visible: !!root.input.pointer
-            text: qsTr("Mouse & touchpad")
+            text: qsTr("Mouse")
         }
 
         ChipSelectRow {
             first: true
             visible: !!root.input.pointer
             label: qsTr("Pointer speed")
-            subtext: qsTr("Multiplies the speed of every mouse and the touchpad, instantly. Gaming mice also have their own DPI in hardware — change that under Advanced › Razer devices.")
+            subtext: qsTr("Multiplies the speed of every mouse and the touchpad, instantly. Gaming mice also have their own DPI in hardware — set it in the mouse's section below.")
             options: [
                 { value: "-0.5", label: qsTr("Slower") },
                 { value: "-0.25", label: qsTr("Slow") },
@@ -519,7 +469,6 @@ PageBase {
         }
 
         ToggleRow {
-            last: !root.input.touchpad?.present
             visible: !!root.input.pointer
             text: qsTr("Mouse acceleration")
             subtext: qsTr("Off is better for games: the pointer moves the same distance at any speed")
@@ -528,18 +477,246 @@ PageBase {
             onToggled: root.inputRun(checked ? "accel-adaptive" : "accel-flat")
         }
 
+        ChipSelectRow {
+            visible: !!root.input.pointer
+            label: qsTr("Scroll speed")
+            subtext: qsTr("How far one notch of the wheel scrolls")
+            options: root.scrollOptions
+            current: root.num(root.pointer.scroll_factor)
+            busy: inputBridge.busyAction.startsWith("scroll-")
+            onPicked: v => root.inputRun(`scroll-${v}`)
+        }
+
+        ToggleRow {
+            visible: !!root.input.pointer
+            text: qsTr("Natural scrolling")
+            subtext: qsTr("The wheel moves the content instead of the view")
+            checked: !!root.pointer.natural_scroll
+            disabled: inputBridge.busyAction !== ""
+            onToggled: root.inputRun(checked ? "mouse-natural-on" : "mouse-natural-off")
+        }
+
         ToggleRow {
             last: true
+            visible: !!root.input.pointer
+            text: qsTr("Left-handed")
+            subtext: qsTr("Swaps the left and right buttons")
+            checked: !!root.pointer.left_handed
+            disabled: inputBridge.busyAction !== ""
+            onToggled: root.inputRun(checked ? "left-handed-on" : "left-handed-off")
+        }
+
+        // Touchpad
+        SubsectionHeader {
             visible: !!root.input.touchpad?.present
-            text: qsTr("Natural scrolling (touchpad)")
+            icon: "touchpad_mouse"
+            text: qsTr("Touchpad")
+        }
+
+        ToggleRow {
+            first: true
+            visible: !!root.input.touchpad?.present
+            text: qsTr("Tap to click")
+            subtext: qsTr("A light tap counts as a click")
+            checked: !!root.input.touchpad?.tap_to_click
+            disabled: inputBridge.busyAction !== ""
+            onToggled: root.inputRun(checked ? "tap-on" : "tap-off")
+        }
+
+        ToggleRow {
+            visible: !!root.input.touchpad?.present
+            text: qsTr("Natural scrolling")
             subtext: qsTr("Content follows your fingers, like a phone")
-            checked: !!root.pointer.natural_scroll_touchpad
+            checked: !!root.input.touchpad?.natural_scroll
             disabled: inputBridge.busyAction !== ""
             onToggled: root.inputRun(checked ? "natural-scroll-on" : "natural-scroll-off")
         }
 
+        ToggleRow {
+            visible: !!root.input.touchpad?.present
+            text: qsTr("Ignore while typing")
+            subtext: qsTr("Stops a palm on the touchpad from moving the cursor")
+            checked: !!root.input.touchpad?.disable_while_typing
+            disabled: inputBridge.busyAction !== ""
+            onToggled: root.inputRun(checked ? "dwt-on" : "dwt-off")
+        }
+
+        ChipSelectRow {
+            last: true
+            visible: !!root.input.touchpad?.present
+            label: qsTr("Scroll speed")
+            options: root.scrollOptions
+            current: root.num(root.input.touchpad?.scroll_factor)
+            busy: inputBridge.busyAction.startsWith("tp-scroll-")
+            onPicked: v => root.inputRun(`tp-scroll-${v}`)
+        }
+
         ActionErrorRow {
             bridge: inputBridge
+        }
+
+        // Mouses com driver (openrazer): bateria, DPI, polling; botoes,
+        // estagios e energia na subpagina
+        Repeater {
+            model: root.periph.mice ?? []
+
+            ColumnLayout {
+                id: mouse
+
+                required property var modelData
+                required property int index
+
+                readonly property var battery: mouse.index === 0 ? root.mouseBattery : null
+                readonly property var stages: {
+                    const st = [...(mouse.modelData.dpi_stages ?? [])];
+                    if (mouse.modelData.dpi && !st.includes(mouse.modelData.dpi))
+                        st.push(mouse.modelData.dpi);
+                    return st.sort((a, b) => a - b);
+                }
+                readonly property int remapped: (mouse.modelData.buttons ?? []).filter(b => b.action !== "default").length
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
+
+                SubsectionHeader {
+                    icon: "mouse"
+                    text: root.mouseName(mouse.modelData.name)
+                    status: mouse.modelData.asleep ? qsTr("Asleep") : mouse.battery ? "%1%".arg(Math.round(mouse.battery.pct * 100)) : ""
+                    warn: !!mouse.battery && mouse.battery.pct < 0.2
+                }
+
+                MeterRow {
+                    first: true
+                    visible: !!mouse.battery
+                    icon: "battery_full"
+                    label: qsTr("Battery")
+                    valueText: mouse.battery ? `${Math.round(mouse.battery.pct * 100)}%` : ""
+                    value: mouse.battery?.pct ?? 0
+                    warnAt: 0.2
+                    warnBelow: true
+                    subtext: mouse.battery ? root.batteryText(mouse.battery) : ""
+                }
+
+                InfoRow {
+                    first: !mouse.battery
+                    visible: !!mouse.modelData.asleep
+                    icon: "bedtime"
+                    label: qsTr("The mouse is asleep")
+                    subtext: qsTr("Move it to wake it up — its settings can only change while it is awake")
+                }
+
+                ChipSelectRow {
+                    first: !mouse.battery && !mouse.modelData.asleep
+                    visible: mouse.stages.length > 0
+                    label: qsTr("Sensitivity (DPI)")
+                    subtext: qsTr("Set in the mouse itself — the same in every app and game. The DPI button on the mouse cycles these stages.")
+                    options: mouse.stages.map(d => ({ value: String(d), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
+                    current: String(mouse.modelData.dpi ?? "")
+                    disabled: !!mouse.modelData.asleep
+                    busy: periphBridge.busyAction.startsWith(`dpi-${mouse.modelData.id}-`)
+                    onPicked: v => root.periphRun(`dpi-${mouse.modelData.id}-${v}`)
+                }
+
+                ChipSelectRow {
+                    visible: mouse.modelData.poll_rate != null && (mouse.modelData.poll_choices ?? []).length > 0
+                    label: qsTr("Polling rate")
+                    subtext: qsTr("Higher is smoother and more responsive, and uses more battery")
+                    options: (mouse.modelData.poll_choices ?? []).map(h => ({ value: String(h), label: `${h} Hz` }))
+                    current: String(mouse.modelData.poll_rate ?? "")
+                    disabled: !!mouse.modelData.asleep
+                    busy: periphBridge.busyAction.startsWith(`poll-${mouse.modelData.id}-`)
+                    onPicked: v => root.periphRun(`poll-${mouse.modelData.id}-${v}`)
+                }
+
+                RowButton {
+                    last: true
+                    icon: "settings_input_component"
+                    text: qsTr("Buttons, DPI stages and power")
+                    subtext: [(mouse.modelData.buttons ?? []).length > 0 ? (mouse.remapped > 0 ? qsTr("%n button(s) remapped", "", mouse.remapped) : qsTr("%n button(s), all default", "", mouse.modelData.buttons.length)) : "", mouse.modelData.dpi_stages?.length ? qsTr("%n DPI stage(s)", "", mouse.modelData.dpi_stages.length) : ""].filter(x => x).join(" · ")
+                    trailingIcon: "chevron_right"
+                    onClicked: {
+                        root.nState.selectedMouse = mouse.modelData.model;
+                        root.nState.openSubPage(4);
+                    }
+                }
+            }
+        }
+
+        // Mouses ja vistos que nao estao conectados agora (o Atheris quando
+        // desligado): a secao fica, com o motivo de estar vazia
+        Repeater {
+            model: root.periph.mice_offline ?? []
+
+            ColumnLayout {
+                id: offline
+
+                required property var modelData
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
+
+                SubsectionHeader {
+                    icon: "mouse"
+                    text: root.mouseName(offline.modelData.name)
+                    status: qsTr("Not connected")
+                }
+
+                InfoRow {
+                    first: true
+                    last: true
+                    icon: "link_off"
+                    label: qsTr("Turn it on to change its settings")
+                    subtext: qsTr("Wireless: plug in its receiver or switch it to 2.4 GHz. Over Bluetooth only the battery shows up.")
+                }
+            }
+        }
+
+        // Outras luzes RGB (nao teclado)
+        SectionHeader {
+            visible: root.otherRgb.length > 0
+            text: qsTr("Lighting")
+        }
+
+        Repeater {
+            model: root.otherRgb
+
+            RowButton {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === root.otherRgb.length - 1
+                icon: root.isOff(modelData.settings) ? "light_off" : "palette"
+                text: modelData.name
+                subtext: root.lightingText(modelData.settings)
+                trailingIcon: "chevron_right"
+                onClicked: root.openLighting(modelData.id)
+            }
+        }
+
+        // Baterias sem secao propria (UPower etc.)
+        SectionHeader {
+            visible: root.otherBatteries.length > 0
+            text: qsTr("Other batteries")
+        }
+
+        Repeater {
+            model: root.otherBatteries
+
+            MeterRow {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === root.otherBatteries.length - 1
+                icon: modelData.kind === "keyboard" ? "keyboard" : modelData.kind === "mouse" ? "mouse" : modelData.kind === "headset" ? "headphones" : "battery_full"
+                label: modelData.name
+                valueText: `${Math.round(modelData.pct * 100)}%`
+                value: modelData.pct
+                warnAt: 0.2
+                warnBelow: true
+                subtext: root.batteryText(modelData)
+            }
         }
 
         // Cameras
