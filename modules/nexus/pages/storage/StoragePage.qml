@@ -107,12 +107,17 @@ PageBase {
         }
 
         Repeater {
-            model: root.partitions
+            model: root.partitions.length
 
             ConnectedRect {
                 id: part
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.partitions[index] ?? ({})
+                readonly property var liveItem: root.partitions[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 Layout.fillWidth: true
@@ -199,12 +204,17 @@ PageBase {
         }
 
         Repeater {
-            model: storage.actions
+            model: storage.actions.length
 
             RowButton {
                 id: act
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: storage.actions[index] ?? ({})
+                readonly property var liveItem: storage.actions[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 readonly property bool isArmed: root.armed === act.modelData.id
@@ -249,12 +259,18 @@ PageBase {
 
         // --- Maiores pastas, por particao
         Repeater {
-            model: root.partitions.filter(p => (p.largest ?? []).length > 0)
+            model: (root.partitions.filter(p => (p.largest ?? []).length > 0)).length
 
             ColumnLayout {
                 id: big
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: (root.partitions.filter(p => (p.largest ?? []).length > 0))[index] ?? ({})
+                readonly property var liveItem: (root.partitions.filter(p => (p.largest ?? []).length > 0))[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                required property int index
 
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.extraSmall / 2
@@ -264,12 +280,17 @@ PageBase {
                 }
 
                 Repeater {
-                    model: big.modelData.largest
+                    model: big.modelData.largest.length
 
                     RowButton {
                         id: dir
 
-                        required property var modelData
+                        // Modelo = quantidade: atualizar o status nao recria a linha
+                        // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                        // que vai sumir guarda o ultimo item ate ser destruida.
+                        property var modelData: big.modelData.largest[index] ?? ({})
+                        readonly property var liveItem: big.modelData.largest[index]
+                        onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                         required property int index
 
                         first: dir.index === 0

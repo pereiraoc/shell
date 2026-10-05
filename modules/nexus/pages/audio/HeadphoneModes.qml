@@ -71,6 +71,13 @@ PageBase {
             "assistant": qsTr("Voice assistant")
         })
 
+    readonly property var gestureRows: [
+        { key: "double_tap", id: "tap2", side: "left", label: qsTr("Double tap, left") },
+        { key: "double_tap", id: "tap2", side: "right", label: qsTr("Double tap, right") },
+        { key: "triple_tap", id: "tap3", side: "left", label: qsTr("Triple tap, left") },
+        { key: "triple_tap", id: "tap3", side: "right", label: qsTr("Triple tap, right") }
+    ]
+
     title: root.hp?.name ?? qsTr("Headphones")
     description: root.hp?.model ?? ""
     isSubPage: true
@@ -310,16 +317,15 @@ PageBase {
         }
 
         Repeater {
-            model: root.ready ? [
-                { key: "double_tap", id: "tap2", side: "left", label: qsTr("Double tap, left") },
-                { key: "double_tap", id: "tap2", side: "right", label: qsTr("Double tap, right") },
-                { key: "triple_tap", id: "tap3", side: "left", label: qsTr("Triple tap, left") },
-                { key: "triple_tap", id: "tap3", side: "right", label: qsTr("Triple tap, right") }
-            ].filter(g => (root.st[g.key] ?? {})[g.side] !== undefined) : []
+            // Lista fixa (cada linha some sozinha): uma lista recalculada a
+            // cada leitura do fone recriaria as linhas.
+            model: root.gestureRows
 
             ExpandSelectRow {
                 required property var modelData
                 required property int index
+
+                visible: root.ready && (root.st[modelData.key] ?? {})[modelData.side] !== undefined
 
                 first: index === 0
                 last: index === 3

@@ -138,12 +138,13 @@ ConnectedRect {
         }
 
         Repeater {
-            model: root.expanded ? root.shown : []
+            model: root.expanded ? root.shown.length : 0
 
             Item {
                 id: opt
 
-                required property var modelData
+                required property int index
+                readonly property var modelData: root.shown[index] ?? ({})
 
                 readonly property bool isCurrent: modelData.value === root.current
 

@@ -280,10 +280,16 @@ PageBase {
                     rowSpacing: Tokens.spacing.small
 
                     Repeater {
-                        model: root.sideButtons
+                        model: root.sideButtons.length
 
                         ButtonTile {
-                            required property var modelData
+                            // Modelo = quantidade: atualizar o status nao recria a linha
+                            // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                            // que vai sumir guarda o ultimo item ate ser destruida.
+                            property var modelData: root.sideButtons[index] ?? ({})
+                            readonly property var liveItem: root.sideButtons[index]
+                            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                            required property int index
 
                             title: modelData.id.split("-")[1]
                             detail: modelData.action === "default" ? root.defaultText(modelData) : root.actionText(modelData.action)
@@ -308,10 +314,16 @@ PageBase {
                     rowSpacing: Tokens.spacing.small
 
                     Repeater {
-                        model: root.otherButtons
+                        model: root.otherButtons.length
 
                         ButtonTile {
-                            required property var modelData
+                            // Modelo = quantidade: atualizar o status nao recria a linha
+                            // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                            // que vai sumir guarda o ultimo item ate ser destruida.
+                            property var modelData: root.otherButtons[index] ?? ({})
+                            readonly property var liveItem: root.otherButtons[index]
+                            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                            required property int index
 
                             title: root.buttonName(modelData)
                             detail: modelData.action === "default" ? root.defaultText(modelData) : root.actionText(modelData.action)

@@ -119,10 +119,15 @@ PageBase {
         }
 
         Repeater {
-            model: root.offline
+            model: root.offline.length
 
             ToggleRow {
-                required property string modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.offline[index] ?? ({})
+                readonly property var liveItem: root.offline[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 first: root.running.length === 0 && index === 0

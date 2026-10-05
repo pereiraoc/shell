@@ -164,12 +164,17 @@ PageBase {
         }
 
         Repeater {
-            model: root.processes
+            model: root.processes.length
 
             ConnectedRect {
                 id: proc
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.processes[index] ?? ({})
+                readonly property var liveItem: root.processes[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 readonly property bool armed: root.armedPid === modelData.pid
@@ -253,10 +258,16 @@ PageBase {
         }
 
         Repeater {
-            model: root.failed
+            model: root.failed.length
 
             RowButton {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.failed[index] ?? ({})
+                readonly property var liveItem: root.failed[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                required property int index
 
                 icon: "error"
                 iconLabel.color: Colours.palette.m3error
@@ -285,10 +296,15 @@ PageBase {
         }
 
         Repeater {
-            model: (root.journal.recent ?? []).slice(0, 5)
+            model: ((root.journal.recent ?? []).slice(0, 5)).length
 
             InfoRow {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: ((root.journal.recent ?? []).slice(0, 5))[index] ?? ({})
+                readonly property var liveItem: ((root.journal.recent ?? []).slice(0, 5))[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 last: index === Math.min(5, (root.journal.recent ?? []).length) - 1

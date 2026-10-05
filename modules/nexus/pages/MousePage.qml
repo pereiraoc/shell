@@ -201,12 +201,17 @@ PageBase {
         // Mouses com driver (openrazer): bateria, DPI, polling; botoes,
         // estagios e energia na subpagina
         Repeater {
-            model: root.periph.mice ?? []
+            model: (root.periph.mice ?? []).length
 
             ColumnLayout {
                 id: mouse
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: (root.periph.mice ?? [])[index] ?? ({})
+                readonly property var liveItem: (root.periph.mice ?? [])[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 readonly property var battery: mouse.index === 0 ? root.mouseBattery : null
@@ -288,12 +293,18 @@ PageBase {
         // Mouses ja vistos que nao estao conectados agora (o Atheris quando
         // desligado): a secao fica, com o motivo de estar vazia
         Repeater {
-            model: root.periph.mice_offline ?? []
+            model: (root.periph.mice_offline ?? []).length
 
             ColumnLayout {
                 id: offline
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: (root.periph.mice_offline ?? [])[index] ?? ({})
+                readonly property var liveItem: (root.periph.mice_offline ?? [])[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                required property int index
 
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.extraSmall / 2

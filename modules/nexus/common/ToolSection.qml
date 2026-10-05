@@ -82,12 +82,17 @@ ColumnLayout {
     }
 
     Repeater {
-        model: bridge.actions
+        model: bridge.actions.length
 
         RowButton {
             id: act
 
-            required property var modelData
+            // Modelo = quantidade: atualizar o status nao recria a linha
+            // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+            // que vai sumir guarda o ultimo item ate ser destruida.
+            property var modelData: bridge.actions[index] ?? ({})
+            readonly property var liveItem: bridge.actions[index]
+            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
             required property int index
 
             readonly property bool isArmed: root.armed === act.modelData.id

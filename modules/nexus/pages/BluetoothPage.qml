@@ -259,10 +259,15 @@ PageBase {
         }
 
         Repeater {
-            model: root.otherBatteries
+            model: root.otherBatteries.length
 
             MeterRow {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.otherBatteries[index] ?? ({})
+                readonly property var liveItem: root.otherBatteries[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 first: index === 0

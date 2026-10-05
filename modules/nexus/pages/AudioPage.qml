@@ -117,10 +117,15 @@ PageBase {
         }
 
         Repeater {
-            model: root.headphones
+            model: root.headphones.length
 
             RowButton {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.headphones[index] ?? ({})
+                readonly property var liveItem: root.headphones[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 first: index === 0
@@ -217,10 +222,15 @@ PageBase {
         }
 
         Repeater {
-            model: root.routes.playback ?? []
+            model: (root.routes.playback ?? []).length
 
             InfoRow {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: (root.routes.playback ?? [])[index] ?? ({})
+                readonly property var liveItem: (root.routes.playback ?? [])[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 first: index === 0
@@ -238,10 +248,16 @@ PageBase {
         }
 
         Repeater {
-            model: root.routes.recording ?? []
+            model: (root.routes.recording ?? []).length
 
             InfoRow {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: (root.routes.recording ?? [])[index] ?? ({})
+                readonly property var liveItem: (root.routes.recording ?? [])[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                required property int index
 
                 icon: modelData.raw ? "warning" : "mic"
                 iconColour: modelData.raw ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant

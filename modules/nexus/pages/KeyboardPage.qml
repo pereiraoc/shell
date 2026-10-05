@@ -181,12 +181,17 @@ PageBase {
 
         // Teclados externos com luz (Azoth...): bateria + iluminacao
         Repeater {
-            model: root.keyboards
+            model: root.keyboards.length
 
             ColumnLayout {
                 id: kbd
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.keyboards[index] ?? ({})
+                readonly property var liveItem: root.keyboards[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 readonly property var battery: kbd.index === 0 ? root.kbBattery : null
@@ -236,10 +241,15 @@ PageBase {
         }
 
         Repeater {
-            model: root.otherRgb
+            model: root.otherRgb.length
 
             RowButton {
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.otherRgb[index] ?? ({})
+                readonly property var liveItem: root.otherRgb[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 first: index === 0

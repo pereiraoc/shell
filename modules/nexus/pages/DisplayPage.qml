@@ -93,12 +93,17 @@ PageBase {
         }
 
         Repeater {
-            model: root.monitors
+            model: root.monitors.length
 
             ColumnLayout {
                 id: mon
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.monitors[index] ?? ({})
+                readonly property var liveItem: root.monitors[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 readonly property var brightness: Brightness.getMonitor(mon.modelData.name)

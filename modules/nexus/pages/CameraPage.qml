@@ -142,12 +142,17 @@ PageBase {
         }
 
         Repeater {
-            model: root.cams
+            model: root.cams.length
 
             ColumnLayout {
                 id: cam
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.cams[index] ?? ({})
+                readonly property var liveItem: root.cams[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
                 readonly property bool previewing: root.previewNode === cam.modelData.node
@@ -272,12 +277,18 @@ PageBase {
 
                 // Ajustes, por grupo
                 Repeater {
-                    model: root.grouped(cam.modelData.controls ?? [])
+                    model: (root.grouped(cam.modelData.controls ?? [])).length
 
                     ColumnLayout {
                         id: grp
 
-                        required property var modelData
+                        // Modelo = quantidade: atualizar o status nao recria a linha
+                        // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                        // que vai sumir guarda o ultimo item ate ser destruida.
+                        property var modelData: (root.grouped(cam.modelData.controls ?? []))[index] ?? ({})
+                        readonly property var liveItem: (root.grouped(cam.modelData.controls ?? []))[index]
+                        onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                        required property int index
 
                         Layout.fillWidth: true
                         spacing: Tokens.spacing.extraSmall / 2
@@ -287,12 +298,17 @@ PageBase {
                         }
 
                         Repeater {
-                            model: grp.modelData.ctrls
+                            model: grp.modelData.ctrls.length
 
                             Loader {
                                 id: ctl
 
-                                required property var modelData
+                                // Modelo = quantidade: atualizar o status nao recria a linha
+                                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                                // que vai sumir guarda o ultimo item ate ser destruida.
+                                property var modelData: grp.modelData.ctrls[index] ?? ({})
+                                readonly property var liveItem: grp.modelData.ctrls[index]
+                                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                                 required property int index
 
                                 readonly property bool isFirst: ctl.index === 0
@@ -345,7 +361,10 @@ PageBase {
                                         Connections {
                                             target: ctl
                                             function onModelDataChanged(): void {
-                                                intRow.shown = ctl.modelData.value;
+                                                // valor pendente (arrastando) manda: o refresh
+                                                // do anterior nao puxa o slider de volta
+                                                if (root.pending[`${cam.modelData.node}|${ctl.modelData.name}`] === undefined)
+                                                    intRow.shown = ctl.modelData.value;
                                             }
                                         }
 

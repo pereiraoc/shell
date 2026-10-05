@@ -102,7 +102,9 @@ ConnectedRect {
                 Repeater {
                     id: repeater
 
-                    model: root.options
+                    // Quantidade, nao a lista: opcoes recalculadas a cada
+                    // refresh nao recriam os chips.
+                    model: root.options.length
 
                     // Fundo proprio por chip (nao um indicador deslizante): o
                     // indicador dependia de repeater.itemAt() numa binding, que
@@ -111,7 +113,8 @@ ConnectedRect {
                     StyledRect {
                         id: chip
 
-                        required property var modelData
+                        required property int index
+                        readonly property var modelData: root.options[index] ?? ({})
 
                         readonly property bool isCurrent: root.current === modelData.value
                         readonly property color fg: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant

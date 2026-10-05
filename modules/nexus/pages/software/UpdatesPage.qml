@@ -103,12 +103,18 @@ PageBase {
         }
 
         Repeater {
-            model: root.sources
+            model: root.sources.length
 
             ColumnLayout {
                 id: section
 
-                required property var modelData
+                // Modelo = quantidade: atualizar o status nao recria a linha
+                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                // que vai sumir guarda o ultimo item ate ser destruida.
+                property var modelData: root.sources[index] ?? ({})
+                readonly property var liveItem: root.sources[index]
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                required property int index
 
                 readonly property var items: SoftwareInventory.updates[section.modelData.key] ?? []
                 readonly property string problem: root.sourceState(section.modelData.key)

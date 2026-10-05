@@ -508,20 +508,23 @@ PageBase {
 
         // Teclado do notebook: em que fases a luz acende (asusd LedPower)
         SectionHeader {
-            visible: root.laptop && Object.keys(root.power).length > 0
+            visible: root.laptop && Object.keysroot.power.length > 0
             text: qsTr("Light also")
         }
 
         Repeater {
-            model: root.laptop && Object.keys(root.power).length > 0 ? [
+            // Lista fixa: recalcular a cada refresh recriaria os toggles.
+            model: [
                 { phase: "boot", label: qsTr("While starting up"), sub: qsTr("From power-on until the login screen") },
                 { phase: "sleep", label: qsTr("While asleep"), sub: qsTr("With the laptop suspended") },
                 { phase: "shutdown", label: qsTr("While shutting down"), sub: "" }
-            ] : []
+            ]
 
             ToggleRow {
                 required property var modelData
                 required property int index
+
+                visible: root.laptop && Object.keysroot.power.length > 0
 
                 first: index === 0
                 last: index === 2
