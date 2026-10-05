@@ -10,9 +10,13 @@ Item {
 
     required property ShellScreen screen
     required property real borderThickness
+    // Barra na direita: o popout cola na borda direita e desliza para la.
+    property bool barRight
 
     readonly property alias content: content
-    property real offsetScale: x > 0 || content.hasCurrent ? 0 : 1
+    // x > 0 = destacado (centralizado); na direita x e sempre > 0, entao
+    // la vale o estado direto.
+    property real offsetScale: (barRight ? content.isDetached : x > 0) || content.hasCurrent ? 0 : 1
 
     visible: width > 0 && height > 0
     clip: true
@@ -20,7 +24,7 @@ Item {
     implicitWidth: content.implicitWidth * (1 - offsetScale)
     implicitHeight: content.implicitHeight
 
-    x: content.isDetached ? (parent.width - content.nonAnimWidth) / 2 : 0
+    x: content.isDetached ? (parent.width - content.nonAnimWidth) / 2 : barRight ? parent.width - width : 0
     y: {
         if (content.isDetached)
             return (parent.height - content.nonAnimHeight) / 2;
@@ -37,6 +41,10 @@ Item {
     }
 
     Behavior on x {
+        // Na direita x acompanha a largura animada; animar de novo descolaria
+        // o popout da barra. So anima indo para o modo destacado.
+        enabled: !root.barRight || root.content.isDetached
+
         Anim {
             duration: content.animLength
             easing: content.animCurve
@@ -59,7 +67,9 @@ Item {
         offsetScale: root.offsetScale
 
         anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
+        anchors.left: root.barRight ? undefined : parent.left
+        anchors.right: root.barRight ? parent.right : undefined
         anchors.leftMargin: (-implicitWidth - 5) * root.offsetScale
+        anchors.rightMargin: anchors.leftMargin
     }
 }

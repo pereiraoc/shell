@@ -14,8 +14,13 @@ Region {
 
     readonly property real borderThickness: win.contentItem.Config.border.thickness
     readonly property real clampedThickness: win.contentItem.Config.border.clampedThickness
+    readonly property bool barRight: win.barRight
+    // Borda de onde saem sidebar/sessao/OSD (oposta a barra).
+    function edgeX(w: real): real {
+        return root.barRight ? 0 : root.win.width - w;
+    }
 
-    x: bar.clampedWidth + win.dragMaskPadding
+    x: (barRight ? clampedThickness : bar.clampedWidth) + win.dragMaskPadding
     y: clampedThickness + win.dragMaskPadding
     width: win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
     height: win.height - clampedThickness * 2 - win.dragMaskPadding * 2
@@ -37,7 +42,7 @@ Region {
         id: sessionRegion
 
         panel: root.panels.sessionWrapper
-        x: root.win.width - width
+        x: root.edgeX(width)
         width: panel.width * (1 - root.panels.session.offsetScale) + root.borderThickness + sidebarRegion.width
     }
 
@@ -45,13 +50,13 @@ Region {
         id: sidebarRegion
 
         panel: root.panels.sidebar
-        x: root.win.width - width
+        x: root.edgeX(width)
         width: panel.width * (1 - root.panels.sidebar.offsetScale) + root.borderThickness
     }
 
     R {
         panel: root.panels.osdWrapper
-        x: root.win.width - width
+        x: root.edgeX(width)
         width: panel.width * (1 - root.panels.osd.offsetScale) + root.borderThickness + sessionRegion.width
     }
 
@@ -69,13 +74,14 @@ Region {
 
     R {
         panel: root.panels.popoutsWrapper
+        x: panel.x + root.panels.x + (root.barRight ? panel.width * root.panels.popoutsWrapper.offsetScale : 0)
         width: panel.width * (1 - root.panels.popoutsWrapper.offsetScale)
     }
 
     component R: Region {
         required property Item panel
 
-        x: panel.x + root.bar.implicitWidth
+        x: panel.x + root.panels.x
         y: panel.y + root.borderThickness
         width: panel.width
         height: panel.height

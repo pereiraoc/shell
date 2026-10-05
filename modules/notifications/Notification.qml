@@ -27,7 +27,10 @@ StyledRect {
 
     implicitHeight: inner.implicitHeight
 
-    x: implicitWidth
+    // Lado de onde entra: 1 = direita, -1 = esquerda (barra na direita).
+    property int enterFrom: 1
+
+    x: implicitWidth * enterFrom
     Component.onCompleted: {
         x = 0;
         modelData.lock(this);

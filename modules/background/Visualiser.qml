@@ -18,6 +18,9 @@ Item {
     // Com o wallpaper Prism o visualizer e o proprio wallpaper (Prism.qml):
     // as barras ficam desligadas para nao desenhar por cima.
     property bool prismMode
+    // Barra na direita: folga dela na direita. mirrored: graves do outro lado.
+    property bool barRight
+    property bool mirrored
     readonly property bool visibleOnScreen: Config.background.visualiser.enabled && (!Config.background.visualiser.autoHide || (Hypr.monitorFor(screen)?.activeWorkspace?.toplevels?.values.every(t => t.lastIpcObject?.floating) ?? true))
     readonly property bool shouldBeActive: visibleOnScreen && !prismMode
     property real offset: shouldBeActive ? 0 : screen.height * 0.2
@@ -64,7 +67,14 @@ Item {
 
                     anchors.fill: parent
                     anchors.margins: Config.border.thickness
-                    anchors.leftMargin: (ShellState.componentsFor(root.screen)?.bar?.exclusiveZone ?? 0) + Tokens.spacing.small * Config.background.visualiser.spacing
+                    readonly property real barGap: (ShellState.componentsFor(root.screen)?.bar?.exclusiveZone ?? 0) + Tokens.spacing.small * Config.background.visualiser.spacing
+
+                    anchors.leftMargin: root.barRight ? Config.border.thickness : barGap
+                    anchors.rightMargin: root.barRight ? barGap : Config.border.thickness
+                    transform: Scale {
+                        origin.x: bars.width / 2
+                        xScale: root.mirrored ? -1 : 1
+                    }
 
                     values: Audio.cava.values
                     primaryColor: Qt.alpha(Colours.palette.m3primary, 0.7)
@@ -74,6 +84,10 @@ Item {
                     animationDuration: Tokens.anim.durations.normal
 
                     Behavior on anchors.leftMargin {
+                        Anim {}
+                    }
+
+                    Behavior on anchors.rightMargin {
                         Anim {}
                     }
                 }

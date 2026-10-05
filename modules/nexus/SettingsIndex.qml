@@ -41,6 +41,8 @@ QtObject {
         { page: "display", sub: 0, title: qsTr("Scale"), subtitle: qsTr("Make everything bigger or smaller"), keywords: "zoom size text bigger smaller hidpi dpi scaling" },
         { page: "display", sub: 0, title: qsTr("Resolution & refresh rate"), subtitle: qsTr("Screen mode, Hz"), keywords: "resolution hz refresh rate fps mode 240 144 60" },
         { page: "display", sub: 0, title: qsTr("Use this display"), subtitle: qsTr("Turn a monitor on or off"), keywords: "disable enable monitor screen off external hdmi" },
+        { page: "display", sub: 0, title: qsTr("Bar position"), subtitle: qsTr("Bar on the left or right, per display"), keywords: "taskbar side left right mirror flip panel" },
+        { page: "display", sub: 0, title: qsTr("Mirror the wallpaper visualiser"), subtitle: qsTr("Visualiser follows the bar side"), keywords: "prism visualizer flip mirror audio bars" },
         { page: "display", sub: 0, title: qsTr("Brightness"), subtitle: qsTr("Screen brightness"), keywords: "backlight dim light ddc" },
         { page: "display", sub: 0, title: qsTr("Text size for X11 apps"), subtitle: qsTr("Steam and games font size"), keywords: "xft dpi steam xwayland font size" },
         { page: "display", sub: 0, title: qsTr("Arrange displays"), subtitle: qsTr("Position and mirroring (nwg-displays)"), keywords: "arrange position mirror layout nwg" },

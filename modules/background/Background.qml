@@ -15,6 +15,9 @@ Variants {
         id: win
 
         required property ShellScreen modelData
+        // Nexus > Display: barra na direita e visualizador espelhado.
+        readonly property bool barRight: Screens.barRight(modelData.name)
+        readonly property bool mirrorVisualiser: Screens.mirrorVisualiser(modelData.name)
 
         screen: modelData
         name: "background"
@@ -58,6 +61,11 @@ Variants {
 
                 anchors.fill: parent
                 active: on
+                // Espelhado: a luz entra pela direita e o arco-iris sai pela esquerda.
+                transform: Scale {
+                    origin.x: prism.width / 2
+                    xScale: win.mirrorVisualiser ? -1 : 1
+                }
 
                 sourceComponent: Prism {
                     reactive: visualiser.visibleOnScreen
@@ -71,6 +79,8 @@ Variants {
                 screen: win.modelData
                 wallpaper: wallpaper
                 prismMode: prism.on
+                barRight: win.barRight
+                mirrored: win.mirrorVisualiser
             }
         }
 
@@ -80,8 +90,11 @@ Variants {
             asynchronous: true
             active: Config.background.desktopClock.enabled
 
+            readonly property real barGap: Tokens.padding.extraLargeIncreased + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.small, Config.border.thickness)
+
             anchors.margins: Tokens.padding.extraLargeIncreased
-            anchors.leftMargin: Tokens.padding.extraLargeIncreased + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.small, Config.border.thickness)
+            anchors.leftMargin: win.barRight ? Tokens.padding.extraLargeIncreased : barGap
+            anchors.rightMargin: win.barRight ? barGap : Tokens.padding.extraLargeIncreased
 
             state: Config.background.desktopClock.position
             states: [

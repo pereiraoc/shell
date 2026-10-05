@@ -149,6 +149,29 @@ PageBase {
                     onMoved: v => mon.brightness?.setBrightness(v)
                 }
 
+                // Lado da barra neste monitor (Screens.barSides). Na
+                // direita o shell espelha: barra e menus dela na direita,
+                // notificacoes/sidebar/OSD na esquerda. Aplica na hora.
+                ChipSelectRow {
+                    visible: mon.modelData.enabled
+                    label: qsTr("Bar position")
+                    subtext: Screens.barRight(mon.modelData.name) ? qsTr("Notifications, sidebar and volume pop-up move to the left edge") : ""
+                    options: [
+                        { value: "left", label: qsTr("Left"), icon: "align_horizontal_left" },
+                        { value: "right", label: qsTr("Right"), icon: "align_horizontal_right" }
+                    ]
+                    current: Screens.barRight(mon.modelData.name) ? "right" : "left"
+                    onPicked: v => Screens.setBarOption(mon.modelData.name, "side", v)
+                }
+
+                ToggleRow {
+                    visible: mon.modelData.enabled && Screens.barRight(mon.modelData.name)
+                    text: qsTr("Mirror the wallpaper visualiser")
+                    subtext: qsTr("Light and music bars flow from the bar side")
+                    checked: Screens.mirrorVisualiser(mon.modelData.name)
+                    onToggled: Screens.setBarOption(mon.modelData.name, "mirrorVisualiser", checked)
+                }
+
                 ToggleRow {
                     last: true
                     text: qsTr("Use this display")

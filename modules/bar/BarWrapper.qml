@@ -14,6 +14,8 @@ Item {
     required property ScreenState screenState
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
+    // Na direita a barra encolhe para a borda direita.
+    property bool barRight
 
     readonly property bool disabled: Strings.testRegexList(Config.bar.excludedScreens, screen.name)
 
@@ -76,7 +78,8 @@ Item {
 
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.right: parent.right
+        anchors.right: root.barRight ? undefined : parent.right
+        anchors.left: root.barRight ? parent.left : undefined
 
         active: root.shouldBeVisible
 

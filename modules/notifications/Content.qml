@@ -18,12 +18,15 @@ Item {
     required property Item osdPanel
     required property Item sessionPanel
     required property Item utilitiesPanel
+    // Na borda esquerda (barra na direita): entra e sai pela esquerda.
+    property bool mirrored
     readonly property int padding: Tokens.padding.large
     readonly property int clampedPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
 
     anchors.top: parent.top
     anchors.bottom: parent.bottom
-    anchors.right: parent.right
+    anchors.right: mirrored ? undefined : parent.right
+    anchors.left: mirrored ? parent.left : undefined
 
     implicitWidth: Tokens.sizes.notifs.width
     implicitHeight: {
@@ -60,7 +63,8 @@ Item {
         anchors.fill: parent
         anchors.margins: root.padding
         anchors.topMargin: root.clampedPadding
-        anchors.rightMargin: root.clampedPadding
+        anchors.rightMargin: root.mirrored ? root.padding : root.clampedPadding
+        anchors.leftMargin: root.mirrored ? root.clampedPadding : root.padding
 
         color: "transparent"
         radius: Tokens.rounding.large
@@ -208,6 +212,7 @@ Item {
                 id: notif
 
                 modelData: wrapper.modelData
+                enterFrom: root.mirrored ? -1 : 1
                 implicitWidth: root.implicitWidth - root.padding - root.clampedPadding
             }
         }

@@ -17,6 +17,8 @@ Item {
 
     visible: offsetScale < 1
     anchors.rightMargin: (-implicitWidth - 5 - sidebarOffset) * offsetScale
+    // So vale o lado ancorado (esquerda com a barra na direita).
+    anchors.leftMargin: anchors.rightMargin
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight || 510 // Hard coded fallback for first open
     opacity: 1 - offsetScale

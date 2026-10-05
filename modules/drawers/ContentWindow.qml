@@ -20,6 +20,8 @@ StyledWindow {
     readonly property alias interactionWrapper: interactions
 
     readonly property ScreenState screenState: ShellState.forScreen(screen)
+    // Barra na direita neste monitor (Nexus > Display): tudo espelha.
+    readonly property bool barRight: Screens.barRight(screen?.name ?? "")
 
     readonly property HyprlandMonitor monitor: Hypr.monitorFor(screen)
     readonly property bool hasSpecialWorkspace: (monitor?.lastIpcObject.specialWorkspace?.name.length ?? 0) > 0
@@ -88,13 +90,13 @@ StyledWindow {
     Region {
         id: emptyRegion
 
-        x: panels.notifications.x + bar.implicitWidth
+        x: panels.notifications.x + panels.x
         y: panels.notifications.y + root.borderThickness
         width: panels.notifications.width
         height: panels.notifications.height
 
         Region {
-            x: root.width - width
+            x: root.barRight ? 0 : root.width - width
             y: panels.osdWrapper.y + root.borderThickness
             width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + root.borderThickness
             height: panels.osd.height
@@ -168,8 +170,8 @@ StyledWindow {
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: bar.implicitWidth - anchors.margins - root.sdfBorderOffset
-            borderRight: root.borderThickness - anchors.margins - root.sdfBorderOffset
+            borderLeft: (root.barRight ? root.borderThickness : bar.implicitWidth) - anchors.margins - root.sdfBorderOffset
+            borderRight: (root.barRight ? bar.implicitWidth : root.borderThickness) - anchors.margins - root.sdfBorderOffset
             borderTop: root.borderThickness - anchors.margins - root.sdfBorderOffset
             borderBottom: root.borderThickness - anchors.margins - root.sdfBorderOffset
         }
@@ -193,7 +195,7 @@ StyledWindow {
 
             panel: panels.sessionWrapper
             deformAmount: 0.2
-            x: panels.sessionWrapper.x + panels.session.x + bar.implicitWidth
+            x: panels.sessionWrapper.x + panels.session.x + panels.x
             implicitWidth: panels.session.width
         }
 
@@ -212,7 +214,7 @@ StyledWindow {
 
             panel: panels.osdWrapper
             deformAmount: 0.25
-            x: panels.osdWrapper.x + panels.osd.x + bar.implicitWidth
+            x: panels.osdWrapper.x + panels.osd.x + panels.x
             implicitWidth: panels.osd.width
         }
 
@@ -239,7 +241,8 @@ StyledWindow {
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            x: panels.popoutsWrapper.x + panels.popouts.x + bar.implicitWidth - panels.popouts.width * extraWidth
+            // Sobra do lado da barra (esquerda, ou direita com a barra na direita).
+            x: panels.popoutsWrapper.x + panels.popouts.x + panels.x - (root.barRight ? 0 : panels.popouts.width * extraWidth)
             implicitWidth: panels.popouts.width * (1 + extraWidth)
 
             Behavior on extraWidth {
@@ -258,6 +261,7 @@ StyledWindow {
         bar: bar
         borderThickness: root.borderLayoutThickness
         fullscreen: root.hasFullscreen
+        barRight: root.barRight
 
         Panels {
             id: panels
@@ -266,6 +270,7 @@ StyledWindow {
             screenState: root.screenState
             bar: bar
             borderThickness: root.borderThickness
+            barRight: root.barRight
 
             utilities.horizontalStretch: (sidebarBg.rawDeformMatrix.m11 - 1) / 2 + 1
             utilities.deformMatrix: utilsBg.rawDeformMatrix
@@ -301,10 +306,13 @@ StyledWindow {
 
             anchors.top: parent.top
             anchors.bottom: parent.bottom
+            anchors.left: root.barRight ? undefined : parent.left
+            anchors.right: root.barRight ? parent.right : undefined
 
             screen: root.screen
             screenState: root.screenState
             popouts: panels.popouts
+            barRight: root.barRight
 
             fullscreen: root.hasFullscreen
         }
@@ -339,7 +347,7 @@ StyledWindow {
         property real deformAmount: 0.15
 
         group: blobGroup
-        x: panel.x + bar.implicitWidth
+        x: panel.x + panels.x
         y: panel.y + root.borderThickness
         implicitWidth: panel.width
         implicitHeight: panel.height

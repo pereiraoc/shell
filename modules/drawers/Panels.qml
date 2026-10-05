@@ -20,6 +20,10 @@ Item {
     required property ScreenState screenState
     required property Bar.BarWrapper bar
     required property real borderThickness
+    // Barra na direita: popouts na direita, paineis da borda vao para a
+    // esquerda (notificacoes, sidebar, OSD, sessao, utilitarios, toasts).
+    property bool barRight
+    readonly property bool mirrored: barRight
 
     readonly property alias osd: osd
     readonly property alias osdWrapper: osdWrapper
@@ -36,14 +40,17 @@ Item {
 
     anchors.fill: parent
     anchors.margins: borderThickness
-    anchors.leftMargin: bar.implicitWidth
+    anchors.leftMargin: barRight ? borderThickness : bar.implicitWidth
+    anchors.rightMargin: barRight ? bar.implicitWidth : borderThickness
 
     Item {
         id: osdWrapper
 
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
+        anchors.right: root.mirrored ? undefined : parent.right
+        anchors.left: root.mirrored ? parent.left : undefined
         anchors.rightMargin: sessionWrapper.anchors.rightMargin + session.width * (1 - session.offsetScale)
+        anchors.leftMargin: anchors.rightMargin
         clip: sidebar.visible || session.visible
 
         implicitWidth: osd.implicitWidth * (1 - osd.offsetScale)
@@ -57,7 +64,8 @@ Item {
             sidebarOrSessionVisible: sidebar.visible || session.visible
 
             anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
+            anchors.right: root.mirrored ? undefined : parent.right
+            anchors.left: root.mirrored ? parent.left : undefined
         }
     }
 
@@ -69,17 +77,21 @@ Item {
         osdPanel: osdWrapper
         sessionPanel: sessionWrapper
         utilitiesPanel: utilities
+        mirrored: root.mirrored
 
         anchors.top: parent.top
-        anchors.right: parent.right
+        anchors.right: root.mirrored ? undefined : parent.right
+        anchors.left: root.mirrored ? parent.left : undefined
     }
 
     Item {
         id: sessionWrapper
 
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
+        anchors.right: root.mirrored ? undefined : parent.right
+        anchors.left: root.mirrored ? parent.left : undefined
         anchors.rightMargin: sidebar.width * (1 - sidebar.offsetScale)
+        anchors.leftMargin: anchors.rightMargin
         clip: sidebar.visible
 
         implicitWidth: session.implicitWidth * (1 - session.offsetScale)
@@ -92,7 +104,8 @@ Item {
             sidebarVisible: sidebar.visible
 
             anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
+            anchors.right: root.mirrored ? undefined : parent.right
+            anchors.left: root.mirrored ? parent.left : undefined
         }
     }
 
@@ -121,6 +134,7 @@ Item {
 
         screen: root.screen
         borderThickness: root.borderThickness
+        barRight: root.barRight
     }
 
     Utilities.Wrapper {
@@ -131,14 +145,16 @@ Item {
         popouts: popoutsWrapper.content
 
         anchors.bottom: parent.bottom
-        anchors.right: parent.right
+        anchors.right: root.mirrored ? undefined : parent.right
+        anchors.left: root.mirrored ? parent.left : undefined
     }
 
     Toasts.Toasts {
         id: toasts
 
         anchors.bottom: sidebar.visible ? parent.bottom : utilities.top
-        anchors.right: sidebar.left
+        anchors.right: root.mirrored ? undefined : sidebar.left
+        anchors.left: root.mirrored ? sidebar.right : undefined
         anchors.margins: Tokens.padding.medium
     }
 
@@ -146,10 +162,12 @@ Item {
         id: sidebar
 
         screenState: root.screenState
+        mirrored: root.mirrored
 
         anchors.top: notifications.bottom
         anchors.bottom: utilities.top
-        anchors.right: parent.right
+        anchors.right: root.mirrored ? undefined : parent.right
+        anchors.left: root.mirrored ? parent.left : undefined
         anchors.topMargin: -notifications.anchors.topMargin
     }
 

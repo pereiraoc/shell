@@ -11,10 +11,11 @@ Scope {
 
     required property ShellScreen screen
     required property Bar.BarWrapper bar
+    required property bool barRight
 
     ExclusionZone {
         anchors.left: true
-        exclusiveZone: root.bar.exclusiveZone
+        exclusiveZone: root.barRight ? contentItem.Config.border.thickness : root.bar.exclusiveZone
     }
 
     ExclusionZone {
@@ -23,6 +24,7 @@ Scope {
 
     ExclusionZone {
         anchors.right: true
+        exclusiveZone: root.barRight ? root.bar.exclusiveZone : contentItem.Config.border.thickness
     }
 
     ExclusionZone {
