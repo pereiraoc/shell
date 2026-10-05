@@ -226,14 +226,15 @@ Item {
     }
 
     // ------------------------------------------------------------ boot
-    // Fim do boot (configs/plymouth/caelestia-prism + caelestia-boot-bridge):
-    // o Plymouth e a ponte deixam um ponto de luz no feixe; na PRIMEIRA carga
-    // da sessao o ponto explode no logo (mesma matematica do tema) -- o logo
-    // sozinho no centro = ligou. No fim cria $XDG_RUNTIME_DIR/
+    // Fim do boot (configs/plymouth/caelestia-prism): o Plymouth termina com
+    // o ponto de luz se apagando no feixe e a tela parada no fundo liso. Na
+    // PRIMEIRA carga da sessao o ponto reacende no mesmo lugar e explode no
+    // logo (mesma matematica do tema) -- o logo sozinho no centro = ligou. No fim cria $XDG_RUNTIME_DIR/
     // caelestia-desktop-ready: a ponte sai e o Plymouth e encerrado. Reload do
     // shell: o arquivo existe, o logo so aparece suave.
     readonly property string readyPath: `${Quickshell.env("XDG_RUNTIME_DIR")}/caelestia-desktop-ready`
     property bool booting
+    property real dotIn         // o ponto reacende 0..1 (0,35 s)
     property real burstP        // explosao 0..1 (0,35 s)
     property real settleP       // logo esfriando 0..1 (1 s)
 
@@ -263,6 +264,14 @@ Item {
 
         NumberAnimation {
             target: root
+            property: "dotIn"
+            from: 0
+            to: 1
+            duration: 350
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root
             property: "burstP"
             from: 0
             to: 1
@@ -283,16 +292,16 @@ Item {
         }
     }
 
-    // Ponto de luz (o mesmo da ponte), clarao e anel -- abaixo do logo
+    // Ponto de luz (o mesmo do fim do Plymouth), clarao e anel -- abaixo do logo
     Image {
-        readonly property real size: root.logoH * 0.08 * 1.3 / 0.225
+        readonly property real size: root.logoH * 0.08 * 1.3 / 0.225 * (0.3 + 0.7 * root.dotIn)
         visible: root.booting && root.burstP < 1
         source: Quickshell.shellPath("assets/boot/dot.png")
         x: root.width / 2 - size / 2
         y: root.bandY - size / 2
         width: size
         height: size
-        opacity: 1 - root.burstP
+        opacity: root.dotIn * (1 - root.burstP)
         smooth: true
     }
 
