@@ -39,6 +39,10 @@ ShellRoot {
     // Agente polkit: caixa de senha do Caelestia para pkexec e afins
     Polkit {}
 
+    // Despedida ao desligar/reiniciar (caelestia-farewell): o filme do boot ao
+    // contrario antes do systemctl
+    Farewell {}
+
     ConfigToasts {}
     Shortcuts {}
     BatteryMonitor {}

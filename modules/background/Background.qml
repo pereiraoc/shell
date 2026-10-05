@@ -23,7 +23,9 @@ Variants {
         name: "background"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: contentItem.Config.background.wallpaperEnabled ? WlrLayer.Background : WlrLayer.Bottom
-        color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
+        // #282828 (fundo do Prism e do Hyprland), nao preto: a janela nasce
+        // antes do wallpaper carregar e, preta, piscava no fim do boot
+        color: contentItem.Config.background.wallpaperEnabled ? "#282828" : "transparent"
         surfaceFormat.opaque: false
 
         anchors.top: true
