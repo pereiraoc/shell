@@ -36,6 +36,10 @@ Item {
 
     // Le o audio e anima (visualizer ligado e a tela visivel).
     property bool reactive
+    // Espelha so a luz (feixe, cordas, aura): a luz entra pela direita e o
+    // arco-iris sai pela esquerda. O logo fica como e (nao e simetrico); o
+    // contorno externo e simetrico a ~1 px, entao a luz continua colada nele.
+    property bool mirrored
 
     readonly property real logoH: height * 0.1856
     readonly property real logoX: width / 2 - logoH / 2
@@ -183,6 +187,11 @@ Item {
     // quadro so mudam os uniforms. As cordas em JS/Shape refaziam ~2000
     // pontos por quadro na thread da interface e travavam a barra/popouts.
     ShaderEffect {
+        transform: Scale {
+            origin.x: root.width / 2
+            xScale: root.mirrored ? -1 : 1
+        }
+
         readonly property real hitXv: root.edgeAt(root.edgeL, root.bandY)
         readonly property real beamEnd: hitXv + root.logoH * 0.04
 

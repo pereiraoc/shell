@@ -61,13 +61,9 @@ Variants {
 
                 anchors.fill: parent
                 active: on
-                // Espelhado: a luz entra pela direita e o arco-iris sai pela esquerda.
-                transform: Scale {
-                    origin.x: prism.width / 2
-                    xScale: win.mirrorVisualiser ? -1 : 1
-                }
 
                 sourceComponent: Prism {
+                    mirrored: win.mirrorVisualiser
                     reactive: visualiser.visibleOnScreen
                 }
             }
