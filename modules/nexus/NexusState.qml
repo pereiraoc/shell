@@ -19,6 +19,7 @@ QtObject {
     property string selectedEthernetInterface
     property bool networkDetailsFromSaved
     property string storagePath
+    property string selectedRgbDevice
 
     signal close
     signal subPageOpened(idx: int)

@@ -356,14 +356,8 @@ PageBase {
 
                 required property var modelData
 
-                readonly property var known: [
-                    { mode: "Static", value: "static", label: qsTr("Theme colour"), icon: "palette" },
-                    { mode: "Breathing", value: "breathing", label: qsTr("Breathing"), icon: "air" },
-                    { mode: "Reactive", value: "reactive", label: qsTr("On key press"), icon: "touch_app" },
-                    { mode: "Spectrum Cycle", value: "spectrum-cycle", label: qsTr("Cycle"), icon: "autorenew" },
-                    { mode: "Rainbow Wave", value: "rainbow-wave", label: qsTr("Rainbow"), icon: "gradient" }
-                ]
-                readonly property var options: [{ value: "off", label: qsTr("Off"), icon: "light_off" }, ...rgb.known.filter(k => rgb.modelData.modes.includes(k.mode))]
+                readonly property var saved: rgb.modelData.settings ?? null
+                readonly property bool isOff: rgb.saved?.mode === "Static" && (rgb.saved?.colors ?? [])[0] === "000000"
 
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.extraSmall / 2
@@ -372,15 +366,18 @@ PageBase {
                     text: rgb.modelData.name.replace(/\s*2\.4GHz$/, "")
                 }
 
-                ChipSelectRow {
+                // Efeito, cores, brilho e velocidade: subpagina RgbLighting.
+                RowButton {
                     first: true
                     last: true
-                    label: qsTr("Lighting")
-                    subtext: root.periph.theme_colour ? qsTr("Theme colour, breathing and key press use the current theme's accent (#%1)").arg(root.periph.theme_colour) : ""
-                    options: rgb.options
-                    current: root.modeSlug(rgb.modelData.mode)
-                    busy: periphBridge.busyAction.startsWith(`rgb-${rgb.modelData.id}-`)
-                    onPicked: v => root.periphRun(`rgb-${rgb.modelData.id}-${v}`)
+                    icon: rgb.isOff ? "light_off" : "palette"
+                    text: qsTr("Lighting")
+                    subtext: !rgb.saved ? qsTr("Effect, colours, brightness and speed") : rgb.isOff ? qsTr("Off") : [rgb.saved.mode, rgb.saved.random ? qsTr("random colours") : (rgb.saved.colors ?? []).map(c => `#${c}`).join(" "), rgb.saved.brightness !== null && rgb.saved.brightness !== undefined ? qsTr("%1% brightness").arg(rgb.saved.brightness) : ""].filter(x => x).join(" · ")
+                    trailingIcon: "chevron_right"
+                    onClicked: {
+                        root.nState.selectedRgbDevice = rgb.modelData.id;
+                        root.nState.openSubPage(3);
+                    }
                 }
             }
         }

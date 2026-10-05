@@ -68,6 +68,9 @@ QtObject {
             Component {
                 BluetoothPairing {}
             }
+            Component {
+                RgbLighting {}
+            }
         }
     }
 
