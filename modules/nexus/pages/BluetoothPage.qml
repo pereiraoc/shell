@@ -25,6 +25,17 @@ PageBase {
 
     readonly property var periph: periphBridge.info
 
+    // Bateria de cada periferico vai na secao DELE (teclado RGB <- bateria de
+    // teclado, mouse Razer <- bateria de mouse); o que sobrar fica em "Other
+    // batteries".
+    readonly property var kbBattery: (root.periph.rgb ?? []).some(d => d.type === "Keyboard") ? (root.peripherals.find(b => b.kind === "keyboard") ?? null) : null
+    readonly property var mouseBattery: (root.periph.mice ?? []).length > 0 ? (root.peripherals.find(b => b.kind === "mouse") ?? null) : null
+    readonly property var otherBatteries: root.peripherals.filter(b => b !== root.kbBattery && b !== root.mouseBattery)
+
+    function batteryText(b: var): string {
+        return b.charging ? qsTr("Charging") : b.stale ? qsTr("Last known level — the device is asleep") : "";
+    }
+
     function periphRun(id: string): void {
         periphBridge.run({ id: id });
     }
@@ -266,31 +277,6 @@ PageBase {
             }
         }
 
-        // Baterias de perifericos (Razer, Azoth) + UPower
-        SectionHeader {
-            visible: root.peripherals.length > 0
-            text: qsTr("Peripheral batteries")
-        }
-
-        Repeater {
-            model: root.peripherals
-
-            MeterRow {
-                required property var modelData
-                required property int index
-
-                first: index === 0
-                last: index === root.peripherals.length - 1
-                icon: modelData.kind === "keyboard" ? "keyboard" : modelData.kind === "mouse" ? "mouse" : modelData.kind === "headset" ? "headphones" : "battery_full"
-                label: modelData.name
-                valueText: `${Math.round(modelData.pct * 100)}%`
-                value: modelData.pct
-                warnAt: 0.2
-                warnBelow: true
-                subtext: modelData.charging ? qsTr("Charging") : modelData.stale ? qsTr("Last known level — the device is asleep") : ""
-            }
-        }
-
         // Mouses Razer: DPI, polling, tempo para dormir
         Repeater {
             model: root.periph.mice ?? []
@@ -299,6 +285,7 @@ PageBase {
                 id: mouse
 
                 required property var modelData
+                required property int index
 
                 readonly property var stages: {
                     const st = [...(mouse.modelData.dpi_stages ?? [])];
@@ -314,8 +301,20 @@ PageBase {
                     text: mouse.modelData.name.replace(/\s*\(Receiver\)$/, "")
                 }
 
-                ChipSelectRow {
+                MeterRow {
                     first: true
+                    visible: mouse.index === 0 && !!root.mouseBattery
+                    icon: "battery_full"
+                    label: qsTr("Battery")
+                    valueText: root.mouseBattery ? `${Math.round(root.mouseBattery.pct * 100)}%` : ""
+                    value: root.mouseBattery?.pct ?? 0
+                    warnAt: 0.2
+                    warnBelow: true
+                    subtext: root.mouseBattery ? root.batteryText(root.mouseBattery) : ""
+                }
+
+                ChipSelectRow {
+                    first: !(mouse.index === 0 && !!root.mouseBattery)
                     label: qsTr("Sensitivity (DPI)")
                     subtext: qsTr("Set in the mouse itself — the same in every app and game. The DPI button on the mouse cycles these stages.")
                     options: mouse.stages.map(d => ({ value: String(d), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
@@ -355,6 +354,9 @@ PageBase {
                 id: rgb
 
                 required property var modelData
+                required property int index
+
+                readonly property var battery: rgb.modelData.type === "Keyboard" && rgb.index === 0 ? root.kbBattery : null
 
                 readonly property var saved: rgb.modelData.settings ?? null
                 readonly property bool isOff: rgb.saved?.mode === "Static" && (rgb.saved?.colors ?? [])[0] === "000000"
@@ -363,12 +365,24 @@ PageBase {
                 spacing: Tokens.spacing.extraSmall / 2
 
                 SectionHeader {
-                    text: rgb.modelData.name.replace(/\s*2\.4GHz$/, "")
+                    text: rgb.modelData.name.replace(/\s*(2\.4GHz|USB)$/, "")
+                }
+
+                MeterRow {
+                    first: true
+                    visible: !!rgb.battery
+                    icon: "battery_full"
+                    label: qsTr("Battery")
+                    valueText: rgb.battery ? `${Math.round(rgb.battery.pct * 100)}%` : ""
+                    value: rgb.battery?.pct ?? 0
+                    warnAt: 0.2
+                    warnBelow: true
+                    subtext: rgb.battery ? root.batteryText(rgb.battery) : ""
                 }
 
                 // Efeito, cores, brilho e velocidade: subpagina RgbLighting.
                 RowButton {
-                    first: true
+                    first: !rgb.battery
                     last: true
                     icon: rgb.isOff ? "light_off" : "palette"
                     text: qsTr("Lighting")
@@ -382,20 +396,46 @@ PageBase {
             }
         }
 
+        // Baterias sem secao propria (UPower etc.)
+        SectionHeader {
+            visible: root.otherBatteries.length > 0
+            text: qsTr("Other batteries")
+        }
+
+        Repeater {
+            model: root.otherBatteries
+
+            MeterRow {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === root.otherBatteries.length - 1
+                icon: modelData.kind === "keyboard" ? "keyboard" : modelData.kind === "mouse" ? "mouse" : modelData.kind === "headset" ? "headphones" : "battery_full"
+                label: modelData.name
+                valueText: `${Math.round(modelData.pct * 100)}%`
+                value: modelData.pct
+                warnAt: 0.2
+                warnBelow: true
+                subtext: root.batteryText(modelData)
+            }
+        }
+
         ActionErrorRow {
             bridge: periphBridge
         }
 
-        // Teclado
+        // Teclado do notebook (asusctl): so a luz dele
         SectionHeader {
-            visible: !!root.input.keyboard
-            text: qsTr("Keyboard")
+            visible: root.periph.laptop_keyboard?.available === true
+            text: qsTr("Laptop keyboard")
         }
 
         ChipSelectRow {
             first: true
+            last: true
             visible: root.periph.laptop_keyboard?.available === true
-            label: qsTr("Laptop keyboard light")
+            label: qsTr("Backlight")
             options: [
                 { value: "off", label: qsTr("Off"), icon: "light_off" },
                 { value: "low", label: qsTr("Low") },
@@ -407,8 +447,14 @@ PageBase {
             onPicked: v => root.periphRun(`kbd-${v}`)
         }
 
+        // Teclado: o que vale para qualquer teclado (layout, repeticao)
+        SectionHeader {
+            visible: !!root.input.keyboard
+            text: qsTr("Keyboard")
+        }
+
         RowButton {
-            first: root.periph.laptop_keyboard?.available !== true
+            first: true
             visible: root.input.persisted === false
             icon: "save"
             iconLabel.color: Colours.palette.m3tertiary
@@ -419,7 +465,7 @@ PageBase {
         }
 
         ExpandSelectRow {
-            first: root.input.persisted !== false && root.periph.laptop_keyboard?.available !== true
+            first: root.input.persisted !== false
             visible: !!root.input.keyboard
             icon: "keyboard"
             label: qsTr("Layout")

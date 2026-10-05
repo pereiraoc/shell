@@ -31,6 +31,9 @@ PageBase {
     property bool random
     property int brightness: 100
     property int speed: 50
+    property string direction
+    readonly property bool pending: !!root.dev?.settings?.pending
+    readonly property var dirs: root.modeCaps.directions ?? []
     property int slot: 0
 
     property string wanted
@@ -81,6 +84,8 @@ PageBase {
             id += `-b-${root.brightness}`;
         if (c.speed)
             id += `-s-${root.speed}`;
+        if ((c.directions ?? []).length > 0)
+            id += `-d-${(c.directions.includes(root.direction) ? root.direction : c.directions[0])}`;
         return id;
     }
 
@@ -108,6 +113,7 @@ PageBase {
             root.random = !!s.random;
             root.brightness = s.brightness ?? 100;
             root.speed = s.speed ?? 50;
+            root.direction = s.direction ?? "";
         } else {
             root.mode = root.caps["Static"] ? "Static" : (Object.keys(root.caps)[0] ?? "Static");
             root.colors = root.fitColors([root.theme], root.mode);
@@ -127,6 +133,20 @@ PageBase {
 
         tool: "peripherals"
         onBusyActionChanged: root.flush()
+    }
+
+    // Efeito pedido com o teclado dormindo fica pendente: tenta de novo
+    // enquanto a pagina estiver aberta (aperte uma tecla e ele entra).
+    Item {
+        Timer {
+            interval: 4000
+            repeat: true
+            running: root.pending && root.visible
+            onTriggered: {
+                if (bridge.busyAction === "")
+                    bridge.run({ id: "rgb-restore" });
+            }
+        }
     }
 
     // PageBase so aceita Item como filho direto.
@@ -195,10 +215,10 @@ PageBase {
 
                         StyledText {
                             Layout.fillWidth: true
-                            text: bridge.busyAction.startsWith("rgb-") ? qsTr("Applying…") : qsTr("Changes apply right away and come back when you log in")
-                            color: Colours.palette.m3outline
+                            text: bridge.busyAction.startsWith("rgb-") ? qsTr("Applying…") : root.pending ? qsTr("The keyboard is asleep — press any key on it and this applies by itself") : root.dev?.backend === "hid" ? qsTr("Changes apply right away and are saved in the keyboard") : qsTr("Changes apply right away and come back when you log in")
+                            color: root.pending ? Colours.palette.m3tertiary : Colours.palette.m3outline
                             font: Tokens.font.label.small
-                            elide: Text.ElideRight
+                            wrapMode: Text.WordWrap
                         }
                     }
 
@@ -420,7 +440,7 @@ PageBase {
 
         // Brilho e velocidade
         SectionHeader {
-            visible: !!root.dev && !root.off && (root.modeCaps.brightness || root.modeCaps.speed)
+            visible: !!root.dev && !root.off && (root.modeCaps.brightness || root.modeCaps.speed || root.dirs.length > 0)
             text: qsTr("Look")
         }
 
@@ -444,7 +464,7 @@ PageBase {
 
         ChipSelectRow {
             first: !root.modeCaps.brightness
-            last: true
+            last: root.dirs.length === 0
             visible: !!root.dev && !root.off && root.modeCaps.speed
             label: qsTr("Speed")
             options: [
@@ -456,6 +476,23 @@ PageBase {
             current: String(root.speed)
             onPicked: v => {
                 root.speed = Number(v);
+                root.changed();
+            }
+        }
+
+        ChipSelectRow {
+            first: !root.modeCaps.brightness && !root.modeCaps.speed
+            last: true
+            visible: !!root.dev && !root.off && root.dirs.length > 0
+            label: qsTr("Direction")
+            options: root.dirs.map(d => ({
+                        value: d,
+                        label: ({ left: qsTr("Left"), right: qsTr("Right"), up: qsTr("Up"), down: qsTr("Down") })[d],
+                        icon: ({ left: "arrow_back", right: "arrow_forward", up: "arrow_upward", down: "arrow_downward" })[d]
+                    }))
+            current: root.dirs.includes(root.direction) ? root.direction : (root.dirs[0] ?? "")
+            onPicked: v => {
+                root.direction = v;
                 root.changed();
             }
         }
