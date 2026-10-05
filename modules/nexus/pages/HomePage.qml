@@ -165,7 +165,7 @@ PageBase {
             value: root.lowestPeripheral ? `${Math.round(root.lowestPeripheral.pct * 100)}%` : qsTr("%1 connected").arg(Bluetooth.devices.values.filter(d => d.connected).length)
             detail: root.lowestPeripheral ? qsTr("%1 · lowest battery").arg(root.lowestPeripheral.name) : qsTr("Bluetooth devices")
             level: root.lowestPeripheral && root.lowestPeripheral.pct < 0.2 ? "warn" : "ok"
-            onClicked: root.nState.openPage("devices", 0)
+            onClicked: root.nState.openPage("bluetooth", 0)
         }
     }
 }

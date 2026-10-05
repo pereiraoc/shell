@@ -57,7 +57,7 @@ QtObject {
         }
     }
 
-    readonly property Component devicesComp: Component {
+    readonly property Component bluetoothComp: Component {
         StackPage {
             Component {
                 BluetoothPage {}
@@ -68,8 +68,24 @@ QtObject {
             Component {
                 BluetoothPairing {}
             }
+        }
+    }
+
+    readonly property Component keyboardComp: Component {
+        StackPage {
+            Component {
+                KeyboardPage {}
+            }
             Component {
                 RgbLighting {}
+            }
+        }
+    }
+
+    readonly property Component mouseComp: Component {
+        StackPage {
+            Component {
+                MousePage {}
             }
             Component {
                 MouseSettings {}

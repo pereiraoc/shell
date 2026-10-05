@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
@@ -12,7 +13,14 @@ PageBase {
     id: root
 
     title: qsTr("Security")
-    description: qsTr("Unlock methods, face recognition and PIN")
+    description: qsTr("Unlock methods, face recognition, PIN and cameras")
+
+    // Cameras (a IR e a do desbloqueio facial) -- caelestia-input
+    ToolBridge {
+        id: inputBridge
+
+        tool: "input"
+    }
 
     property string newPin: ""
     property string confirmPin: ""
@@ -230,6 +238,27 @@ PageBase {
             onClicked: root.savePin()
         }
 
+        // Cameras
+        SectionHeader {
+            visible: (inputBridge.info.cameras ?? []).length > 0
+            text: qsTr("Cameras")
+        }
+
+        Repeater {
+            model: inputBridge.info.cameras ?? []
+
+            RowButton {
+                required property var modelData
+                required property int index
+
+                first: index === 0
+                last: index === (inputBridge.info.cameras ?? []).length - 1
+                icon: modelData.ir ? "face" : "videocam"
+                text: modelData.ir ? qsTr("Infrared camera") : qsTr("Webcam")
+                subtext: modelData.face_unlock ? qsTr("%1 · used by face unlock").arg(modelData.node) : `${modelData.node} · ${modelData.name}`
+            }
+        }
+
         // Recovery
         SectionHeader {
             text: qsTr("Recovery")
@@ -243,6 +272,12 @@ PageBase {
             text: qsTr("Reset authentication methods")
             subtext: qsTr("Re-enable face and PIN if locked out")
             onClicked: root.resetLockouts()
+        }
+
+        AdvancedGroup {
+            apps: [
+                { id: "qcam", text: qsTr("Camera viewer"), subtext: qsTr("Preview a camera (qcam)") }
+            ]
         }
     }
 }

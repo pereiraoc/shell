@@ -144,7 +144,7 @@ Item {
                 anchors.fill: parent
                 nState.screen: root.screen
                 nState.animatingContainer: nexus.opacity < 1
-                nState.currentPageIdx: PageRegistry.indexOf(({ appearance: "appearance", network: "network", bluetooth: "devices", audio: "sound" })[root.queuedMode] ?? "home")
+                nState.currentPageIdx: PageRegistry.indexOf(({ appearance: "appearance", network: "network", bluetooth: "bluetooth", audio: "sound" })[root.queuedMode] ?? "home")
                 onClose: root.close()
             }
         }

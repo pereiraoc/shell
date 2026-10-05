@@ -30,12 +30,11 @@ QtObject {
             group: qsTr("Connectivity")
         },
         {
-            id: "devices",
-            label: qsTr("Devices"),
-            icon: "devices_other",
-            description: qsTr("Bluetooth, keyboard, mouse, cameras"),
-            group: qsTr("Connectivity"),
-            noFill: true
+            id: "bluetooth",
+            label: qsTr("Bluetooth"),
+            icon: "bluetooth",
+            description: qsTr("Devices, pairing, headphone modes"),
+            group: qsTr("Connectivity")
         },
 
         {
@@ -50,6 +49,20 @@ QtObject {
             label: qsTr("Sound"),
             icon: "volume_up",
             description: qsTr("Devices, apps, effects, microphone"),
+            group: qsTr("Hardware")
+        },
+        {
+            id: "keyboard",
+            label: qsTr("Keyboard"),
+            icon: "keyboard",
+            description: qsTr("Layout, repeat, lighting"),
+            group: qsTr("Hardware")
+        },
+        {
+            id: "mouse",
+            label: qsTr("Mouse"),
+            icon: "mouse",
+            description: qsTr("Pointer, touchpad, gaming mice"),
             group: qsTr("Hardware")
         },
         {
