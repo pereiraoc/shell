@@ -111,6 +111,10 @@ ColumnLayout {
     }
 
     spacing: Tokens.spacing.medium
+    // Folga extra dos dois cortes da barra (relogio | icones de status |
+    // config): o meio-termo entre o vao antigo do relogio (bandeja vazia
+    // ocupando lugar) e o da config (so o spacing), igual nos dois.
+    readonly property real groupGap: Tokens.spacing.medium / 2 + Tokens.padding.extraSmall
 
     Repeater {
         id: repeater
@@ -206,9 +210,12 @@ ColumnLayout {
         default property Item item
         readonly property string entryId: modelData.id
 
-        Layout.topMargin: index === 0 ? root.vPadding : 0
-        Layout.bottomMargin: index === repeater.count - 1 ? root.vPadding : 0
+        Layout.topMargin: (index === 0 ? root.vPadding : 0) + (entryId === "nexus" ? root.groupGap : 0)
+        Layout.bottomMargin: (index === repeater.count - 1 ? root.vPadding : 0) + (entryId === "clock" ? root.groupGap : 0)
         Layout.alignment: Qt.AlignHCenter
+
+        // Bandeja sem icones (todos escondidos) nao ocupa lugar nem soma spacing.
+        visible: entryId !== "tray" || ((item as Tray)?.items.count ?? 1) > 0
 
         implicitWidth: item?.implicitWidth ?? 0
         implicitHeight: item?.implicitHeight ?? 0

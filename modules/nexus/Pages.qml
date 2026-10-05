@@ -12,16 +12,29 @@ Item {
     property int animOff
     property Item currentItem
 
+    property int loadSerial
+
     function loadPage(idx: int): void {
         if (currentItem)
             currentItem.destroy();
+        currentItem = null;
 
+        // Paginas pesadas (Display) incubam de forma assincrona: trocar de
+        // menu antes de terminar deixava a antiga nascer DEPOIS e ficar
+        // empilhada sobre a nova. So a ultima pedida pode entrar.
+        const serial = ++root.loadSerial;
         const comp = PageCompRegistry.forId(PageRegistry.pages[idx]?.id ?? "");
         const incubator = comp.incubateObject(container, {
             nState
         });
 
         const attach = () => {
+            if (serial !== root.loadSerial) {
+                incubator.object.destroy();
+                return;
+            }
+            if (currentItem)
+                currentItem.destroy();
             incubator.object.anchors.fill = container;
             currentItem = incubator.object;
         };
