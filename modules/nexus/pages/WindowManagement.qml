@@ -35,7 +35,7 @@ PageBase {
             stepSize: 1
             onMoved: v => {
                 GlobalConfig.hyprland.gapsInner = v;
-                Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_in", String(v)]);
+                Hypr.extras.applyOptions({ "general:gaps_in": v });
             }
         }
 
@@ -50,7 +50,7 @@ PageBase {
             stepSize: 1
             onMoved: v => {
                 GlobalConfig.hyprland.gapsOuter = v;
-                Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_out", String(v)]);
+                Hypr.extras.applyOptions({ "general:gaps_out": v });
             }
         }
     }

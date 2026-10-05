@@ -46,16 +46,25 @@ ShellRoot {
         lock: lock
     }
 
-    // Apply persisted Hyprland settings on startup (gaps via Caelestia.Config)
+    // Gaps salvos no Nexus: na partida e a cada reload do Hyprland (o reload
+    // -- hotplug de monitor, alocador de workspaces -- voltava ao da config).
+    // applyOptions fala keyword (.conf) ou eval hl.config (Lua).
+    function applyGaps(): void {
+        Hypr.extras.applyOptions({ "general:gaps_in": GlobalConfig.hyprland.gapsInner, "general:gaps_out": GlobalConfig.hyprland.gapsOuter });
+    }
+
     Timer {
         running: true
         interval: 100
         repeat: false
-        onTriggered: {
-            const innerGap = GlobalConfig.hyprland.gapsInner;
-            const outerGap = GlobalConfig.hyprland.gapsOuter;
-            Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_in", innerGap.toString()]);
-            Quickshell.execDetached(["hyprctl", "keyword", "general:gaps_out", outerGap.toString()]);
+        onTriggered: root.applyGaps()
+    }
+
+    Connections {
+        target: Hypr
+
+        function onConfigReloaded(): void {
+            root.applyGaps();
         }
     }
 }
