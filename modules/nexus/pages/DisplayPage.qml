@@ -124,15 +124,28 @@ PageBase {
                     subtext: mon.modelData.description
                 }
 
+                // Agora (so esta sessao) x ao ligar (monitors.conf): 240 Hz
+                // para jogar sem mudar o padrao. O keep nao grava resolucao/taxa.
                 ExpandSelectRow {
                     visible: mon.modelData.enabled
                     icon: "aspect_ratio"
                     label: qsTr("Resolution & refresh rate")
-                    subtext: qsTr("Higher refresh rate means smoother motion")
+                    subtext: qsTr("For this session. Higher refresh rate means smoother motion")
                     options: mon.modelData.modes.map(m => ({ value: m, label: root.modeLabel(m) }))
                     current: mon.modelData.mode
                     busy: mon.busy && bridge.busyAction.startsWith("try-mode")
                     onPicked: v => root.tryChange(`try-mode-${mon.modelData.name}-${v}`)
+                }
+
+                ExpandSelectRow {
+                    visible: mon.modelData.enabled && !!mon.modelData.saved_mode
+                    icon: "power_settings_new"
+                    label: qsTr("At startup")
+                    subtext: qsTr("Used every time the computer starts. Also applies now")
+                    options: mon.modelData.modes.map(m => ({ value: m, label: root.modeLabel(m) }))
+                    current: mon.modelData.saved_mode ?? ""
+                    busy: bridge.busyAction.startsWith(`default-mode-${mon.modelData.name}-`)
+                    onPicked: v => bridge.run({ id: `default-mode-${mon.modelData.name}-${v}` })
                 }
 
                 ChipSelectRow {
