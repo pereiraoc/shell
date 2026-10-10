@@ -23,10 +23,10 @@ StyledRect {
         let hasCritical = false;
         let hasNormal = false;
         for (const n of notifs) {
-            if (!img && n.image.length > 0)
-                img = n.image;
-            if (!icon && n.appIcon.length > 0)
-                icon = n.appIcon;
+            if (!img)
+                img = Icons.getNotifImage(n.image);
+            if (!icon)
+                icon = Icons.getNotifAppIcon(n.appIcon);
             if (n.urgency === NotificationUrgency.Critical)
                 hasCritical = true;
             else if (n.urgency === NotificationUrgency.Normal)
@@ -99,7 +99,7 @@ StyledRect {
                 id: materialIconComp
 
                 MaterialIcon {
-                    text: Icons.getNotifIcon(root.notifs[0]?.summary, root.urgency)
+                    text: Icons.getNotifGlyph(root.notifs[0])
                     color: root.urgency === "critical" ? Colours.palette.m3onError : root.urgency === "low" ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
                     fontStyle: Tokens.font.icon.large
                 }

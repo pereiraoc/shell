@@ -21,8 +21,8 @@ StyledRect {
     readonly property list<var> notifs: Notifs.list.filter(n => n.appName === modelData)
     readonly property list<var> activeNotifs: notifs.filter(n => !n.closed)
     readonly property int notifCount: activeNotifs.length
-    readonly property string image: activeNotifs.find(n => n.image.length > 0)?.image ?? ""
-    readonly property string appIcon: activeNotifs.find(n => n.appIcon.length > 0)?.appIcon ?? ""
+    readonly property string image: Icons.getNotifImage(activeNotifs.find(n => Icons.getNotifImage(n.image).length > 0)?.image ?? "")
+    readonly property string appIcon: Icons.getNotifAppIcon(activeNotifs.find(n => Icons.getNotifAppIcon(n.appIcon).length > 0)?.appIcon ?? "")
     readonly property int urgency: {
         if (activeNotifs.find(n => n.urgency === NotificationUrgency.Critical))
             return NotificationUrgency.Critical;
@@ -111,7 +111,7 @@ StyledRect {
                 id: materialIconComp
 
                 MaterialIcon {
-                    text: Icons.getNotifIcon(root.activeNotifs[0]?.summary, root.urgency)
+                    text: Icons.getNotifGlyph(root.activeNotifs[0])
                     color: root.urgency === NotificationUrgency.Critical ? Colours.palette.m3onError : root.urgency === NotificationUrgency.Low ? Colours.palette.m3onSurface : Colours.palette.m3onSecondaryContainer
                     fontStyle: Tokens.font.icon.medium
                 }

@@ -164,6 +164,53 @@ Singleton {
         return "air";
     }
 
+    // Imagem "image://icon/<nome>" e icone de status por nome (battery-good,
+    // dialog-error...), nao foto: sem tema de icones no Quickshell ela vira o
+    // quadriculado magenta. Tratada como sem imagem -> glifo de getNotifGlyph.
+    function getNotifImage(image: string): string {
+        return image.startsWith("image://icon/") ? "" : image;
+    }
+
+    // Icone de app por nome que nao resolve (ex.: asus_notif_red, cursor) cai
+    // no glifo em vez do quadriculado.
+    function getNotifAppIcon(icon: string): string {
+        if (!icon || icon.startsWith("/") || icon.startsWith("file:"))
+            return icon;
+        return Quickshell.iconPath(icon, true) ? icon : "";
+    }
+
+    // Glifo sobrio pelo conteudo da notificacao; cai em getNotifIcon.
+    function getNotifGlyph(n: var): string {
+        if (!n)
+            return "chat";
+        const summary = n.summary ?? "";
+        const urgency = n.urgency ?? NotificationUrgency.Normal;
+        const iconName = (n.image ?? "").startsWith("image://icon/") ? n.image.slice(13) : (n.appIcon ?? "");
+        const app = (n.appName ?? "").toLowerCase();
+        const text = `${summary} ${n.body ?? ""}`.toLowerCase();
+
+        // App antes do texto: o titulo da tarefa do agente tem palavra de tudo
+        if (app === "cursor")
+            return /^approve/i.test(summary) ? "approval" : /^done/i.test(summary) ? "task_alt" : "code";
+        if (iconName.startsWith("battery") || /\b(battery|bateria)\b/.test(text)) {
+            const m = text.match(/(\d{1,3})\s*%/);
+            if (iconName === "battery-empty" || iconName === "battery-caution" || /\blow\b|baixa/.test(text))
+                return "battery_alert";
+            if (m)
+                return getBatteryIcon(Math.min(100, parseInt(m[1])) / 100, /charging|carregando/.test(text));
+            return "battery_full";
+        }
+        if (iconName === "dialog-error" || /^(error|erro|falha)\b/.test(summary.toLowerCase()))
+            return "error";
+        if (iconName === "package-x-generic" || iconName === "system-software-update" || /atualiza/.test(text))
+            return "update";
+        if (/\b[di]?gpu\b/.test(text))
+            return "memory";
+        if (/workspace/.test(text))
+            return "grid_view";
+        return getNotifIcon(summary, urgency);
+    }
+
     function getNotifIcon(summary: string, urgency: int): string {
         summary = summary.toLowerCase();
         if (summary.includes("reboot"))
