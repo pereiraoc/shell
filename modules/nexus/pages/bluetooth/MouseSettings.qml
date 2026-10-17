@@ -20,9 +20,13 @@ PageBase {
     readonly property bool asleep: !!root.mouse?.asleep
     readonly property var buttons: root.mouse?.buttons ?? []
     readonly property var sideButtons: root.buttons.filter(b => b.group === "side")
-    readonly property var otherButtons: root.buttons.filter(b => b.group !== "side")
+    readonly property var otherButtons: root.buttons.filter(b => b.group !== "side" && !b.locked)
     property string selected
-    readonly property var selButton: root.buttons.find(b => b.id === root.selected) ?? root.buttons[0] ?? null
+    // Chip "Custom shortcut" escolhido, campo aberto (ainda sem aplicar)
+    property bool customOpen
+    readonly property bool isCustom: (root.selButton?.action ?? "").startsWith("key-")
+    // Nada escolhido ate clicar num botao; clicar de novo no mesmo desmarca
+    readonly property var selButton: root.buttons.find(b => b.id === root.selected) ?? null
 
     // Fila: um clique com outra acao em curso espera e vai em seguida.
     property var queue: []
@@ -34,17 +38,71 @@ PageBase {
     property string wantedStages
     property string sentStages
 
+    // Acoes que viram gravacao no proprio mouse (o "sends" ja mostra o efeito)
+    readonly property var mouseActions: ({ "disabled": 1, "factory": 1, "documented": 1, "original": 1, "left-click": 1, "right-click": 1, "media-stop": 1, "copy": 1, "paste": 1, "cut": 1, "undo": 1, "redo": 1, "select-all": 1, "enter": 1, "escape": 1, "back": 1, "forward": 1, "middle-click": 1, "new-tab": 1, "close-tab": 1, "reopen-tab": 1, "next-tab": 1, "prev-tab": 1, "reload": 1, "dpi-up": 1, "dpi-down": 1, "play-pause": 1, "next-track": 1, "prev-track": 1, "volume-up": 1, "volume-down": 1, "mute": 1 })
+
+    // Icone (Material Symbols) de cada acao, ao lado do nome
+    readonly property var actionIcons: ({ "default": "work", "factory": "factory", "documented": "bookmark", "disabled": "block", "custom": "keyboard", "middle-click": "mouse", "dpi-up": "add_circle", "dpi-down": "do_not_disturb_on", "copy": "content_copy", "paste": "content_paste", "cut": "content_cut", "undo": "undo", "redo": "redo", "select-all": "select_all", "enter": "keyboard_return", "escape": "cancel", "back": "arrow_back", "forward": "arrow_forward", "new-tab": "add_box", "close-tab": "tab_close", "reopen-tab": "tab_recent", "next-tab": "keyboard_tab", "prev-tab": "keyboard_tab_rtl", "reload": "refresh", "play-pause": "play_pause", "next-track": "skip_next", "prev-track": "skip_previous", "volume-up": "volume_up", "volume-down": "volume_down", "mute": "volume_off", "mic-mute": "mic_off", "launcher": "apps", "ws-1-1": "grid_view", "ws-1-2": "grid_view", "ws-1-3": "grid_view", "ws-2-1": "grid_view", "ws-2-2": "grid_view", "ws-2-3": "grid_view", "ws-3-1": "grid_view", "ws-3-2": "grid_view", "ws-3-3": "grid_view", "left-click": "left_click", "right-click": "right_click", "media-stop": "stop", "maximize": "fit_screen", "exit-fullscreen": "fullscreen_exit", "pin": "keep", "settings": "settings", "screenshot-screen": "screenshot_monitor", "goto-ws-1": "looks_one", "goto-ws-2": "looks_two", "goto-ws-3": "looks_3", "move-ws-1": "move_down", "move-ws-2": "move_down", "move-ws-3": "move_down", "goto-group-1": "looks_one", "goto-group-2": "looks_two", "goto-group-3": "looks_3", "move-group-1": "move_down", "move-group-2": "move_down", "move-group-3": "move_down", "next-subgroup": "arrow_downward", "prev-subgroup": "arrow_upward", "next-group": "east", "prev-group": "west", "scratchpad": "stack", "close-window": "close", "fullscreen": "fullscreen", "float": "picture_in_picture", "screenshot": "screenshot_region", "terminal": "terminal", "lock": "lock" })
+
+    // Basico (largura toda, com o campo do Custom ao lado) + pares de grupos
+    // em 2 colunas; cada par tem o mesmo numero de opcoes (mesmas linhas)
+    readonly property var basicActions: ["default", "factory", "disabled", "custom"]
+    // Grupos em linhas de 2-3 itens afins; pares (esquerda/direita) com o
+    // mesmo numero de linhas
     readonly property var actionGroups: [
-        { title: qsTr("Basic"), actions: ["default", "disabled"] },
-        { title: qsTr("Editing"), actions: ["copy", "paste", "cut", "undo", "redo", "select-all", "enter", "escape"] },
-        { title: qsTr("Browser"), actions: ["back", "forward", "new-tab", "close-tab", "reopen-tab", "next-tab", "prev-tab", "reload"] },
-        { title: qsTr("Media"), actions: ["play-pause", "next-track", "prev-track", "volume-up", "volume-down", "mute", "mic-mute"] },
-        { title: qsTr("Desktop"), actions: ["launcher", "next-subgroup", "prev-subgroup", "next-group", "prev-group", "scratchpad", "close-window", "fullscreen", "float", "screenshot", "terminal", "lock"] }
+        { title: qsTr("Mouse"), icon: "mouse", rows: [["left-click", "middle-click", "right-click"], ["back", "forward"]] },
+        { title: qsTr("Editing"), icon: "edit_note", rows: [["undo", "redo", "select-all"], ["enter", "escape"]] },
+        { title: qsTr("DPI"), icon: "speed", rows: [["dpi-down", "dpi-up"]] },
+        { title: qsTr("Clipboard"), icon: "content_paste", rows: [["copy", "paste", "cut"]] },
+        { title: qsTr("Media"), icon: "music_note", rows: [["play-pause", "media-stop"], ["prev-track", "next-track"]] },
+        { title: qsTr("Volume"), icon: "volume_up", rows: [["volume-up", "volume-down"], ["mute", "mic-mute"]] },
+        { title: qsTr("Browser tabs"), icon: "tab", rows: [["new-tab", "close-tab", "reopen-tab"], ["reload", "prev-tab", "next-tab"]] },
+        { title: qsTr("Apps · screen"), icon: "apps", rows: [["launcher", "terminal", "settings"], ["screenshot", "screenshot-screen", "lock"]] },
+        { title: qsTr("Window"), icon: "web_asset", rows: [["maximize", "fullscreen", "exit-fullscreen"], ["float", "pin", "close-window"], ["scratchpad"]] },
+        { title: qsTr("Group · workspace (Shift: move window)"), icon: "grid_view", rows: [["ws-1-1", "ws-1-2", "ws-1-3"], ["ws-2-1", "ws-2-2", "ws-2-3"], ["ws-3-1", "ws-3-2", "ws-3-3"]] },
+        { title: qsTr("Workspaces"), icon: "view_carousel", rows: [["prev-subgroup", "next-subgroup"], ["goto-ws-1", "goto-ws-2", "goto-ws-3"], ["move-ws-1", "move-ws-2", "move-ws-3"]] },
+        { title: qsTr("Groups"), icon: "view_module", rows: [["prev-group", "next-group"], ["goto-group-1", "goto-group-2", "goto-group-3"], ["move-group-1", "move-group-2", "move-group-3"]] }
     ]
+
+    // Nome curto dentro do grupo (o titulo do grupo da o contexto)
+    readonly property var shortLabels: ({ "close-window": qsTr("Close"), "float": qsTr("Float"), "prev-track": qsTr("Previous"), "next-track": qsTr("Next"), "volume-up": qsTr("Up"), "volume-down": qsTr("Down"), "new-tab": qsTr("New"), "close-tab": qsTr("Close"), "reopen-tab": qsTr("Reopen"), "prev-tab": qsTr("Previous"), "next-tab": qsTr("Next"), "prev-subgroup": qsTr("Previous"), "next-subgroup": qsTr("Next"), "prev-group": qsTr("Previous"), "next-group": qsTr("Next"), "goto-ws-1": qsTr("Go to 1"), "goto-ws-2": qsTr("Go to 2"), "goto-ws-3": qsTr("Go to 3"), "move-ws-1": qsTr("Move to 1"), "move-ws-2": qsTr("Move to 2"), "move-ws-3": qsTr("Move to 3"), "goto-group-1": qsTr("Go to 1"), "goto-group-2": qsTr("Go to 2"), "goto-group-3": qsTr("Go to 3"), "move-group-1": qsTr("Move to 1"), "move-group-2": qsTr("Move to 2"), "move-group-3": qsTr("Move to 3"), "screenshot": qsTr("Area"), "screenshot-screen": qsTr("Screen"), "lock": qsTr("Lock"), "settings": qsTr("Settings"), "pin": qsTr("Pin"), "mic-mute": qsTr("Toggle mic"), "left-click": qsTr("Left"), "middle-click": qsTr("Middle"), "right-click": qsTr("Right"), "play-pause": qsTr("Play/Pause"), "mute": qsTr("Toggle mute"), "fullscreen": qsTr("Full"), "exit-fullscreen": qsTr("Exit full") })
+
+    // Grade 3x3: ws-G-W (ir; Shift = mover a janela)
+    function gridLabel(a: string, short: bool): string {
+        const m = /^ws-(\d)-(\d)$/.exec(a);
+        if (!m)
+            return "";
+        return short ? `G${m[1]}·W${m[2]}` : qsTr("Group %1, workspace %2").arg(m[1]).arg(m[2]);
+    }
 
     readonly property var actionLabels: ({
             "default": qsTr("Default"),
             "disabled": qsTr("Do nothing"),
+            "custom": qsTr("Custom"),
+            "left-click": qsTr("Left click"),
+            "right-click": qsTr("Right click"),
+            "media-stop": qsTr("Stop"),
+            "maximize": qsTr("Maximize"),
+            "exit-fullscreen": qsTr("Exit fullscreen"),
+            "pin": qsTr("Pin to all workspaces"),
+            "settings": qsTr("Open settings"),
+            "screenshot-screen": qsTr("Screenshot of the screen"),
+            "goto-ws-1": qsTr("Go to workspace 1"),
+            "goto-ws-2": qsTr("Go to workspace 2"),
+            "goto-ws-3": qsTr("Go to workspace 3"),
+            "move-ws-1": qsTr("Move window to workspace 1"),
+            "move-ws-2": qsTr("Move window to workspace 2"),
+            "move-ws-3": qsTr("Move window to workspace 3"),
+            "goto-group-1": qsTr("Go to group 1"),
+            "goto-group-2": qsTr("Go to group 2"),
+            "goto-group-3": qsTr("Go to group 3"),
+            "move-group-1": qsTr("Move window to group 1"),
+            "move-group-2": qsTr("Move window to group 2"),
+            "move-group-3": qsTr("Move window to group 3"),
+            "factory": qsTr("Factory"),
+            "middle-click": qsTr("Middle click"),
+            "dpi-up": qsTr("DPI up"),
+            "dpi-down": qsTr("DPI down"),
             "copy": qsTr("Copy"),
             "paste": qsTr("Paste"),
             "cut": qsTr("Cut"),
@@ -66,8 +124,8 @@ PageBase {
             "prev-track": qsTr("Previous track"),
             "volume-up": qsTr("Volume up"),
             "volume-down": qsTr("Volume down"),
-            "mute": qsTr("Mute"),
-            "mic-mute": qsTr("Mute microphone"),
+            "mute": qsTr("Toggle mute"),
+            "mic-mute": qsTr("Toggle microphone"),
             "launcher": qsTr("Launcher"),
             "next-subgroup": qsTr("Next workspace"),
             "prev-subgroup": qsTr("Previous workspace"),
@@ -89,6 +147,12 @@ PageBase {
             return qsTr("Side button %1").arg(b.id.split("-")[1]);
         return ({
                 "middle": qsTr("Wheel click"),
+                "left": qsTr("Left click"),
+                "right": qsTr("Right click"),
+                "dpi-up": qsTr("DPI up button"),
+                "dpi-down": qsTr("DPI down button"),
+                "wheel-up": qsTr("Scroll up"),
+                "wheel-down": qsTr("Scroll down"),
                 "back": qsTr("Back button"),
                 "forward": qsTr("Forward button"),
                 "button-6": qsTr("Button 6"),
@@ -103,8 +167,13 @@ PageBase {
     function defaultText(b: var): string {
         if (!b)
             return "";
+        // Mouse com memoria lida: o original e o que estava gravado nele
+        if (b.onboard)
+            return b.original ?? "";
+        // sends = o que o botao manda de verdade (mapa aprendido da memoria
+        // do mouse, ou o de fabrica 1..=)
         if (b.group === "side")
-            return qsTr("types %1").arg(({ minus: "-", equal: "=" })[b.key] ?? b.key);
+            return qsTr("sends %1").arg(b.sends ?? ({ minus: "-", equal: "=" })[b.key] ?? b.key);
         return ({
                 "middle": qsTr("middle click"),
                 "back": qsTr("goes back"),
@@ -116,6 +185,12 @@ PageBase {
 
     // key-ctrl.shift-F5 -> "Ctrl+Shift+F5"
     function actionText(a: string): string {
+        if (a === "original")
+            return qsTr("Original");
+        if (a === "documented")
+            return qsTr("Default (documented)");
+        if (root.gridLabel(a, false))
+            return root.gridLabel(a, false);
         const m = /^key-([a-z.]+)-(.+)$/.exec(a ?? "");
         if (m)
             return [...(m[1] === "none" ? [] : m[1].split(".").map(x => x[0].toUpperCase() + x.slice(1))), m[2]].join("+");
@@ -134,6 +209,78 @@ PageBase {
         return `key-${mods.length ? mods.join(".") : "none"}-${key.length === 1 ? key.toLowerCase() : key}`;
     }
 
+    // O que o botao faz agora, curto (rotulo do desenho e legenda)
+    function nowText(b: var): string {
+        if (!b)
+            return "";
+        if (b.action !== "default" && !(b.action in root.mouseActions))
+            return root.actionText(b.action);
+        if (b.action === "default" && b.default_action)
+            return root.actionText(b.default_action);
+        return b.sends ?? root.defaultText(b);
+    }
+
+    // Chip: "Default: X" / "Factory: X" mostram o que dariam neste botao
+    function chipText(a: string): string {
+        const b = root.selButton;
+        // "default" = herda do perfil base (Productivity)
+        if (a === "default" && b)
+            return qsTr("Productivity: %1").arg(b.default_action ? root.actionText(b.default_action) : (b.default_text ?? root.defaultText(b)));
+        // perfil documentado no repo (CS): volta ao documentado
+        if (a === "documented" && b?.documented_text)
+            return qsTr("Default: %1").arg(b.documented_text);
+        if (a === "factory" && b?.factory_text)
+            return qsTr("Factory: %1").arg(b.factory_text);
+        return root.actionText(a);
+    }
+
+    function chipSelected(a: string): bool {
+        if (a === "default" && root.mouse?.profile === "Productivity")
+            return false;
+        if (a === "custom")
+            return root.isCustom || root.customOpen;
+        return !root.customOpen && (root.selButton?.action ?? "default") === a;
+    }
+
+    function chipPicked(a: string): void {
+        if (a === "default" && root.mouse?.profile === "Productivity")
+            return;
+        if (a === "custom") {
+            root.customOpen = true;
+            customField.forceActiveFocus();
+        } else {
+            root.customOpen = false;
+            root.setAction(a);
+        }
+    }
+
+    // Laterais: o que o botao faz (o numero vai no canto, pelo desenho)
+    function spotLabel(b: var): string {
+        if (b.group !== "side")
+            return "";
+        const g = /^ws-(\d)-(\d)$/.exec(b.action);
+        if (g)
+            return `${g[1]}·${g[2]}`;
+        const t = root.nowText(b);
+        if (t.length <= 3)
+            return t;
+        // Nao cabe legivel na tecla: icone da acao ("icon:<nome>")
+        return `icon:${root.actionIcons[b.action] ?? root.actionIcons[b.default_action] ?? "keyboard"}`;
+    }
+
+    function toggle(id: string): void {
+        root.selected = root.selected === id ? "" : id;
+        root.customOpen = false;
+    }
+
+    function applyCustom(): void {
+        const id = root.shortcutId(customField.text);
+        if (id) {
+            root.setAction(id);
+            root.customOpen = false;
+        }
+    }
+
     function run(id: string): void {
         if (bridge.busyAction === "")
             bridge.run({ id: id });
@@ -147,8 +294,14 @@ PageBase {
         root.run(`btn-${root.mouse.model}-${root.selButton.id}-${action}`);
     }
 
+    // Acompanha o mouse (trocar de perfil muda os estagios), menos quando ha
+    // uma edicao sua ainda nao enviada
     function initStages(): void {
-        if (root.stagesInited || !root.mouse || (root.mouse.dpi_stages ?? []).length === 0)
+        if (!root.mouse || (root.mouse.dpi_stages ?? []).length === 0)
+            return;
+        if (root.wantedStages && root.wantedStages !== root.sentStages)
+            return;
+        if (bridge.busyAction.startsWith("stages-"))
             return;
         root.stagesInited = true;
         root.stages = [...root.mouse.dpi_stages];
@@ -235,6 +388,20 @@ PageBase {
             bridge: bridge
         }
 
+        // ------------------------------------------------------- Perfis
+        // Gravados no Linux; o escolhido vai para a memoria do mouse (vale
+        // depois de desligar e em qualquer computador): botoes + DPI
+        MouseProfileBar {
+            visible: !!root.mouse?.onboard
+            profiles: root.mouse?.profiles ?? []
+            current: root.mouse?.profile ?? ""
+            busy: bridge.busyAction.startsWith("prof-")
+            onUse: n => root.run(`prof-${root.mouse.model}-use-${n}`)
+            onCreate: n => root.run(`prof-${root.mouse.model}-new-${n}`)
+            onRename: (o, n) => root.run(`prof-${root.mouse.model}-ren-${o}-${n}`)
+            onRemove: n => root.run(`prof-${root.mouse.model}-del-${n}`)
+        }
+
         // ------------------------------------------------------- Botoes
         SectionHeader {
             visible: root.buttons.length > 0
@@ -259,22 +426,49 @@ PageBase {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: qsTr("Pick a button, then what it does. Remaps apply right away and only to this mouse; holding Ctrl, Alt or Super keeps the original key.")
+                    text: diagram.available ? qsTr("Click a button on the mouse, then pick what it does. Highlighted buttons are remapped. Remaps apply right away and only to this mouse; holding Ctrl, Alt or Super keeps the original key.") : qsTr("Pick a button, then what it does. Remaps apply right away and only to this mouse; holding Ctrl, Alt or Super keeps the original key.")
                     color: Colours.palette.m3outline
                     font: Tokens.font.label.small
                     wrapMode: Text.WordWrap
                 }
 
+                // Silhueta clicavel (mouses com desenho em assets/mice); os
+                // outros ficam com as grades de botoes abaixo
+                MouseDiagram {
+                    id: diagram
+
+                    Layout.fillWidth: true
+                    model: root.mouse?.model ?? ""
+                    buttons: root.buttons
+                    selected: root.selButton?.id ?? ""
+                    labeler: b => root.spotLabel(b)
+                    onPicked: id => root.toggle(id)
+                }
+
+                // Botao sob o mouse (ou o escolhido): nome e o que faz agora
+                StyledText {
+                    readonly property var shown: root.buttons.find(b => b.id === diagram.hovered) ?? root.selButton
+
+                    Layout.fillWidth: true
+                    // Sempre ocupa o lugar (nada pula ao passar de um botao a outro)
+                    visible: diagram.available
+                    horizontalAlignment: Text.AlignHCenter
+                    text: shown ? `${root.buttonName(shown)} · ${root.nowText(shown)}${shown.locked ? " · " + qsTr("locked") : ""}` : qsTr("Point at a button to see what it does, click it to change it")
+                    color: diagram.hovered ? Colours.palette.m3onSurface : Colours.palette.m3outline
+                    font: Tokens.font.label.medium
+                    elide: Text.ElideRight
+                }
+
                 // Grade lateral, na mesma disposicao do mouse (3 x 4)
                 StyledText {
-                    visible: root.sideButtons.length > 0
+                    visible: !diagram.available && root.sideButtons.length > 0
                     text: qsTr("Side buttons")
                     font: Tokens.font.body.small
                 }
 
                 GridLayout {
                     Layout.fillWidth: true
-                    visible: root.sideButtons.length > 0
+                    visible: !diagram.available && root.sideButtons.length > 0
                     columns: 3
                     columnSpacing: Tokens.spacing.small
                     rowSpacing: Tokens.spacing.small
@@ -295,20 +489,20 @@ PageBase {
                             detail: modelData.action === "default" ? root.defaultText(modelData) : root.actionText(modelData.action)
                             remapped: modelData.action !== "default"
                             selected: root.selButton?.id === modelData.id
-                            onPicked: root.selected = modelData.id
+                            onPicked: root.toggle(modelData.id)
                         }
                     }
                 }
 
                 StyledText {
-                    visible: root.otherButtons.length > 0
+                    visible: !diagram.available && root.otherButtons.length > 0
                     text: qsTr("Other buttons")
                     font: Tokens.font.body.small
                 }
 
                 GridLayout {
                     Layout.fillWidth: true
-                    visible: root.otherButtons.length > 0
+                    visible: !diagram.available && root.otherButtons.length > 0
                     columns: Math.max(2, Math.floor(width / 150))
                     columnSpacing: Tokens.spacing.small
                     rowSpacing: Tokens.spacing.small
@@ -329,7 +523,7 @@ PageBase {
                             detail: modelData.action === "default" ? root.defaultText(modelData) : root.actionText(modelData.action)
                             remapped: modelData.action !== "default"
                             selected: root.selButton?.id === modelData.id
-                            onPicked: root.selected = modelData.id
+                            onPicked: root.toggle(modelData.id)
                         }
                     }
                 }
@@ -364,60 +558,172 @@ PageBase {
                     }
 
                     StyledText {
-                        text: bridge.busyAction.startsWith("btn-") ? qsTr("Applying…") : root.selButton?.action === "default" ? qsTr("Default — %1").arg(root.defaultText(root.selButton)) : root.actionText(root.selButton?.action ?? "")
+                        text: bridge.busyAction.startsWith("btn-") || bridge.busyAction.startsWith("prof-") ? qsTr("Writing to the mouse…") : ["default", "factory"].includes(root.selButton?.action ?? "default") ? root.chipText(root.selButton?.action ?? "default") : root.actionText(root.selButton?.action ?? "")
                         color: Colours.palette.m3primary
                         font: Tokens.font.label.medium
                     }
                 }
 
-                Repeater {
-                    model: root.actionGroups
+                RowLayout {
+                    spacing: Tokens.spacing.extraSmall
 
-                    ColumnLayout {
-                        id: group
+                    MaterialIcon {
+                        text: "tune"
+                        color: Colours.palette.m3outline
+                    }
 
-                        required property var modelData
-
-                        Layout.fillWidth: true
-                        spacing: Tokens.spacing.extraSmall
-
-                        StyledText {
-                            text: group.modelData.title
-                            color: Colours.palette.m3outline
-                            font: Tokens.font.label.medium
-                        }
-
-                        Flow {
-                            Layout.fillWidth: true
-                            spacing: Tokens.spacing.small
-
-                            Repeater {
-                                model: group.modelData.actions
-
-                                ActionChip {
-                                    required property string modelData
-
-                                    text: root.actionText(modelData)
-                                    selected: (root.selButton?.action ?? "default") === modelData
-                                    onPicked: root.setAction(modelData)
-                                }
-                            }
-                        }
+                    StyledText {
+                        text: qsTr("Basic")
+                        color: Colours.palette.m3outline
+                        font: Tokens.font.label.medium
                     }
                 }
 
-                TextFieldRow {
+                // Basico em 2x2, uma opcao por celula: Default/Factory a esquerda,
+                // Custom (com o campo do atalho sempre ao lado) e Do nothing a direita
+                GridLayout {
                     Layout.fillWidth: true
-                    label: qsTr("Custom shortcut")
-                    subtext: qsTr("Keys joined by +, sent to the window in focus. E.g. ctrl+shift+t, alt+F4, F13")
-                    placeholderText: "ctrl+shift+F5"
-                    value: (root.selButton?.action ?? "").startsWith("key-") ? root.actionText(root.selButton.action).toLowerCase() : ""
-                    errorText: field.text !== "" && root.shortcutId(field.text) === "" ? qsTr("Use Ctrl, Alt, Shift or Super plus one key") : ""
-                    smallField: true
-                    onEditingFinished: v => {
-                        const id = root.shortcutId(v);
-                        if (id)
-                            root.setAction(id);
+                    columns: 2
+                    columnSpacing: Tokens.spacing.large
+                    rowSpacing: Tokens.spacing.small
+
+                    ActionChip {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        icon: root.actionIcons["default"]
+                        text: root.chipText("default")
+                        selected: root.chipSelected("default")
+                        onPicked: root.chipPicked("default")
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        spacing: Tokens.spacing.small
+
+                        ActionChip {
+                            icon: root.actionIcons["custom"]
+                            text: root.chipText("custom")
+                            selected: root.chipSelected("custom")
+                            onPicked: root.chipPicked("custom")
+                        }
+
+                        StyledTextField {
+                            id: customField
+
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("e.g. ctrl+shift+t")
+                            verticalPadding: Tokens.padding.small
+                            text: root.isCustom ? root.actionText(root.selButton.action).toLowerCase() : ""
+                            validate: v => root.shortcutId(v) !== ""
+                            emptyIsValid: false
+                            onActiveFocusChanged: if (activeFocus) root.customOpen = true
+                            onAccepted: root.applyCustom()
+                        }
+
+                        IconButton {
+                            icon: "check"
+                            type: IconButton.Tonal
+                            disabled: root.shortcutId(customField.text) === ""
+                            onClicked: root.applyCustom()
+                        }
+                    }
+
+                    // Perfil documentado (CS): "Default: X" volta ao documentado;
+                    // senao "Factory: X"
+                    ActionChip {
+                        readonly property string act: root.selButton?.documented_text ? "documented" : "factory"
+
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        icon: root.actionIcons[act]
+                        text: root.chipText(act)
+                        selected: root.chipSelected(act)
+                        onPicked: root.chipPicked(act)
+                    }
+
+                    ActionChip {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        icon: root.actionIcons["disabled"]
+                        text: root.chipText("disabled")
+                        selected: root.chipSelected("disabled")
+                        onPicked: root.chipPicked("disabled")
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    visible: root.customOpen || root.isCustom
+                    text: customField.text !== "" && root.shortcutId(customField.text) === "" ? qsTr("Use Ctrl, Alt, Shift or Super plus one key, joined by +") : qsTr("Sent to the window in focus: ctrl+shift+t, alt+F4, F13…")
+                    color: customField.text !== "" && root.shortcutId(customField.text) === "" ? Colours.palette.m3error : Colours.palette.m3outline
+                    font: Tokens.font.label.small
+                    wrapMode: Text.WordWrap
+                }
+
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: width > 520 ? 2 : 1
+                    columnSpacing: Tokens.spacing.large
+                    rowSpacing: Tokens.spacing.large
+
+                    Repeater {
+                        model: root.actionGroups
+
+                        ColumnLayout {
+                            id: group
+
+                            required property var modelData
+
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            Layout.alignment: Qt.AlignTop
+                            spacing: Tokens.spacing.extraSmall
+
+                            RowLayout {
+                                spacing: Tokens.spacing.extraSmall
+
+                                MaterialIcon {
+                                    text: group.modelData.icon
+                                    color: Colours.palette.m3outline
+                                }
+
+                                StyledText {
+                                    text: group.modelData.title
+                                    color: Colours.palette.m3outline
+                                    font: Tokens.font.label.medium
+                                }
+                            }
+
+                            // Uma linha por conjunto afim (2-3 itens que dividem a largura)
+                            Repeater {
+                                model: group.modelData.rows
+
+                                RowLayout {
+                                    id: chipLine
+
+                                    required property var modelData
+
+                                    Layout.fillWidth: true
+                                    spacing: Tokens.spacing.small
+
+                                    Repeater {
+                                        model: chipLine.modelData
+
+                                        ActionChip {
+                                            required property string modelData
+
+                                            Layout.fillWidth: true
+                                            Layout.preferredWidth: 1
+                                            icon: root.actionIcons[modelData] ?? "keyboard"
+                                            text: root.gridLabel(modelData, true) || (root.shortLabels[modelData] ?? root.chipText(modelData))
+                                            selected: root.chipSelected(modelData)
+                                            onPicked: root.chipPicked(modelData)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -439,86 +745,59 @@ PageBase {
             text: qsTr("DPI stages")
         }
 
-        ChipSelectRow {
-            first: true
-            visible: !!root.mouse?.can_set_stages && root.stages.length > 0
-            label: qsTr("Stage in use")
-            subtext: qsTr("The DPI button on the mouse steps through these stages, in order")
-            options: root.stages.map((d, i) => ({ value: String(i + 1), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
-            current: String(root.active)
-            disabled: root.asleep
-            onPicked: v => {
-                root.active = Number(v);
-                root.stagesEdited();
-            }
-        }
-
-        Repeater {
-            // Modelo = quantidade: mudar um valor nao recria as linhas (nao
-            // perde o foco de quem esta digitando).
-            model: root.mouse?.can_set_stages ? root.stages.length : 0
-
-            StepperRow {
-                required property int index
-
-                label: qsTr("Stage %1").arg(index + 1)
-                subtext: index + 1 === root.active ? qsTr("In use now") : ""
-                value: root.stages[index] ?? 0
-                from: 100
-                to: root.mouse?.max_dpi ?? 30000
-                stepSize: 50
-                opacity: root.asleep ? 0.5 : 1
-                onMoved: v => {
-                    const s = root.stages.slice();
-                    s[index] = Math.round(v / 50) * 50;
-                    root.stages = s;
-                    root.stagesEdited();
-                }
-            }
-        }
-
+        // Uma barra so: pontos arrastaveis (reordenam ao soltar), clique no
+        // ponto = em uso, clique na barra = novo estagio, x = remove. Os
+        // estagios sao do perfil em uso.
         ConnectedRect {
             Layout.fillWidth: true
             visible: !!root.mouse?.can_set_stages && root.stages.length > 0
+            first: true
             last: true
-            implicitHeight: stageBtns.implicitHeight + Tokens.padding.medium * 2
+            implicitHeight: dpiCol.implicitHeight + Tokens.padding.large * 2
 
-            RowLayout {
-                id: stageBtns
+            ColumnLayout {
+                id: dpiCol
 
-                anchors.fill: parent
-                anchors.margins: Tokens.padding.medium
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Tokens.padding.largeIncreased
                 anchors.rightMargin: Tokens.padding.largeIncreased
                 spacing: Tokens.spacing.small
 
-                StyledText {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: qsTr("%n stage(s) — up to 5", "", root.stages.length)
-                    color: Colours.palette.m3outline
-                    font: Tokens.font.label.small
-                }
 
-                IconButton {
-                    icon: "remove"
-                    type: IconButton.Tonal
-                    isRound: true
-                    disabled: root.asleep || root.stages.length <= 1
-                    onClicked: {
-                        root.stages = root.stages.slice(0, -1);
-                        root.active = Math.min(root.active, root.stages.length);
-                        root.stagesEdited();
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: root.mouse?.onboard ? qsTr("Stages of profile %1").arg(root.mouse.profile) : qsTr("Stages")
+                        font: Tokens.font.body.small
+                    }
+
+                    StyledText {
+                        text: qsTr("In use: %1 DPI").arg(root.stages[root.active - 1] ?? "?")
+                        color: Colours.palette.m3primary
+                        font: Tokens.font.label.medium
                     }
                 }
 
-                IconButton {
-                    icon: "add"
-                    type: IconButton.Tonal
-                    isRound: true
-                    disabled: root.asleep || root.stages.length >= 5
-                    onClicked: {
-                        const top = root.stages[root.stages.length - 1] ?? 800;
-                        root.stages = [...root.stages, Math.min(root.mouse?.max_dpi ?? 30000, top * 2)];
+                StyledText {
+                    Layout.fillWidth: true
+                    text: qsTr("Drag a point to change it, click it to use it, click the bar to add a stage (up to 5). The DPI buttons on the mouse step through them in order.")
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.small
+                    wrapMode: Text.WordWrap
+                }
+
+                DpiStageBar {
+                    Layout.fillWidth: true
+                    stages: root.stages
+                    active: root.active
+                    maxDpi: root.mouse?.max_dpi ?? 30000
+                    disabled: root.asleep
+                    onEdited: (s, a) => {
+                        root.stages = s;
+                        root.active = a;
                         root.stagesEdited();
                     }
                 }
@@ -631,16 +910,18 @@ PageBase {
         }
     }
 
+    // Chip com icone na frente (reconhecer pelo icone e mais rapido que ler)
     component ActionChip: StyledRect {
         id: chip
 
         property string text
+        property string icon
         property bool selected
 
         signal picked
 
-        implicitWidth: chipLabel.implicitWidth + Tokens.padding.medium * 2
-        implicitHeight: chipLabel.implicitHeight + Tokens.padding.small * 2
+        implicitWidth: chipIcon.implicitWidth + chipRow.spacing + chipLabel.implicitWidth + Tokens.padding.medium * 2
+        implicitHeight: chipRow.implicitHeight + Tokens.padding.small * 2
         radius: Tokens.rounding.full
         color: chip.selected ? Colours.palette.m3primary : Colours.tPalette.m3surfaceContainerHigh
 
@@ -651,13 +932,33 @@ PageBase {
             onClicked: chip.picked()
         }
 
-        StyledText {
-            id: chipLabel
+        Row {
+            id: chipRow
 
-            anchors.centerIn: parent
-            text: chip.text
-            color: chip.selected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.label.medium
+            anchors.verticalCenter: parent.verticalCenter
+            x: Tokens.padding.medium
+            spacing: Tokens.spacing.small
+
+            MaterialIcon {
+                id: chipIcon
+
+                anchors.verticalCenter: parent.verticalCenter
+                visible: chip.icon !== ""
+                text: chip.icon
+                color: chip.selected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                fill: chip.selected ? 1 : 0
+            }
+
+            StyledText {
+                id: chipLabel
+
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(implicitWidth, chip.width - Tokens.padding.medium * 2 - chipRow.spacing - chipIcon.implicitWidth)
+                text: chip.text
+                elide: Text.ElideRight
+                color: chip.selected ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.medium
+            }
         }
     }
 }
