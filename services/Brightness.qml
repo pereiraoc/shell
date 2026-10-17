@@ -170,7 +170,10 @@ Singleton {
         readonly property string busNum: ddcInfo?.busNum ?? ""
         readonly property bool isAppleDisplay: root.appleDisplayPresent && modelData.model.startsWith("StudioDisplay")
         property real brightness
-        property real queuedBrightness: NaN
+        // DDC/CI e lento: o slider pede valores a cada pixel, mas so mandamos
+        // pro monitor no maximo um setvcp a cada 500ms. O brilho do shell
+        // atualiza na hora; ddcSent guarda o ultimo valor que foi pro monitor.
+        property int ddcSent: -1
 
         readonly property Process initProc: Process {
             stdout: StdioCollector {
@@ -181,6 +184,8 @@ Singleton {
                     } else {
                         const [, , , cur, max] = text.split(" ");
                         monitor.brightness = parseInt(cur) / parseInt(max);
+                        if (monitor.isDdc)
+                            monitor.ddcSent = Math.round(monitor.brightness * 100);
                     }
                 }
             }
@@ -188,12 +193,7 @@ Singleton {
 
         readonly property Timer timer: Timer {
             interval: 500
-            onTriggered: {
-                if (!isNaN(monitor.queuedBrightness)) {
-                    monitor.setBrightness(monitor.queuedBrightness);
-                    monitor.queuedBrightness = NaN;
-                }
-            }
+            onTriggered: monitor.flushDdc()
         }
 
         function setBrightness(value: real): void {
@@ -203,22 +203,28 @@ Singleton {
             if (Math.round(brightness * 100) === rounded)
                 return;
 
-            if (isDdc && timer.running) {
-                queuedBrightness = value;
-                return;
-            }
-
             brightness = value;
 
             if (isAppleDisplay)
                 Quickshell.execDetached(["asdbctl", "set", rounded]);
-            else if (isDdc)
-                Quickshell.execDetached(["ddcutil", "-b", busNum, "setvcp", "10", rounded]);
-            else
+            else if (isDdc) {
+                // Fila antiga guardava o valor pendente sem atualizar o brilho
+                // e o early-return acima a deixava velha: arrastar o slider
+                // fazia o monitor (e o slider) pular pra tras e pra frente.
+                if (!timer.running)
+                    flushDdc();
+            } else
                 Quickshell.execDetached(["brightnessctl", "s", `${rounded}%`]);
+        }
 
-            if (isDdc)
-                timer.restart();
+        function flushDdc(): void {
+            const rounded = Math.round(brightness * 100);
+            if (rounded === ddcSent)
+                return;
+
+            ddcSent = rounded;
+            Quickshell.execDetached(["ddcutil", "-b", busNum, "setvcp", "10", rounded]);
+            timer.restart();
         }
 
         function initBrightness(): void {
