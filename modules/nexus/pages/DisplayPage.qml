@@ -45,6 +45,13 @@ PageBase {
     title: qsTr("Display")
     description: qsTr("Resolution, refresh rate, scale and brightness for each screen")
 
+    // Monitores conhecidos (caelestia-app-monitor), base do App placement
+    ToolBridge {
+        id: appmon
+
+        tool: "app-monitor"
+    }
+
     ToolBridge {
         id: bridge
 
@@ -197,6 +204,64 @@ PageBase {
                     checked: mon.modelData.enabled
                     disabled: mon.busy || (mon.modelData.enabled && root.enabledCount <= 1)
                     onToggled: root.tryChange(`${checked ? "try-on" : "try-off"}-${mon.modelData.name}`)
+                }
+            }
+        }
+
+        // Monitores ja conectados alguma vez (caelestia-app-monitor): e deles que
+        // sai a escolha de monitor por app em Apps > App placement.
+        SectionHeader {
+            text: qsTr("Known monitors")
+        }
+
+        Repeater {
+            model: (appmon.info.monitors ?? []).length
+
+            ColumnLayout {
+                id: known
+
+                required property int index
+                readonly property var mon: appmon.info.monitors[index] ?? ({})
+                readonly property int count: (appmon.info.monitors ?? []).length
+                property bool confirmForget
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall / 2
+
+                InfoRow {
+                    first: known.index === 0
+                    icon: known.mon.internal ? "laptop" : "desktop_windows"
+                    iconColour: known.mon.connected ? Colours.palette.m3primary : Colours.palette.m3outline
+                    label: known.mon.label ?? ""
+                    subtext: `${known.mon.connected ? qsTr("Connected · %1").arg(known.mon.connector) : qsTr("Not connected")} · ${known.mon.width}×${known.mon.height} · ${known.mon.description}`
+                }
+
+                TextFieldRow {
+                    label: qsTr("Nickname")
+                    subtext: qsTr("Shown when picking where an app opens")
+                    value: known.mon.alias ?? ""
+                    placeholderText: known.mon.label ?? ""
+                    maximumLength: 40
+                    smallField: true
+                    onEditingFinished: v => {
+                        if (v !== (known.mon.alias ?? ""))
+                            appmon.run({ id: `alias~${known.mon.id}~${v}` });
+                    }
+                }
+
+                RowButton {
+                    last: known.index === known.count - 1
+                    visible: !known.mon.connected
+                    icon: "delete"
+                    text: known.confirmForget ? qsTr("Click again to forget") : qsTr("Forget this monitor")
+                    onClicked: {
+                        if (!known.confirmForget) {
+                            known.confirmForget = true;
+                            return;
+                        }
+                        appmon.run({ id: `forget~${known.mon.id}` });
+                        known.confirmForget = false;
+                    }
                 }
             }
         }
