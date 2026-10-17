@@ -118,12 +118,15 @@ StyledRect {
                         }
                     }
                 }
+                // Um icone so: cabo quando conectado; senao o estado do Wi-Fi
+                // (desligado/sem rede/sinal). O popout do cabo tem o liga/desliga
+                // do Wi-Fi.
                 DelegateChoice {
                     roleValue: "network"
                     delegate: EntryWrapper {
                         MaterialIcon {
                             animate: true
-                            text: Nmcli.activeEthernet ? "cable" : Nmcli.active ? Icons.getNetworkIcon(Nmcli.active.strength ?? 0) : "wifi_off"
+                            text: Nmcli.activeEthernet ? "cable" : !Nmcli.wifiEnabled ? "wifi_off" : Nmcli.active ? Icons.getNetworkIcon(Nmcli.active.strength ?? 0) : "signal_wifi_statusbar_not_connected"
                             color: root.colour
                         }
                     }
