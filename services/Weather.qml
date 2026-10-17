@@ -264,16 +264,23 @@ Singleton {
             for (let i = 0; i < json.hourly.time.length; i++) {
                 const time = new Date(json.hourly.time[i].replace("T", " "));
 
-                if (time < now)
+                // Inclui a hora corrente (o 1o item e o "Agora")
+                if (time.getTime() + 3600000 <= now.getTime())
                     continue;
 
+                const icon = Icons.getWeatherIcon(json.hourly.weather_code[i]);
                 hourlyList.push({
                     timestamp: json.hourly.time[i],
                     hour: time.getHours(),
                     tempC: Math.round(json.hourly.temperature_2m[i]),
                     precipChance: json.hourly.precipitation_probability[i],
+                    precipMm: json.hourly.precipitation[i] ?? 0,
+                    humidity: json.hourly.relative_humidity_2m[i] ?? 0,
+                    windSpeed: Math.round(json.hourly.wind_speed_10m[i] ?? 0),
+                    windDirection: json.hourly.wind_direction_10m[i] ?? 0,
                     weatherCode: json.hourly.weather_code[i],
-                    icon: Icons.getWeatherIcon(json.hourly.weather_code[i])
+                    // Lua de noite nos icones que tem versao noturna
+                    icon: json.hourly.is_day?.[i] === 0 ? icon.replace("_day", "_night") : icon
                 });
             }
             hourlyForecast = hourlyList;
@@ -286,7 +293,7 @@ Singleton {
 
         const [lat, lon] = loc.split(",").map(s => s.trim());
         const baseUrl = "https://api.open-meteo.com/v1/forecast";
-        const params = ["latitude=" + lat, "longitude=" + lon, "hourly=weather_code,temperature_2m,precipitation_probability", "daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset", "current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m", "timezone=auto", "forecast_days=7"];
+        const params = ["latitude=" + lat, "longitude=" + lon, "hourly=weather_code,temperature_2m,precipitation_probability,precipitation,relative_humidity_2m,wind_speed_10m,wind_direction_10m,is_day", "daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset", "current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m", "timezone=auto", "forecast_days=7"];
 
         return baseUrl + "?" + params.join("&");
     }
