@@ -31,7 +31,14 @@ Item {
     readonly property bool isOccupied: toplevels.length > 0
     readonly property bool hasWindows: isOccupied && showWindows && Config.bar.workspaces.maxWindowIcons > 0
     readonly property bool focused: activeWsId === ws
-    readonly property list<int> focusedShapeList: [MaterialShape.Slanted, MaterialShape.Oval, MaterialShape.Pill, MaterialShape.Triangle, MaterialShape.Arrow, MaterialShape.Diamond, MaterialShape.Pentagon, MaterialShape.Gem, MaterialShape.VerySunny, MaterialShape.Sunny, MaterialShape.Cookie4Sided, MaterialShape.Cookie6Sided, MaterialShape.Cookie7Sided, MaterialShape.Cookie9Sided, MaterialShape.Cookie12Sided, MaterialShape.Clover4Leaf, MaterialShape.SoftBurst, MaterialShape.Ghostish]
+    // Forma do workspace em foco = posicao na grade 3x3 (grupo*3 + workspace),
+    // com o numero de cantos crescendo: ponto, linha, triangulo, losango,
+    // pentagono, hexagono e bolas de 7, 8 e 9 pontas. Fixa, nao sorteada.
+    readonly property int slot: ((ws - 1) % 9 + 9) % 9
+    // regularPolygon/star comecam com um vertice a direita: -90 poe a ponta pra cima
+    readonly property real focusedRotation: [0, 0, -90, 0, -90, 0, -90, -90, -90][slot]
+    // Workspace especial (scratchpad, id negativo) = estrela de 5 pontas, com ou sem foco
+    readonly property bool isSpecial: ws < 0
 
     property color offMonitorColour: Colours.palette.m3outlineVariant
     readonly property bool onOtherMonitor: {
@@ -53,10 +60,28 @@ Item {
         if (!shape)
             return;
 
-        if (focused)
-            shape.shape = focusedShapeList[Math.floor(Math.random() * focusedShapeList.length)];
-        else
+        if (isSpecial) {
+            if (shape.shape !== MaterialShape.Custom) {
+                shape.customShape = shape.star(5, 0.5, 0.1, 0);
+                shape.shape = MaterialShape.Custom;
+            }
+            return;
+        }
+        if (!focused) {
             shape.shape = Qt.binding(() => isOccupied ? MaterialShape.Square : MaterialShape.Circle);
+            return;
+        }
+        if (slot === 0) {
+            shape.shape = MaterialShape.Circle;
+            return;
+        }
+
+        const poly = slot === 1 ? shape.rectangle(1, 0.28, 0.14, 0) : slot <= 5 ? shape.regularPolygon(slot + 1, 0.15, 0) : shape.star(slot + 1, 0.72, 0.12, 0);
+        // Custom -> Custom nao anima (o M3Shapes so troca a geometria): passa pelo circulo
+        if (shape.shape === MaterialShape.Custom)
+            shape.shape = MaterialShape.Circle;
+        shape.customShape = poly;
+        shape.shape = MaterialShape.Custom;
     }
 
     anchors.horizontalCenter: parent?.horizontalCenter
@@ -66,6 +91,8 @@ Item {
     opacity: LazyListView.removing || LazyListView.adding ? 0 : 1
 
     onFocusedChanged: updateShape()
+    // O delegate e reaproveitado ao trocar de grupo: o ws muda e o foco pode nao mudar
+    onWsChanged: updateShape()
     Component.onCompleted: updateShape()
 
     Behavior on LazyListView.visibleHeight {
@@ -92,6 +119,7 @@ Item {
 
             color: root.fgColour
             scale: root.focused ? 2 / 3 : root.isOccupied ? 1 / 3 : 1 / 4
+            rotation: root.isSpecial ? -90 : root.focused ? root.focusedRotation : 0
 
             animationEasing: Tokens.anim.expressiveDefaultSpatial
             animationDuration: Tokens.anim.durations.expressiveDefaultSpatial * Tokens.anim.durations.scale
@@ -101,6 +129,10 @@ Item {
             }
 
             Behavior on scale {
+                Anim {}
+            }
+
+            Behavior on rotation {
                 Anim {}
             }
         }

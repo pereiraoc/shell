@@ -166,7 +166,8 @@ Item {
             ws: modelData
             monitor: root.monitor
             offMonitorColour: Colours.palette.m3outline
-            displayType: Config.bar.workspaces.specialDisplayType
+            // Scratchpad desenhado como estrela (Workspace.qml), nao como icone
+            displayType: BarWorkspaceDisplay.Shapes
             showWindows: Config.bar.workspaces.showWindowsOnSpecialWorkspaces
             iconRules: GlobalConfig.bar.workspaces.specialWorkspaceIcons
         }

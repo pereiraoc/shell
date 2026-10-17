@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.containers
 import qs.services
 import qs.utils
 
@@ -127,6 +128,80 @@ Item {
                 label: Tr.tr("Wind")
                 value: Weather.windSpeed ? Tr.tr("%1 km/h").arg(Weather.windSpeed) : "--"
                 colour: Colours.palette.m3tertiary
+            }
+        }
+
+        // Previsao hora a hora das proximas 24 h (o servico ja baixa o hourly do
+        // open-meteo; antes so a tela de lock usava). Rola de lado com a roda.
+        StyledText {
+            Layout.topMargin: Tokens.spacing.medium
+            Layout.leftMargin: Tokens.padding.medium
+            visible: hourlyList.count > 0
+            text: Tr.tr("Next 24 hours")
+            font: Tokens.font.body.builders.medium.weight(Font.DemiBold).build()
+            color: Colours.palette.m3onSurface
+        }
+
+        StyledListView {
+            id: hourlyList
+
+            Layout.fillWidth: true
+            implicitHeight: contentItem.childrenRect.height
+            visible: count > 0
+
+            orientation: ListView.Horizontal
+            spacing: Tokens.spacing.small
+            clip: true
+            model: Math.min(24, Weather.hourlyForecast.length)
+
+            delegate: StyledRect {
+                id: hourItem
+
+                required property int index
+                readonly property var cond: Weather.hourlyForecast[index]
+                readonly property bool now: index === 0
+
+                implicitWidth: Math.max(hourColumn.implicitWidth + Tokens.padding.medium * 2, 64)
+                implicitHeight: hourColumn.implicitHeight + Tokens.padding.medium * 2
+
+                radius: Tokens.rounding.large
+                color: now ? Colours.palette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
+
+                ColumnLayout {
+                    id: hourColumn
+
+                    anchors.centerIn: parent
+                    spacing: Tokens.spacing.extraSmall
+
+                    StyledText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: hourItem.now ? Tr.trCtx("Now", "forecast column") : Qt.formatDateTime(new Date(hourItem.cond.timestamp.replace("T", " ")), Units.twelveHourClock ? "h A" : "hh:00")
+                        font: Tokens.font.body.builders.small.weight(Font.DemiBold).build()
+                        color: hourItem.now ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3primary
+                    }
+
+                    MaterialIcon {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: hourItem.cond.icon
+                        fontStyle: Tokens.font.icon.large
+                        color: hourItem.now ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3secondary
+                    }
+
+                    StyledText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Weather.formatTemp(hourItem.cond.tempC, true)
+                        font: Tokens.font.body.builders.medium.weight(Font.DemiBold).build()
+                        color: hourItem.now ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3tertiary
+                    }
+
+                    StyledText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Strings.percent(hourItem.cond.precipChance)
+                        font: Tokens.font.body.small
+                        opacity: 0.8
+                        color: hourItem.now ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+                    }
+                }
             }
         }
 
