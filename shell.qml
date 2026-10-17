@@ -42,8 +42,6 @@ ShellRoot {
     // Despedida ao desligar/reiniciar (caelestia-farewell): o filme do boot ao
     // contrario antes do systemctl
     Farewell {}
-
-    ConfigToasts {}
     Shortcuts {}
     BatteryMonitor {}
     IdleMonitors {

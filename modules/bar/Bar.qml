@@ -24,7 +24,7 @@ ColumnLayout {
             return;
 
         for (let i = 0; i < repeater.count; i++) {
-            const tray = (repeater.itemAt(i) as EntryWrapper).item as Tray;
+            const tray = (repeater.itemAt(i) as EntryWrapper)?.item as Tray;
             if (tray)
                 tray.expanded = false;
         }
@@ -79,14 +79,14 @@ ColumnLayout {
         const ch = childAt(width / 2, y) as EntryWrapper;
         if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
-            const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
+            const mon = Hypr.monitorFor(screen);
             const specialWs = mon?.lastIpcObject.specialWorkspace.name;
             if (specialWs?.length > 0)
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${specialWs.slice(8)}")` : `togglespecialworkspace ${specialWs.slice(8)}`);
             else {
                 // US-012 — scroll BOUNDED ao bloco de 9 ws do monitor (3 grupos × 3 subgrupos), com wrap.
                 // Evita "grupos infinitos": nunca escapa do bloco do role atual. block = GROUPS*SUBS.
-                const cur = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) ?? 1;
+                const cur = (Config.bar.workspaces.perMonitor ? mon.activeWorkspace?.id : Hypr.activeWsId) ?? 1;
                 const block = 9;
                 const role = Math.floor((cur - 1) / block);
                 const dir = angleDelta.y > 0 ? -1 : 1;

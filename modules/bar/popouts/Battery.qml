@@ -3,11 +3,52 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Services.UPower
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.services
 
 Column {
     id: root
+
+    function formatSeconds(s: int): string {
+        const day = Math.floor(s / 86400);
+        const hr = Math.floor(s / 3600) % 24;
+        const min = Math.floor(s / 60) % 60;
+
+        let comps = [];
+        if (day > 0)
+            comps.push(Tr.trN("%n day", "%n days", day));
+        if (hr > 0)
+            comps.push(Tr.trN("%n hour", "%n hours", hr));
+        if (min > 0)
+            comps.push(Tr.trN("%n min", "%n mins", min));
+
+        return comps.join(Tr.trCtx(", ", "duration component separator"));
+    }
+
+    function powerProfileToString(p: int): string {
+        switch (p) {
+        case PowerProfile.Balanced:
+            return Tr.trCtx("Balanced", "power profile");
+        case PowerProfile.Performance:
+            return Tr.trCtx("Performance", "power profile");
+        case PowerProfile.PowerSaver:
+            return Tr.trCtx("Power saver", "power profile");
+        default:
+            return Tr.trCtx("Unknown", "power profile");
+        }
+    }
+
+    function perfDegradationToString(p: int): string {
+        switch (p) {
+        case PerformanceDegradationReason.HighTemperature:
+            return Tr.tr("The device is too hot");
+        case PerformanceDegradationReason.LapDetected:
+            return Tr.tr("The device is on a lap");
+        default:
+            return Tr.tr("Unknown reason");
+        }
+    }
 
     spacing: Tokens.spacing.medium
     width: Tokens.sizes.bar.batteryWidth
@@ -16,7 +57,7 @@ Column {
     // duplicar. Este texto so cobre o caso de nao haver bateria nenhuma.
     StyledText {
         visible: !UPower.displayDevice.isLaptopBattery
-        text: qsTr("No battery detected · Power profile: %1").arg(PowerProfile.toString(PowerProfiles.profile))
+        text: Tr.tr("No battery detected · Power profile: %1").arg(root.powerProfileToString(PowerProfiles.profile))
     }
 
     Loader {
@@ -53,9 +94,10 @@ Column {
 
                     StyledText {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: qsTr("Performance Degraded")
+                        // TRANSLATORS: charger or thermal warning: the battery cannot draw full power
+                        text: Tr.tr("Performance degraded")
                         color: Colours.palette.m3onError
-                        font: Tokens.font.mono.builders.medium.weight(Font.Medium).build()
+                        font: Tokens.font.title.small
                     }
 
                     MaterialIcon {
@@ -70,7 +112,7 @@ Column {
                 StyledText {
                     anchors.horizontalCenter: parent.horizontalCenter
 
-                    text: qsTr("Reason: %1").arg(PerformanceDegradationReason.toString(PowerProfiles.degradationReason))
+                    text: root.perfDegradationToString(PowerProfiles.degradationReason)
                     color: Colours.palette.m3onError
                 }
             }

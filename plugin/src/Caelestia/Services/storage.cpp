@@ -1,36 +1,32 @@
 #include "storage.hpp"
 
-#include <algorithm>
-#include <cmath>
 #include <qdir.h>
 #include <qfile.h>
 #include <qfileinfo.h>
 #include <qhash.h>
-#include <qloggingcategory.h>
+#include <qtconcurrentrun.h>
+
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/sysmacros.h>
 
-Q_LOGGING_CATEGORY(lcStorage, "caelestia.services.storage", QtInfoMsg)
+#include <algorithm>
+#include <cmath>
 
 namespace caelestia::services {
 
+using Qt::StringLiterals::operator""_s;
+
 namespace {
 
-struct Accum {
-    quint64 usedBytes = 0;
-    quint64 totalBytes = 0;
-    bool hasRoot = false;
-};
-
 [[nodiscard]] QString sysfsRealPath(uint major, uint minor) {
-    const QString link = QStringLiteral("/sys/dev/block/%1:%2").arg(major).arg(minor);
+    const QString link = u"/sys/dev/block/%1:%2"_s.arg(major).arg(minor);
     const QString resolved = QFileInfo(link).canonicalFilePath();
     return resolved;
 }
 
 [[nodiscard]] bool readDevtFromSysfs(const QString& sysfsBlockDir, uint& major, uint& minor) {
-    QFile f(sysfsBlockDir + QStringLiteral("/dev"));
+    QFile f(sysfsBlockDir + u"/dev"_s);
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
     }
@@ -60,12 +56,12 @@ QStringList resolveAtNode(const QString& node, int depth) {
         return {};
     }
 
-    if (QFileInfo::exists(node + QStringLiteral("/partition"))) {
+    if (QFileInfo::exists(node + u"/partition"_s)) {
         const QString diskNode = nodeInfo.path();
         return { QFileInfo(diskNode).fileName() };
     }
 
-    const QDir slavesDir(node + QStringLiteral("/slaves"));
+    const QDir slavesDir(node + u"/slaves"_s);
     if (slavesDir.exists()) {
         const QStringList slaves = slavesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
         if (!slaves.isEmpty()) {
@@ -73,7 +69,7 @@ QStringList resolveAtNode(const QString& node, int depth) {
             for (const QString& slave : slaves) {
                 uint sm = 0;
                 uint sn = 0;
-                const QString slaveDir = QStringLiteral("/sys/class/block/") + slave;
+                const QString slaveDir = u"/sys/class/block/"_s + slave;
                 if (!readDevtFromSysfs(slaveDir, sm, sn)) {
                     continue;
                 }
@@ -154,7 +150,12 @@ QList<MountLine> readMountInfo() {
 } // namespace
 
 Storage::Storage(QObject* parent)
-    : TickingService(parent) {}
+    : TickingService(parent)
+    , m_futureWatcher(new QFutureWatcher<AccumHash>(this)) {
+    QObject::connect(m_futureWatcher, &QFutureWatcher<AccumHash>::finished, this, [this] {
+        applyDisks(m_futureWatcher->result());
+    });
+}
 
 qreal Storage::percentage() const {
     qreal totalUsed = 0.0;
@@ -179,7 +180,7 @@ bool Storage::sameOrder(const QList<DiskInfo*>& a, const QList<DiskInfo*>& b) {
 }
 
 QQmlListProperty<DiskInfo> Storage::disksProp() {
-    return QQmlListProperty<DiskInfo>(this, nullptr, &Storage::disksCount, &Storage::disksAt);
+    return { this, nullptr, &Storage::disksCount, &Storage::disksAt };
 }
 
 qsizetype Storage::disksCount(QQmlListProperty<DiskInfo>* prop) {
@@ -211,7 +212,7 @@ DiskInfo* Storage::primaryDisk() const {
 }
 
 bool Storage::isPseudoFs(QByteArrayView fsType) {
-    static constexpr const char* kPseudo[] = {
+    static constexpr const char* k_pseudo[] = {
         "tmpfs",
         "devtmpfs",
         "proc",
@@ -237,7 +238,7 @@ bool Storage::isPseudoFs(QByteArrayView fsType) {
         "efivarfs",
         "selinuxfs",
     };
-    for (const char* p : kPseudo) {
+    for (const char* p : k_pseudo) {
         if (fsType == QByteArrayView(p)) {
             return true;
         }
@@ -261,7 +262,7 @@ bool Storage::isRemoteFs(QByteArrayView fsType) {
 }
 
 QStringList Storage::resolveToPhysicalDisks(const QString& devicePath) {
-    if (devicePath.isEmpty() || !devicePath.startsWith(QLatin1Char('/'))) {
+    if (devicePath.isEmpty() || !devicePath.startsWith(u'/')) {
         return {};
     }
     struct stat st{};
@@ -274,21 +275,7 @@ QStringList Storage::resolveToPhysicalDisks(const QString& devicePath) {
     return resolveByDevt(major(st.st_rdev), minor(st.st_rdev));
 }
 
-void Storage::tick() {
-    const qreal prevPercentage = percentage();
-    QHash<QString, Accum> byDisk;
-
-    // Multiple mounts can share a single backing filesystem (btrfs subvolumes,
-    // bind mounts, etc.) and each one reports identical bytesTotal/bytesAvailable.
-    // Dedupe by source device so the filesystem only contributes once per disk.
-    struct DeviceEntry {
-        quint64 totalBytes = 0;
-        quint64 usedBytes = 0;
-        bool hasRoot = false;
-        QByteArray device;
-        QByteArray fsType;
-    };
-
+QHash<QByteArray, Storage::DeviceEntry> Storage::collectDevices() {
     QHash<QByteArray, DeviceEntry> byDevice;
 
     // Filtra pelo tipo ANTES de qualquer statfs: so filesystem local chega a
@@ -319,32 +306,41 @@ void Storage::tick() {
         e.hasRoot = e.hasRoot || isRoot;
     }
 
+    return byDevice;
+}
+
+Storage::AccumHash Storage::foldToDisks(const QHash<QByteArray, DeviceEntry>& byDevice) {
+    AccumHash byDisk;
+
     for (auto it = byDevice.constBegin(); it != byDevice.constEnd(); ++it) {
-        const DeviceEntry& e = it.value();
-        const QStringList disks = resolveToPhysicalDisks(QString::fromLocal8Bit(e.device));
+        const auto& e = it.value();
+        const auto disks = resolveToPhysicalDisks(QString::fromLocal8Bit(e.device));
+
         if (disks.isEmpty()) {
-            // ZFS has no /dev block device to resolve — its "device" is a
+            // ZFS has no /dev block device to resolve, its "device" is a
             // "pool/dataset" name (e.g. rpool/root), so resolveToPhysicalDisks
             // returns nothing and the whole pool would be dropped. Fall back to
             // keying by the pool name. Datasets in a pool share the pool's free
             // space, so keep a single representative entry per pool (preferring
             // the root dataset, else the largest) rather than summing them.
-            if (e.fsType == "zfs") {
-                const qsizetype slash = e.device.indexOf('/');
-                const QString pool = QString::fromLocal8Bit(slash > 0 ? e.device.left(slash) : e.device);
-                Accum& a = byDisk[pool];
-                if (!a.hasRoot && (e.hasRoot || e.totalBytes > a.totalBytes)) {
-                    a.usedBytes = e.usedBytes;
-                    a.totalBytes = e.totalBytes;
-                    a.hasRoot = e.hasRoot;
-                }
+            if (e.fsType != QByteArrayView("zfs"))
+                continue;
+
+            const auto slash = e.device.indexOf('/');
+            const auto pool = QString::fromLocal8Bit(slash > 0 ? e.device.left(slash) : e.device);
+            Accum& a = byDisk[pool];
+            if (!a.hasRoot && (e.hasRoot || e.totalBytes > a.totalBytes)) {
+                a.usedBytes = e.usedBytes;
+                a.totalBytes = e.totalBytes;
+                a.hasRoot = e.hasRoot;
             }
             continue;
         }
-        for (const QString& d : disks) {
-            if (d.startsWith(QStringLiteral("zram"))) {
+
+        for (const auto& d : disks) {
+            if (d.startsWith(u"zram"_s))
                 continue;
-            }
+
             Accum& a = byDisk[d];
             a.usedBytes += e.usedBytes;
             a.totalBytes += e.totalBytes;
@@ -352,16 +348,31 @@ void Storage::tick() {
         }
     }
 
+    return byDisk;
+}
+
+void Storage::tick() {
+    if (m_futureWatcher->isRunning())
+        return;
+
+    m_futureWatcher->setFuture(QtConcurrent::run([] {
+        return foldToDisks(collectDevices());
+    }));
+}
+
+void Storage::applyDisks(const AccumHash& byDisk) {
+    const auto prevPercentage = percentage();
+
     QHash<QString, DiskInfo*> existing;
     existing.reserve(m_disks.size());
-    for (DiskInfo* d : std::as_const(m_disks)) {
+
+    for (auto* const d : std::as_const(m_disks))
         existing.insert(d->mount(), d);
-    }
 
     QList<DiskInfo*> next;
     next.reserve(byDisk.size());
     for (auto it = byDisk.constBegin(); it != byDisk.constEnd(); ++it) {
-        if (DiskInfo* survivor = existing.take(it.key())) {
+        if (auto* const survivor = existing.take(it.key())) {
             survivor->update(it.value().usedBytes, it.value().totalBytes, it.value().hasRoot);
             next.append(survivor);
         } else {
@@ -369,38 +380,32 @@ void Storage::tick() {
         }
     }
 
-    std::sort(next.begin(), next.end(), [](const DiskInfo* a, const DiskInfo* b) {
-        if (a->hasRoot() != b->hasRoot()) {
+    std::ranges::sort(next, [](const DiskInfo* a, const DiskInfo* b) {
+        if (a->hasRoot() != b->hasRoot())
             return a->hasRoot();
-        }
         return a->mount() < b->mount();
     });
 
     bool manualCleared = false;
-    if (DiskInfo* m = m_manualPrimaryDisk.data(); m && existing.contains(m->mount())) {
+    if (const auto* m = m_manualPrimaryDisk.data(); m && existing.contains(m->mount())) {
         m_manualPrimaryDisk.clear();
         manualCleared = true;
     }
-    for (DiskInfo* stale : std::as_const(existing)) {
+    for (auto* const stale : std::as_const(existing))
         stale->deleteLater();
-    }
 
-    const bool listChanged = !sameOrder(m_disks, next);
-    DiskInfo* prevPrimary = primaryDisk();
+    const auto listChanged = !sameOrder(m_disks, next);
+    const auto* prevPrimary = primaryDisk();
     m_disks = next;
 
-    if (listChanged) {
+    if (listChanged)
         emit disksChanged();
-    }
-    if (std::abs(percentage() - prevPercentage) > 0.0001) {
+    if (std::abs(percentage() - prevPercentage) > 0.0001)
         emit percentageChanged();
-    }
-    if (manualCleared) {
+    if (manualCleared)
         emit manualPrimaryDiskChanged();
-    }
-    if (primaryDisk() != prevPrimary) {
+    if (primaryDisk() != prevPrimary)
         emit primaryDiskChanged();
-    }
 }
 
 } // namespace caelestia::services

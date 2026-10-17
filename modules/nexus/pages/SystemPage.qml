@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import Caelestia.Services
 import qs.components
 import qs.components.controls
@@ -32,8 +33,7 @@ PageBase {
     function tempText(c: var): string {
         if (c === null || c === undefined || isNaN(c))
             return "";
-        const f = GlobalConfig.services.useFahrenheitPerformance;
-        return `${Math.round(f ? c * 1.8 + 32 : c)}°${f ? "F" : "C"}`;
+        return Units.formatSensorTemp(c);
     }
 
     function uptimeText(s: int): string {
@@ -123,7 +123,7 @@ PageBase {
         }
 
         MeterRow {
-            visible: Gpu.type !== Gpu.None
+            visible: Gpu.type !== GpuType.None
             icon: "desktop_windows"
             label: qsTr("Graphics")
             valueText: [`${Math.round(Gpu.percentage * 100)}%`, root.tempText(Gpu.temperature)].filter(x => x).join(" · ")
@@ -134,8 +134,7 @@ PageBase {
         MeterRow {
             icon: "memory_alt"
             label: qsTr("Memory")
-            readonly property var fmt: UsageFmt.formatKib(Memory.used, Memory.total)
-            valueText: `${+fmt.value.toFixed(1)} / ${+fmt.total.toFixed(1)} ${fmt.unit}`
+            valueText: Units.formatKibUsage(Memory.used, Memory.total)
             value: Memory.percentage
         }
 

@@ -1,12 +1,16 @@
 #pragma once
 
-#include "configobject.hpp"
+#include <qstring.h>
+
+#include "settings/objectnode.hpp"
+#include "common.hpp"
 
 namespace caelestia::config {
 
-class LockConfig : public ConfigObject {
-    Q_OBJECT
-    QML_ANONYMOUS
+using Qt::StringLiterals::operator""_s;
+
+class LockConfig : public settings::ObjectNode {
+    CONFIG_NODE(LockConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
     CONFIG_PROPERTY(bool, useWallpaper, false)
@@ -28,10 +32,6 @@ class LockConfig : public ConfigObject {
     CONFIG_GLOBAL_PROPERTY(int, maxPinRetries, 10)
     CONFIG_GLOBAL_PROPERTY(int, maxPasswordRetries, 30)
     // === END US-004 ===
-
-public:
-    explicit LockConfig(QObject* parent = nullptr)
-        : ConfigObject(parent) {}
 };
 
 } // namespace caelestia::config

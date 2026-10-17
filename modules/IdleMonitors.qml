@@ -26,7 +26,7 @@ Scope {
     readonly property var activeTimeouts: {
         const ac = GlobalConfig.general.idle.timeoutsOnAC
         const bat = GlobalConfig.general.idle.timeoutsOnBattery
-        const legacy = GlobalConfig.general.idle.timeouts
+        const legacy = GlobalConfig.general.idle.timeouts.values
         if (ac && ac.length > 0 && bat && bat.length > 0)
             return UPower.onBattery ? bat : ac
         if (legacy && legacy.length > 0)

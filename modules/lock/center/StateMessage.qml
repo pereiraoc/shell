@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.services
 import qs.modules.lock
@@ -30,7 +31,7 @@ Item {
         if (pam.howdyState === "error")
             return qsTr("Camera unavailable. Please try again or use PIN/password.");
         if (pam.howdyState === "fail")
-            return qsTr("Face not recognized (%1/%2). Please try again or use PIN/password.").arg(pam.faceFailedAttempts).arg(Config.lock.maxFaceRetries);
+            return qsTr("Face not recognized (%1/%2). Please try again or use PIN/password.").arg(pam.faceFailedAttempts).arg(GlobalConfig.lock.maxFaceRetries);
 
         if (pam.state === "max" && pam.fprintState === "max")
             return qsTr("Maximum password and fingerprint attempts reached.");
@@ -50,7 +51,7 @@ Item {
             return qsTr("Incorrect password. Please try again.");
         }
         if (pam.fprintState === "fail")
-            return qsTr("Fingerprint not recognized (%1/%2). Please try again or use password.").arg(pam.fprint.tries).arg(Config.lock.maxFprintTries);
+            return qsTr("Fingerprint not recognized (%1/%2). Please try again or use password.").arg(pam.fprint.tries).arg(GlobalConfig.lock.maxFprintTries);
 
         return "";
     }
@@ -58,20 +59,24 @@ Item {
     readonly property string stateMsg: {
         if (Hypr.kbLayout !== Hypr.defaultKbLayout) {
             if (Hypr.capsLock && Hypr.numLock)
-                return qsTr("Caps lock and Num lock are ON.\nKeyboard layout: %1").arg(Hypr.kbLayoutFull);
+                // TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+                return Tr.tr("Caps lock and Num lock are ON.\nKeyboard layout: %1").arg(Hypr.kbLayoutFull);
             if (Hypr.capsLock)
-                return qsTr("Caps lock is ON. Kb layout: %1").arg(Hypr.kbLayoutFull);
+                // TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+                return Tr.tr("Caps lock is ON. Keyboard layout: %1").arg(Hypr.kbLayoutFull);
             if (Hypr.numLock)
-                return qsTr("Num lock is ON. Kb layout: %1").arg(Hypr.kbLayoutFull);
-            return qsTr("Keyboard layout: %1").arg(Hypr.kbLayoutFull);
+                // TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+                return Tr.tr("Num lock is ON. Keyboard layout: %1").arg(Hypr.kbLayoutFull);
+            // TRANSLATORS: %1 = the active keyboard layout name, e.g. "English (US)"
+            return Tr.tr("Keyboard layout: %1").arg(Hypr.kbLayoutFull);
         }
 
         if (Hypr.capsLock && Hypr.numLock)
-            return qsTr("Caps lock and Num lock are ON.");
+            return Tr.tr("Caps lock and Num lock are ON.");
         if (Hypr.capsLock)
-            return qsTr("Caps lock is ON.");
+            return Tr.tr("Caps lock is ON.");
         if (Hypr.numLock)
-            return qsTr("Num lock is ON.");
+            return Tr.tr("Num lock is ON.");
 
         return "";
     }

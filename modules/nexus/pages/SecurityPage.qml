@@ -92,7 +92,7 @@ PageBase {
             first: true
             text: qsTr("Face authentication")
             subtext: qsTr("Unlock with Howdy face recognition")
-            checked: Config.lock.enableFaceAuth
+            checked: GlobalConfig.lock.enableFaceAuth
             onToggled: GlobalConfig.lock.enableFaceAuth = checked
         }
 
@@ -100,7 +100,7 @@ PageBase {
             Layout.fillWidth: true
             text: qsTr("PIN authentication")
             subtext: qsTr("Unlock with a 4-digit PIN")
-            checked: Config.lock.enablePinAuth
+            checked: GlobalConfig.lock.enablePinAuth
             onToggled: GlobalConfig.lock.enablePinAuth = checked
         }
 
@@ -110,7 +110,7 @@ PageBase {
             label: qsTr("Default method")
             subtext: qsTr("Method shown first on the lock screen")
             menuItems: root.methodItems
-            active: root.methodItems[Math.max(0, root.methodValues.indexOf(Config.lock.defaultMethod))]
+            active: root.methodItems[Math.max(0, root.methodValues.indexOf(GlobalConfig.lock.defaultMethod))]
             onSelected: item => GlobalConfig.lock.defaultMethod = root.methodValues[root.methodItems.indexOf(item)]
         }
 

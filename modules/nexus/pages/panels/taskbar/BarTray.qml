@@ -9,6 +9,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.services
+import Caelestia.I18n
 import qs.modules.nexus.common
 
 PageBase {
@@ -145,27 +146,28 @@ PageBase {
 
         ToggleRow {
             first: true
-            text: qsTr("Background")
+            text: Tr.trCtx("Background", "taskbar tray: draw a background behind the tray")
             checked: Config.bar.tray.background
             onToggled: GlobalConfig.bar.tray.background = checked
         }
 
         ToggleRow {
-            text: qsTr("Recolour icons")
+            // TRANSLATORS: tint system tray icons with the theme accent colour
+            text: Tr.tr("Recolour icons")
             checked: Config.bar.tray.recolour
             onToggled: GlobalConfig.bar.tray.recolour = checked
         }
 
         ToggleRow {
-            text: qsTr("Compact")
+            text: Tr.trCtx("Compact", "taskbar tray layout")
             checked: Config.bar.tray.compact
             onToggled: GlobalConfig.bar.tray.compact = checked
         }
 
         ToggleRow {
             last: true
-            text: qsTr("Popout on hover")
-            subtext: qsTr("Show the tray menu popout when hovering")
+            text: Tr.tr("Popout on hover")
+            subtext: Tr.tr("Show the tray menu popout when hovering")
             checked: Config.bar.popouts.tray
             onToggled: GlobalConfig.bar.popouts.tray = checked
         }

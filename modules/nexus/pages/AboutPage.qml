@@ -5,6 +5,7 @@ import Quickshell.Io
 import Caelestia
 import Caelestia.Config
 import Caelestia.Services
+import Caelestia.I18n
 import qs.components
 import qs.components.misc
 import qs.services
@@ -19,8 +20,7 @@ PageBase {
     property bool copied
 
     readonly property string memoryText: {
-        const f = UsageFmt.formatKib(Memory.total, Memory.total);
-        return f.total > 0 ? `${Math.round(f.total)} ${f.unit}` : "…";
+        return Memory.total > 0 ? Units.formatBytes(Memory.total * 1024) : "…";
     }
 
     // Texto para colar em relato de bug (padrao Win11/GNOME "Copy").
@@ -140,33 +140,34 @@ PageBase {
 
         // System
         SectionHeader {
-            text: qsTr("System")
+            text: Tr.tr("System")
         }
 
         InfoRow {
             first: true
-            label: qsTr("Hostname")
+            label: Tr.tr("Hostname")
             value: SysInfo.hostname
         }
 
         InfoRow {
-            label: qsTr("Device")
+            label: Tr.trCtx("Device", "system model name")
             value: SysInfo.device
         }
 
         InfoRow {
-            label: qsTr("Distro")
+            label: Tr.tr("Distro")
             value: SysInfo.osPrettyName || SysInfo.osName
         }
 
         InfoRow {
-            label: qsTr("Kernel")
+            label: Tr.tr("Kernel")
             value: SysInfo.kernel
         }
 
         InfoRow {
             last: true
-            label: qsTr("Firmware")
+            // TRANSLATORS: BIOS or UEFI firmware version
+            label: Tr.tr("Firmware")
             value: SysInfo.firmware
         }
 
@@ -194,17 +195,17 @@ PageBase {
 
         // Software
         SectionHeader {
-            text: qsTr("Software")
+            text: Tr.tr("Software")
         }
 
         InfoRow {
             first: true
-            label: qsTr("Shell")
+            label: Tr.trCtx("Shell", "the caelestia shell itself, not a unix shell")
             value: CUtils.version || "…"
         }
 
         InfoRow {
-            label: qsTr("CLI")
+            label: Tr.trCtx("CLI", "the caelestia command line tool")
             value: root.cliVersion || "…"
         }
 
@@ -220,7 +221,7 @@ PageBase {
 
         InfoRow {
             last: true
-            label: qsTr("Qt")
+            label: "Qt"
             value: CUtils.qtVersion || "…"
         }
 

@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Caelestia.I18n
 
 // Menu do Nexus. A ordem aqui e a ordem na navegacao; o componente de cada
 // pagina e casado por `id` em PageCompRegistry (nunca por indice). Quem abre o
