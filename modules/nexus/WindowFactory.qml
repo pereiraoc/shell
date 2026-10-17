@@ -13,9 +13,18 @@ Singleton {
     // Janelas abertas, para o botao da barra alternar em vez de empilhar.
     property list<QtObject> windows: []
 
-    function create(parent: Item, props: var): void {
+    function create(parent: Item, props: var): QtObject {
         const w = nexusComp.createObject(parent ?? dummy, props);
         root.windows = [...root.windows, w];
+        return w;
+    }
+
+    // IPC: abre (ou reaproveita) o Nexus direto numa pagina/subpagina
+    function openAt(page: string, sub: int, mouse: string): void {
+        const w = root.windows[0] ?? root.create();
+        if (mouse)
+            w.nState.selectedMouse = mouse;
+        w.nState.openPage(page, sub);
     }
 
     // Botao da barra: fecha se ja houver Nexus aberto, senao abre.
@@ -37,6 +46,8 @@ Singleton {
 
         FloatingWindow {
             id: win
+
+            readonly property alias nState: nexus.nState
 
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false

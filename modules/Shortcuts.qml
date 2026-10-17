@@ -140,6 +140,16 @@ Scope {
             WindowFactory.create();
         }
 
+        // Pagina pelo id do PageRegistry (sub = subpagina, 0 = nenhuma)
+        function openPage(page: string, sub: int): void {
+            WindowFactory.openAt(page, sub, "");
+        }
+
+        // Botoes/DPI/energia de um mouse (modelo como no caelestia-peripherals)
+        function openMouse(model: string): void {
+            WindowFactory.openAt("mouse", 1, model);
+        }
+
         target: "nexus"
     }
 
