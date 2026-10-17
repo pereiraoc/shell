@@ -5,6 +5,7 @@ import Quickshell.Widgets
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
@@ -15,6 +16,21 @@ PageBase {
     readonly property DesktopEntry app: nState.selectedApp
     readonly property bool favouriteByRegex: app && matchedByRegex(GlobalConfig.launcher.favouriteApps, app.id)
     readonly property bool hiddenByRegex: app && matchedByRegex(GlobalConfig.launcher.hiddenApps, app.id)
+
+    readonly property var placement: (appmon.info.apps ?? []).find(a => a.desktop_id === root.app?.id) ?? null
+    readonly property var knownMonitors: appmon.info.monitors ?? []
+
+    function monitorOptions(exclude: string): var {
+        return root.knownMonitors.filter(m => m.id !== exclude).map(m => ({
+            value: m.id,
+            label: `${m.connected ? "● " : "○ "}${m.label}`
+        }));
+    }
+
+    function setPriority(first: string, second: string): void {
+        const ids = [first, second].filter(x => x);
+        appmon.run({ id: `rule~${root.placement.key}~priority~${ids.join("~")}` });
+    }
 
     function isRegexEntry(s: string): bool {
         return /^\^.*\$$/.test(s);
@@ -32,6 +48,13 @@ PageBase {
 
     title: Tr.tr("App info")
     isSubPage: true
+
+    // Regras de monitor por app (caelestia-app-monitor)
+    ToolBridge {
+        id: appmon
+
+        tool: "app-monitor"
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -102,6 +125,70 @@ PageBase {
                 const apps = GlobalConfig.launcher.hiddenApps;
                 GlobalConfig.launcher.hiddenApps = checked ? [...apps, root.app.id] : apps.filter(a => a !== root.app.id);
             }
+        }
+
+        // Monitor de abertura (caelestia-app-monitor; o hook do Hyprland aplica)
+        SectionHeader {
+            visible: !!root.placement
+            text: Tr.tr("Opens on")
+        }
+
+        ChipSelectRow {
+            visible: !!root.placement
+            label: Tr.tr("Open on")
+            subtext: root.placement?.game ? Tr.tr("Default for games: the widest monitor, external first") : Tr.tr("Default: where the mouse is")
+            options: [
+                { value: "default", label: Tr.tr("Default") },
+                { value: "mouse", label: Tr.tr("Where the mouse is"), icon: "mouse" },
+                { value: "priority", label: Tr.tr("Priority monitors"), icon: "desktop_windows" }
+            ]
+            current: root.placement?.mode ?? "default"
+            busy: appmon.busyAction.startsWith("rule~")
+            onPicked: v => {
+                if (v === "priority") {
+                    const first = root.placement.opens_on?.id ?? root.knownMonitors[0]?.id ?? "";
+                    if (first)
+                        root.setPriority(first, "");
+                } else {
+                    appmon.run({ id: `rule~${root.placement.key}~${v}` });
+                }
+            }
+        }
+
+        ExpandSelectRow {
+            visible: root.placement?.mode === "priority"
+            icon: "looks_one"
+            label: Tr.tr("1st choice")
+            options: root.monitorOptions(root.placement?.monitors?.[1] ?? "")
+            current: root.placement?.monitors?.[0] ?? ""
+            onPicked: v => root.setPriority(v, root.placement.monitors[1] ?? "")
+        }
+
+        ExpandSelectRow {
+            visible: root.placement?.mode === "priority"
+            icon: "looks_two"
+            label: Tr.tr("2nd choice")
+            subtext: Tr.tr("Used if the 1st isn't connected")
+            options: [{ value: "", label: Tr.tr("None") }, ...root.monitorOptions(root.placement?.monitors?.[0] ?? "")]
+            current: root.placement?.monitors?.[1] ?? ""
+            onPicked: v => root.setPriority(root.placement.monitors[0], v)
+        }
+
+        ToggleRow {
+            visible: !!root.placement
+            text: Tr.tr("Is a game")
+            subtext: root.placement?.steam ? Tr.tr("Steam games are always games") : Tr.tr("Games use the game default")
+            enabled: !root.placement?.steam
+            checked: !!root.placement?.game
+            onToggled: appmon.run({ id: `game~${root.placement.key}~${checked ? "on" : "off"}` })
+        }
+
+        InfoRow {
+            visible: !!root.placement
+            last: true
+            icon: "open_in_new"
+            label: Tr.tr("Opens on now")
+            value: root.placement?.opens_on?.label ?? Tr.tr("Where the mouse is")
         }
 
         // Details

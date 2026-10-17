@@ -67,11 +67,18 @@ PageBase {
 
         NavRow {
             first: true
-            last: true
             icon: "apps"
             text: Tr.tr("All apps")
             subtext: Tr.tr("Browse installed apps, set favourites and hidden")
             onClicked: root.nState.openSubPage(1)
+        }
+
+        NavRow {
+            last: true
+            icon: "select_window"
+            text: Tr.tr("App placement")
+            subtext: Tr.tr("Which monitor each app and game opens on")
+            onClicked: root.nState.openSubPage(3)
         }
     }
 

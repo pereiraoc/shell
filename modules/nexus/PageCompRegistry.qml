@@ -263,6 +263,9 @@ QtObject {
             Component {
                 AppInfo {}
             }
+            Component {
+                AppPlacement {}
+            }
         }
     }
 
