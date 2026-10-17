@@ -31,14 +31,31 @@ PageBase {
             label: qsTr("FLATPAK"),
             icon: "package_2"
         },
+        // Forks so por seguranca (caelestia-forks, politica auto): o "Update
+        // everything" avanca ate a release nova e recompila.
+        {
+            key: "forks",
+            label: qsTr("CRAFTING APPS"),
+            icon: "fork_right"
+        },
         // Segurados de proposito no caelestia-update (AUR_HOLD): nao contam
         // como pendentes e o "Update everything" nao os toca.
         {
             key: "held",
             label: qsTr("HELD ON PURPOSE"),
             icon: "pause_circle"
+        },
+        // Forks com alteracoes nossas (politica manual: caelestia, Odysseus):
+        // so avisa; a atualizacao e feita a mao, avaliando o impacto.
+        {
+            key: "review",
+            label: qsTr("FORKS TO REVIEW"),
+            icon: "rate_review"
         }
     ]
+
+    // Secoes que so aparecem quando tem algo (as outras mostram "Up to date").
+    readonly property var onlyWhenPending: ["held", "review"]
 
     function sourceState(key: string): string {
         if (key === "repo" && SoftwareInventory.updates.checkupdates_missing)
@@ -70,7 +87,7 @@ PageBase {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
             Layout.bottomMargin: Tokens.spacing.medium
-            text: qsTr("Checked every 6 hours in the background; a notification appears only when the pending list changes. Updating opens a terminal: official repositories first, then AUR, then Flatpak, and it tells you afterwards whether a reboot or a plugin rebuild is needed.")
+            text: qsTr("Checked every 6 hours in the background; a notification appears only when the pending list changes. Updating opens a terminal: official repositories first, then AUR, then Flatpak, then the Crafting Apps forks, and it tells you afterwards whether a reboot or a plugin rebuild is needed. Forks with our own changes are only listed for review.")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -82,13 +99,13 @@ PageBase {
             iconColour: SoftwareInventory.updateCount > 0 ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
             label: SoftwareInventory.updateCount > 0 ? qsTr("%n update(s) available", "", SoftwareInventory.updateCount) : (SoftwareInventory.updatesComplete ? qsTr("Up to date") : qsTr("No updates found"))
             subtext: SoftwareInventory.updatesFetched && !SoftwareInventory.updatesComplete ? qsTr("%1 · partial: some sources were not checked").arg(root.checkedText()) : root.checkedText()
-            value: SoftwareInventory.updatesFetched ? qsTr("%1 · %2 · %3").arg((SoftwareInventory.updates.repo ?? []).length).arg((SoftwareInventory.updates.aur ?? []).length).arg((SoftwareInventory.updates.flatpak ?? []).length) : ""
+            value: SoftwareInventory.updatesFetched ? qsTr("%1 · %2 · %3 · %4").arg((SoftwareInventory.updates.repo ?? []).length).arg((SoftwareInventory.updates.aur ?? []).length).arg((SoftwareInventory.updates.flatpak ?? []).length).arg((SoftwareInventory.updates.forks ?? []).length) : ""
         }
 
         RowButton {
             icon: "refresh"
             text: qsTr("Check now")
-            subtext: qsTr("Asks the repositories, AUR and Flathub — takes a few seconds")
+            subtext: qsTr("Asks the repositories, AUR, Flathub and the forks' upstreams — takes a few seconds")
             disabled: SoftwareInventory.loadingUpdates
             onClicked: SoftwareInventory.fetchUpdates()
         }
@@ -120,7 +137,7 @@ PageBase {
                 readonly property string problem: root.sourceState(section.modelData.key)
 
                 Layout.fillWidth: true
-                visible: section.modelData.key !== "held" || section.items.length > 0
+                visible: !root.onlyWhenPending.includes(section.modelData.key) || section.items.length > 0
                 spacing: Tokens.spacing.extraSmall / 2
 
                 SectionHeader {
@@ -153,7 +170,11 @@ PageBase {
                         label: row.modelData.name
                         subtext: {
                             const v = row.modelData.from ? `${row.modelData.from}  →  ${row.modelData.to}` : row.modelData.to;
-                            return section.modelData.key === "held" ? qsTr("%1  ·  kept back until the shell is rebuilt for it").arg(v) : v;
+                            if (section.modelData.key === "held")
+                                return qsTr("%1  ·  kept back until the shell is rebuilt for it").arg(v);
+                            if (section.modelData.key === "review")
+                                return qsTr("%1  ·  has our own changes, update by hand").arg(v);
+                            return v;
                         }
                     }
                 }
