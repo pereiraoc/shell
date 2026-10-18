@@ -119,12 +119,12 @@ PageBase {
         }
 
         // Colunas independentes: cada cartao encosta no de cima (sem buracos).
-        // Com 3 colunas, Navigate e Manipulate (combos longos como
-        // Super + Shift + F1/F2/F3) ficam mais largas que a 3a.
+        // Com 3 colunas, Manipulate (combos longos como Super + Shift + F1/F2/F3)
+        // leva mais; Navigate sobra espaco e a 3a precisa caber "Capture region".
         Row {
             id: grid
 
-            readonly property var weights: root.columnsModel.length === 3 ? [1.15, 1.15, 0.7] : root.columnsModel.map(() => 1)
+            readonly property var weights: root.columnsModel.length === 3 ? [0.95, 1.15, 0.9] : root.columnsModel.map(() => 1)
             readonly property real unit: root.columnsModel.length > 0 ? (width - spacing * (root.columnsModel.length - 1)) / grid.weights.reduce((a, b) => a + b, 0) : 0
 
             Layout.fillWidth: true
