@@ -7,10 +7,10 @@ import qs.components
 import qs.services
 import "shortcuts.js" as Shortcuts
 
-// Um grupo de atalhos: icone + titulo curto; embaixo as variantes, cada uma com
-// suas combinacoes em keycaps. Usado nos cartoes comuns (ShortcutCard) e nos
-// pares (ShortcutPairCard). Posicionadores (Column/Row/Flow) de proposito: com
-// Layouts por grupo e por item a pagina levava ~250 ms so para nascer.
+// Um grupo de atalhos de um cartao (ShortcutCard): icone + titulo curto;
+// embaixo as variantes, cada uma com suas combinacoes em keycaps.
+// Posicionadores (Column/Row/Flow) de proposito: com Layouts por grupo e por
+// item a pagina levava ~250 ms so para nascer.
 Column {
     id: root
 

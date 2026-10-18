@@ -5,14 +5,12 @@
 //   acao) -> itens (uma variante) -> combos (uma por linha; a ultima tecla pode
 //   ter alternativas em familia: 1/2/3, F1/F2/F3, setas).
 // O 3o campo do desc traz tags: @main (entra em Essentials), @icon:NOME e
-// @col:N (coluna da categoria; 12 = par: o 1o grupo entra no cartao da
-// coluna 1 e o 2o no da coluna 2, na mesma linha, cercados por um pontilhado).
+// @col:N (coluna da categoria na pagina).
 // Sem Qt: testavel com qmltestrunner (tests/qml/tst_shortcuts.qml).
 
 var SEP = " · ";
 var GROUP_SEP = " › ";
 var OTHER = "Other";
-var PAIR = 12;
 
 // modmask do Hyprland, na ordem em que aparecem no rotulo
 var MODS = [[64, "Super"], [4, "Ctrl"], [8, "Alt"], [1, "Shift"]];
@@ -199,29 +197,9 @@ function group(binds) {
     }));
 }
 
-function isPair(cat) {
-    return cat.col === PAIR;
-}
-
-// Pares (@col:12), na ordem de aparicao: viram linhas alinhadas dentro dos
-// primeiros cartoes das colunas 1-2. Com uma coluna so nao ha o que alinhar:
-// viram cartoes comuns (ver distribute).
-function pairs(cats, n) {
-    return n >= 2 ? cats.filter(isPair) : [];
-}
-
-// Lados de um par: primeira metade dos grupos a esquerda (navegar, no cartao
-// Navigate), o resto a direita (manipular, no cartao Manipulate)
-function sides(cat) {
-    const half = Math.ceil(cat.groups.length / 2);
-    return [cat.groups.slice(0, half), cat.groups.slice(half)];
-}
-
-// Reparte as categorias em `n` colunas, fora os pares (faixa propria quando ha
-// 2+ colunas; com uma so entram nela como cartoes comuns). Se todas trazem
-// `col` (1..n, do binds.lua: analogos lado a lado), obedece; senao cada uma vai
-// para a coluna mais curta ate entao (peso = numero de itens), na ordem de
-// aparicao.
+// Reparte as categorias em `n` colunas. Se todas trazem `col` (1..n, do
+// binds.lua: analogos lado a lado), obedece; senao cada uma vai para a coluna
+// mais curta ate entao (peso = numero de itens), na ordem de aparicao.
 function distribute(cats, n) {
     const cols = [];
     const heights = [];
@@ -229,13 +207,12 @@ function distribute(cats, n) {
         cols.push([]);
         heights.push(0);
     }
-    const rest = n >= 2 ? cats.filter(c => !isPair(c)) : cats.map(c => isPair(c) ? Object.assign({}, c, { col: 1 }) : c);
-    if (rest.length > 0 && rest.every(c => c.col >= 1 && c.col <= n)) {
-        for (const c of rest)
+    if (cats.length > 0 && cats.every(c => c.col >= 1 && c.col <= n)) {
+        for (const c of cats)
             cols[c.col - 1].push(c);
         return cols;
     }
-    for (const c of rest) {
+    for (const c of cats) {
         let best = 0;
         for (let i = 1; i < n; i++)
             if (heights[i] < heights[best])

@@ -16,9 +16,7 @@ import "shortcuts.js" as Shortcuts
 // 1o campo do desc do binds.lua; "Grupo › variante" na acao agrupa variantes
 // sob um titulo curto; @main marca os principais (Essentials, a vista que o
 // Super+/ abre) e @icon da o simbolo. Cartoes repartidos em colunas (masonry)
-// pelo @col; @col:12 = par que vive dentro dos primeiros cartoes das colunas
-// 1-2 (navegar a esquerda, manipular a direita, mesma linha, num pontilhado).
-// Trocar Essentials/All so muda visibilidade -- nada e recriado.
+// pelo @col. Trocar Essentials/All so muda visibilidade -- nada e recriado.
 PageBase {
     id: root
 
@@ -32,12 +30,9 @@ PageBase {
     // enquanto a pagina nao tem largura: criar os cartoes antes de ela estar
     // anexada caia em incubacao assincrona aninhada (pingando por ~2 s) e, ao
     // chegar a largura, tudo era recriado para 3 colunas.
-    // Uma expressao so por modelo: `columns` e `cappedWidth` mudando em separado
+    // Uma expressao so: `columns` e `cappedWidth` mudando em separado
     // reconstruiam os cartoes duas vezes (1 coluna, depois 3).
-    readonly property int columns: root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1
-    readonly property var columnsModel: root.cappedWidth > 0 ? Shortcuts.distribute(root.categories, root.columns) : []
-    // Pares (@col:12): linhas alinhadas dentro dos cartoes das colunas 1-2
-    readonly property var pairsModel: root.cappedWidth > 0 ? Shortcuts.pairs(root.categories, root.columns) : []
+    readonly property var columnsModel: root.cappedWidth > 0 ? Shortcuts.distribute(root.categories, root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1) : []
     // Altura de um keycap (KeyCap.qml): separadores "+", "/" e "tap" se alinham a ela
     readonly property int capHeight: capMetrics.height + Tokens.padding.extraSmall * 2 + 2
 
@@ -126,8 +121,6 @@ PageBase {
         // Colunas independentes: cada cartao encosta no de cima (sem buracos).
         // Com 3 colunas, Manipulate (combos longos como Super + Shift + F1/F2/F3)
         // leva mais; Navigate sobra espaco e a 3a precisa caber "Capture region".
-        // As colunas 1-2 andam juntas: os pares (@col:12) vivem dentro dos
-        // primeiros cartoes delas, alinhados e cercados por um pontilhado.
         Row {
             id: grid
 
@@ -142,25 +135,14 @@ PageBase {
             Layout.fillWidth: true
             spacing: Tokens.spacing.medium
 
-            ShortcutPairedColumns {
-                pairs: root.pairsModel
-                leftCats: root.columnsModel[0] || []
-                rightCats: root.columnsModel[1] || []
-                showAll: root.showAll
-                capHeight: root.capHeight
-                leftWidth: grid.colWidth(0)
-                rightWidth: grid.colWidth(1)
-                gap: grid.spacing
-            }
-
             Repeater {
-                model: root.columnsModel.slice(2)
+                model: root.columnsModel
 
                 ShortcutColumn {
                     required property int index
                     required property var modelData
 
-                    width: grid.colWidth(index + 2)
+                    width: grid.colWidth(index)
                     categories: modelData
                     showAll: root.showAll
                     capHeight: root.capHeight
