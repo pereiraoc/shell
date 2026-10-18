@@ -8,6 +8,8 @@ StackView {
     id: root
 
     required property NexusState nState
+    // Indice da pagina no PageRegistry (Pages.loadPage); -1 = desconhecido
+    property int pageIdx: -1
     default property list<Component> pages
     readonly property int animMovement: Tokens.padding.extraExtraLarge * 2
 
@@ -27,6 +29,11 @@ StackView {
 
     Component.onCompleted: {
         openSubPage(0, true);
+        // Incubacao antiga terminando depois de uma troca de pagina (ex.: Home
+        // nascendo quando o IPC ja pediu Keyboard > sub 2): a pilha de
+        // subpaginas e da pagina nova -- nao aplicar nem desempilhar.
+        if (root.pageIdx >= 0 && root.pageIdx !== root.nState.currentPageIdx)
+            return;
         for (const page of nState.subPageIdxStack)
             openSubPage(page, true);
     }

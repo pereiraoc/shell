@@ -25,7 +25,8 @@ Item {
         const serial = ++root.loadSerial;
         const comp = PageCompRegistry.forId(PageRegistry.pages[idx]?.id ?? "");
         const incubator = comp.incubateObject(container, {
-            nState
+            nState,
+            pageIdx: idx
         });
 
         const attach = () => {
