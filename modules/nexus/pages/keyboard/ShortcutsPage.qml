@@ -33,25 +33,29 @@ PageBase {
 
     Component.onCompleted: reload()
 
-    Process {
-        id: proc
+    // Process e Connections vivem dentro de um Item (o PageBase so aceita Item
+    // como filho), como no StorageBrowser.
+    Item {
+        Process {
+            id: proc
 
-        command: ["hyprctl", "binds", "-j"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const cats = Shortcuts.parse(text);
-                root.failed = cats.length === 0;
-                root.categories = cats;
+            command: ["hyprctl", "binds", "-j"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    const cats = Shortcuts.parse(text);
+                    root.failed = cats.length === 0;
+                    root.categories = cats;
+                }
             }
         }
-    }
 
-    Connections {
-        function onConfigReloaded(): void {
-            root.reload();
+        Connections {
+            function onConfigReloaded(): void {
+                root.reload();
+            }
+
+            target: Hypr
         }
-
-        target: Hypr
     }
 
     ColumnLayout {
