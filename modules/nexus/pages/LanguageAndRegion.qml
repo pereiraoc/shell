@@ -64,6 +64,11 @@ PageBase {
 
     title: qsTr("Language & region")
     description: qsTr("Time zone, language, weather and units")
+    tabs: [
+        { id: "language", label: Tr.tr("Language") },
+        { id: "region", label: Tr.tr("Region") },
+        { id: "time", label: Tr.tr("Time & date") }
+    ]
 
     // Fuso, NTP, locale e keymap pelo caelestia-region (timedatectl/localectl;
     // mudar fuso/NTP pede senha pelo polkit do proprio systemd).
@@ -79,160 +84,174 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // Language
-        SectionHeader {
-            first: true
-            text: Tr.tr("Language")
-        }
+        TabPane {
+            active: root.tab === "language"
 
-        SelectRow {
-            first: true
-            last: !root.region.locale
-            implicitHeight: localeLayout.implicitHeight + localeLayout.anchors.margins * 2
-
-            menuItems: [autoLang, ...langItems.instances]
-
-            MenuItem {
-                id: autoLang
-
-                text: Tr.tr("Auto")
+            // Language
+            SectionHeader {
+                first: true
+                text: Tr.tr("Language")
             }
 
-            Variants {
-                id: langItems
+            SelectRow {
+                first: true
+                last: !root.region.locale
+                implicitHeight: localeLayout.implicitHeight + localeLayout.anchors.margins * 2
 
-                model: Tr.supportedLanguages
+                menuItems: [autoLang, ...langItems.instances]
 
                 MenuItem {
-                    required property string modelData
+                    id: autoLang
 
-                    text: {
-                        const locale = Qt.locale(modelData);
-                        return locale.name === "C" ? modelData : locale.nativeLanguageName || locale.name;
+                    text: Tr.tr("Auto")
+                }
+
+                Variants {
+                    id: langItems
+
+                    model: Tr.supportedLanguages
+
+                    MenuItem {
+                        required property string modelData
+
+                        text: {
+                            const locale = Qt.locale(modelData);
+                            return locale.name === "C" ? modelData : locale.nativeLanguageName || locale.name;
+                        }
                     }
                 }
             }
-        }
 
-        InfoRow {
-            visible: !!root.region.locale
-            last: true
-            icon: "keyboard"
-            label: qsTr("System locale %1 · console keyboard %2").arg(root.region.locale ?? "").arg(root.region.keymap_console ?? "")
-            subtext: qsTr("Changing these needs a terminal (localectl) and a new session. Keyboard layout for apps is in Devices.")
-        }
-
-        // Weather
-        SectionHeader {
-            text: Tr.tr("Weather")
-        }
-
-        // Placeholder until the map-based location picker lands
-        ConnectedRect {
-            Layout.fillWidth: true
-            first: true
-            last: true
-            implicitHeight: comingSoon.implicitHeight + Tokens.padding.extraLarge * 2
-
-            ColumnLayout {
-                id: comingSoon
-
-                anchors.centerIn: parent
-                width: parent.width - Tokens.padding.largeIncreased * 2
-                spacing: Tokens.padding.extraSmall
-
-                MaterialIcon {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "map"
-                    color: Colours.palette.m3outlineVariant
-                    fontStyle: Tokens.font.icon.extraLarge
-                }
-
-                StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: Tr.tr("Location picker coming soon")
-                    color: Colours.palette.m3outlineVariant
-                    font: Tokens.font.title.small
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    text: Tr.tr("Choose your weather location on a map in a future update")
-                    color: Colours.palette.m3outlineVariant
-                    font: Tokens.font.body.small
-                }
+            InfoRow {
+                visible: !!root.region.locale
+                last: true
+                icon: "keyboard"
+                label: qsTr("System locale %1 · console keyboard %2").arg(root.region.locale ?? "").arg(root.region.keymap_console ?? "")
+                subtext: qsTr("Changing these needs a terminal (localectl) and a new session. Keyboard layout for apps is in Devices.")
             }
         }
 
-        // Units
-        SectionHeader {
-            text: Tr.tr("Units")
+        TabPane {
+            active: root.tab === "region"
+
+            // Weather
+            SectionHeader {
+                first: true
+                text: Tr.tr("Weather")
+            }
+
+            // Placeholder until the map-based location picker lands
+            ConnectedRect {
+                Layout.fillWidth: true
+                first: true
+                last: true
+                implicitHeight: comingSoon.implicitHeight + Tokens.padding.extraLarge * 2
+
+                ColumnLayout {
+                    id: comingSoon
+
+                    anchors.centerIn: parent
+                    width: parent.width - Tokens.padding.largeIncreased * 2
+                    spacing: Tokens.padding.extraSmall
+
+                    MaterialIcon {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: "map"
+                        color: Colours.palette.m3outlineVariant
+                        fontStyle: Tokens.font.icon.extraLarge
+                    }
+
+                    StyledText {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Tr.tr("Location picker coming soon")
+                        color: Colours.palette.m3outlineVariant
+                        font: Tokens.font.title.small
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        text: Tr.tr("Choose your weather location on a map in a future update")
+                        color: Colours.palette.m3outlineVariant
+                        font: Tokens.font.body.small
+                    }
+                }
+            }
+
+            // Units
+            SectionHeader {
+                text: Tr.tr("Units")
+            }
+
+            SelectRow {
+                first: true
+                label: Tr.tr("Temperature")
+                subtext: Tr.tr("Units for weather temperatures")
+                menuItems: root.tempItems
+                active: root.tempItems.find(i => i.value === GlobalConfig.services.weatherUnits)
+                onSelected: item => GlobalConfig.services.weatherUnits = item.value
+            }
+
+            SelectRow {
+                label: Tr.tr("System temperatures")
+                subtext: Tr.tr("Units for CPU and GPU temperatures")
+                menuItems: root.tempItems
+                active: root.tempItems.find(i => i.value === GlobalConfig.services.sensorUnits)
+                onSelected: item => GlobalConfig.services.sensorUnits = item.value
+            }
+
+            SelectRow {
+                last: true
+                label: Tr.tr("Data sizes")
+                subtext: Tr.tr("Units for data sizes and network speeds")
+                menuItems: root.dataItems
+                active: root.dataItems.find(i => i.value === GlobalConfig.services.dataUnits)
+                onSelected: item => GlobalConfig.services.dataUnits = item.value
+            }
         }
 
-        SelectRow {
-            first: true
-            label: Tr.tr("Temperature")
-            subtext: Tr.tr("Units for weather temperatures")
-            menuItems: root.tempItems
-            active: root.tempItems.find(i => i.value === GlobalConfig.services.weatherUnits)
-            onSelected: item => GlobalConfig.services.weatherUnits = item.value
-        }
+        TabPane {
+            active: root.tab === "time"
 
-        SelectRow {
-            label: Tr.tr("System temperatures")
-            subtext: Tr.tr("Units for CPU and GPU temperatures")
-            menuItems: root.tempItems
-            active: root.tempItems.find(i => i.value === GlobalConfig.services.sensorUnits)
-            onSelected: item => GlobalConfig.services.sensorUnits = item.value
-        }
+            // Time & date
+            SectionHeader {
+                first: true
+                text: Tr.tr("Time & date")
+            }
 
-        SelectRow {
-            last: true
-            label: Tr.tr("Data sizes")
-            subtext: Tr.tr("Units for data sizes and network speeds")
-            menuItems: root.dataItems
-            active: root.dataItems.find(i => i.value === GlobalConfig.services.dataUnits)
-            onSelected: item => GlobalConfig.services.dataUnits = item.value
-        }
+            ExpandSelectRow {
+                first: true
+                icon: "schedule"
+                label: qsTr("Time zone")
+                subtext: qsTr("Asks for your password")
+                filterable: true
+                options: (root.region.timezones ?? []).map(z => ({ value: z, label: z.replace(/_/g, " ") }))
+                current: root.region.timezone ?? ""
+                busy: regionBridge.busyAction.startsWith("timezone-")
+                onPicked: v => regionBridge.run({ id: `timezone-${v}` })
+            }
 
-        // Time & date
-        SectionHeader {
-            text: Tr.tr("Time & date")
-        }
+            ToggleRow {
+                text: qsTr("Set time automatically")
+                subtext: root.region.ntp ? (root.region.synced ? qsTr("Synchronized with network time") : qsTr("Waiting for network time…")) : qsTr("The clock is not corrected automatically")
+                checked: !!root.region.ntp
+                disabled: regionBridge.busyAction !== "" || root.region.ntp === undefined
+                onToggled: regionBridge.run({ id: checked ? "ntp-on" : "ntp-off" })
+            }
 
-        ExpandSelectRow {
-            first: true
-            icon: "schedule"
-            label: qsTr("Time zone")
-            subtext: qsTr("Asks for your password")
-            filterable: true
-            options: (root.region.timezones ?? []).map(z => ({ value: z, label: z.replace(/_/g, " ") }))
-            current: root.region.timezone ?? ""
-            busy: regionBridge.busyAction.startsWith("timezone-")
-            onPicked: v => regionBridge.run({ id: `timezone-${v}` })
-        }
+            SelectRow {
+                last: true
+                label: Tr.tr("Clock format")
+                subtext: Tr.tr("How times are shown across the shell")
+                menuItems: root.clockItems
+                active: root.clockItems.find(i => i.value === GlobalConfig.services.clockFormat)
+                onSelected: item => GlobalConfig.services.clockFormat = item.value
+            }
 
-        ToggleRow {
-            text: qsTr("Set time automatically")
-            subtext: root.region.ntp ? (root.region.synced ? qsTr("Synchronized with network time") : qsTr("Waiting for network time…")) : qsTr("The clock is not corrected automatically")
-            checked: !!root.region.ntp
-            disabled: regionBridge.busyAction !== "" || root.region.ntp === undefined
-            onToggled: regionBridge.run({ id: checked ? "ntp-on" : "ntp-off" })
-        }
-
-        SelectRow {
-            last: true
-            label: Tr.tr("Clock format")
-            subtext: Tr.tr("How times are shown across the shell")
-            menuItems: root.clockItems
-            active: root.clockItems.find(i => i.value === GlobalConfig.services.clockFormat)
-            onSelected: item => GlobalConfig.services.clockFormat = item.value
-        }
-
-        ActionErrorRow {
-            bridge: regionBridge
+            ActionErrorRow {
+                bridge: regionBridge
+            }
         }
     }
 }

@@ -13,6 +13,11 @@ PageBase {
 
     title: qsTr("Security")
     description: qsTr("Unlock methods, face recognition and PIN")
+    tabs: [
+        { id: "unlock", label: qsTr("Unlock") },
+        { id: "lock", label: qsTr("Lock screen") },
+        { id: "recovery", label: qsTr("Recovery") }
+    ]
 
     property string newPin: ""
     property string confirmPin: ""
@@ -81,168 +86,180 @@ PageBase {
             onTriggered: root.statusMessage = ""
         }
 
-        // Methods
-        SectionHeader {
-            first: true
-            text: qsTr("Methods")
-        }
+        TabPane {
+            active: root.tab === "unlock"
 
-        ToggleRow {
-            Layout.fillWidth: true
-            first: true
-            text: qsTr("Face authentication")
-            subtext: qsTr("Unlock with Howdy face recognition")
-            checked: GlobalConfig.lock.enableFaceAuth
-            onToggled: GlobalConfig.lock.enableFaceAuth = checked
-        }
+            // Methods
+            SectionHeader {
+                first: true
+                text: qsTr("Methods")
+            }
 
-        ToggleRow {
-            Layout.fillWidth: true
-            text: qsTr("PIN authentication")
-            subtext: qsTr("Unlock with a 4-digit PIN")
-            checked: GlobalConfig.lock.enablePinAuth
-            onToggled: GlobalConfig.lock.enablePinAuth = checked
-        }
+            ToggleRow {
+                Layout.fillWidth: true
+                first: true
+                text: qsTr("Face authentication")
+                subtext: qsTr("Unlock with Howdy face recognition")
+                checked: GlobalConfig.lock.enableFaceAuth
+                onToggled: GlobalConfig.lock.enableFaceAuth = checked
+            }
 
-        SelectRow {
-            Layout.fillWidth: true
-            last: true
-            label: qsTr("Default method")
-            subtext: qsTr("Method shown first on the lock screen")
-            menuItems: root.methodItems
-            active: root.methodItems[Math.max(0, root.methodValues.indexOf(GlobalConfig.lock.defaultMethod))]
-            onSelected: item => GlobalConfig.lock.defaultMethod = root.methodValues[root.methodItems.indexOf(item)]
-        }
+            ToggleRow {
+                Layout.fillWidth: true
+                text: qsTr("PIN authentication")
+                subtext: qsTr("Unlock with a 4-digit PIN")
+                checked: GlobalConfig.lock.enablePinAuth
+                onToggled: GlobalConfig.lock.enablePinAuth = checked
+            }
 
-        // Howdy: modelos, interruptor global. Sempre visivel -- os modelos valem
-        // tambem para o login (PAM), nao so para a tela de bloqueio. Logica no
-        // caelestia-face (repositorio de setup); substitui o howdy-manager.sh.
-        ToolSection {
-            tool: "face"
-            title: qsTr("Face recognition")
-            icon: "face"
-            hint: qsTr("One model per lighting condition improves recognition. Every action asks for your password; adding a model turns the camera on for ~3 s.")
-        }
+            SelectRow {
+                Layout.fillWidth: true
+                last: true
+                label: qsTr("Default method")
+                subtext: qsTr("Method shown first on the lock screen")
+                menuItems: root.methodItems
+                active: root.methodItems[Math.max(0, root.methodValues.indexOf(GlobalConfig.lock.defaultMethod))]
+                onSelected: item => GlobalConfig.lock.defaultMethod = root.methodValues[root.methodItems.indexOf(item)]
+            }
 
-        // Lock screen
-        SectionHeader {
-            text: qsTr("Lock screen")
-        }
+            // Howdy: modelos, interruptor global. Sempre visivel -- os modelos valem
+            // tambem para o login (PAM), nao so para a tela de bloqueio. Logica no
+            // caelestia-face (repositorio de setup); substitui o howdy-manager.sh.
+            ToolSection {
+                tool: "face"
+                title: qsTr("Face recognition")
+                icon: "face"
+                hint: qsTr("One model per lighting condition improves recognition. Every action asks for your password; adding a model turns the camera on for ~3 s.")
+            }
 
-        ToggleRow {
-            Layout.fillWidth: true
-            first: true
-            last: true
-            text: qsTr("Hide notifications")
-            subtext: qsTr("Don't show notification content on the lock screen")
-            checked: Config.lock.hideNotifs
-            onToggled: GlobalConfig.lock.hideNotifs = checked
-        }
+            // PIN
+            SectionHeader {
+                text: qsTr("PIN")
+            }
 
-        // PIN
-        SectionHeader {
-            text: qsTr("PIN")
-        }
+            ConnectedRect {
+                Layout.fillWidth: true
+                first: true
+                implicitHeight: newPinLayout.implicitHeight + Tokens.padding.medium * 2
 
-        ConnectedRect {
-            Layout.fillWidth: true
-            first: true
-            implicitHeight: newPinLayout.implicitHeight + Tokens.padding.medium * 2
+                RowLayout {
+                    id: newPinLayout
 
-            RowLayout {
-                id: newPinLayout
+                    anchors.fill: parent
+                    anchors.margins: Tokens.padding.medium
+                    anchors.leftMargin: Tokens.padding.largeIncreased
+                    anchors.rightMargin: Tokens.padding.largeIncreased
+                    spacing: Tokens.spacing.medium
 
-                anchors.fill: parent
-                anchors.margins: Tokens.padding.medium
-                anchors.leftMargin: Tokens.padding.largeIncreased
-                anchors.rightMargin: Tokens.padding.largeIncreased
-                spacing: Tokens.spacing.medium
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: qsTr("New PIN")
-                    font: Tokens.font.body.small
-                }
-
-                StyledTextField {
-                    id: newPinField
-
-                    Layout.preferredWidth: 120
-                    placeholderText: qsTr("4 digits")
-                    echoMode: TextInput.Password
-                    maximumLength: 4
-                    inputMethodHints: Qt.ImhDigitsOnly
-                    validator: RegularExpressionValidator {
-                        regularExpression: /[0-9]{0,4}/
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: qsTr("New PIN")
+                        font: Tokens.font.body.small
                     }
-                    onTextChanged: {
-                        root.newPin = text;
-                        root.pinError = false;
+
+                    StyledTextField {
+                        id: newPinField
+
+                        Layout.preferredWidth: 120
+                        placeholderText: qsTr("4 digits")
+                        echoMode: TextInput.Password
+                        maximumLength: 4
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        validator: RegularExpressionValidator {
+                            regularExpression: /[0-9]{0,4}/
+                        }
+                        onTextChanged: {
+                            root.newPin = text;
+                            root.pinError = false;
+                        }
                     }
                 }
             }
-        }
 
-        ConnectedRect {
-            Layout.fillWidth: true
-            implicitHeight: confirmPinLayout.implicitHeight + Tokens.padding.medium * 2
+            ConnectedRect {
+                Layout.fillWidth: true
+                implicitHeight: confirmPinLayout.implicitHeight + Tokens.padding.medium * 2
 
-            RowLayout {
-                id: confirmPinLayout
+                RowLayout {
+                    id: confirmPinLayout
 
-                anchors.fill: parent
-                anchors.margins: Tokens.padding.medium
-                anchors.leftMargin: Tokens.padding.largeIncreased
-                anchors.rightMargin: Tokens.padding.largeIncreased
-                spacing: Tokens.spacing.medium
+                    anchors.fill: parent
+                    anchors.margins: Tokens.padding.medium
+                    anchors.leftMargin: Tokens.padding.largeIncreased
+                    anchors.rightMargin: Tokens.padding.largeIncreased
+                    spacing: Tokens.spacing.medium
 
-                StyledText {
-                    Layout.fillWidth: true
-                    text: qsTr("Confirm PIN")
-                    font: Tokens.font.body.small
-                }
-
-                StyledTextField {
-                    id: confirmPinField
-
-                    Layout.preferredWidth: 120
-                    placeholderText: qsTr("4 digits")
-                    echoMode: TextInput.Password
-                    maximumLength: 4
-                    inputMethodHints: Qt.ImhDigitsOnly
-                    validator: RegularExpressionValidator {
-                        regularExpression: /[0-9]{0,4}/
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: qsTr("Confirm PIN")
+                        font: Tokens.font.body.small
                     }
-                    onTextChanged: {
-                        root.confirmPin = text;
-                        root.pinError = false;
+
+                    StyledTextField {
+                        id: confirmPinField
+
+                        Layout.preferredWidth: 120
+                        placeholderText: qsTr("4 digits")
+                        echoMode: TextInput.Password
+                        maximumLength: 4
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        validator: RegularExpressionValidator {
+                            regularExpression: /[0-9]{0,4}/
+                        }
+                        onTextChanged: {
+                            root.confirmPin = text;
+                            root.pinError = false;
+                        }
                     }
                 }
             }
+
+            NavRow {
+                Layout.fillWidth: true
+                last: true
+                icon: "save"
+                text: qsTr("Save PIN")
+                subtext: root.statusMessage
+                onClicked: root.savePin()
+            }
         }
 
-        NavRow {
-            Layout.fillWidth: true
-            last: true
-            icon: "save"
-            text: qsTr("Save PIN")
-            subtext: root.statusMessage
-            onClicked: root.savePin()
+        TabPane {
+            active: root.tab === "lock"
+
+            // Lock screen
+            SectionHeader {
+                text: qsTr("Lock screen")
+            }
+
+            ToggleRow {
+                Layout.fillWidth: true
+                first: true
+                last: true
+                text: qsTr("Hide notifications")
+                subtext: qsTr("Don't show notification content on the lock screen")
+                checked: Config.lock.hideNotifs
+                onToggled: GlobalConfig.lock.hideNotifs = checked
+            }
         }
 
-        // Recovery
-        SectionHeader {
-            text: qsTr("Recovery")
-        }
+        TabPane {
+            active: root.tab === "recovery"
 
-        NavRow {
-            Layout.fillWidth: true
-            first: true
-            last: true
-            icon: "restart_alt"
-            text: qsTr("Reset authentication methods")
-            subtext: qsTr("Re-enable face and PIN if locked out")
-            onClicked: root.resetLockouts()
+            // Recovery
+            SectionHeader {
+                text: qsTr("Recovery")
+            }
+
+            NavRow {
+                Layout.fillWidth: true
+                first: true
+                last: true
+                icon: "restart_alt"
+                text: qsTr("Reset authentication methods")
+                subtext: qsTr("Re-enable face and PIN if locked out")
+                onClicked: root.resetLockouts()
+            }
         }
     }
 }
