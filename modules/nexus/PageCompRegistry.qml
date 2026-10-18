@@ -81,12 +81,6 @@ QtObject {
             Component {
                 RgbLighting {}
             }
-            Component {
-                ShortcutsPage {}
-            }
-            Component {
-                LaptopKeysPage {}
-            }
         }
     }
 

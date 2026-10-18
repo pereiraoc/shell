@@ -13,9 +13,10 @@ import qs.utils
 import qs.modules.nexus.common
 
 
-// Mouses (Nexus > Mouse): o que vale para todos (velocidade, aceleracao,
-// rolagem -- caelestia-input), o touchpad e cada mouse com driver (Razer:
-// bateria, DPI, polling; botoes/estagios/energia em MouseSettings).
+// Mouses (Nexus > Mouse), em abas: General (o que vale para todos -- velocidade,
+// aceleracao, rolagem -- caelestia-input), Touchpad, uma aba por mouse com
+// driver (Razer: bateria, DPI, polling; botoes/estagios/energia em
+// MouseSettings), os mouses ja vistos mas desligados, e Advanced (apps).
 PageBase {
     id: root
 
@@ -23,7 +24,9 @@ PageBase {
     readonly property var pointer: root.input.pointer ?? ({})
     readonly property var periph: periphBridge.info
     readonly property var peripherals: batteryBridge.info.devices ?? []
-    readonly property var mouseBattery: (root.periph.mice ?? []).length > 0 ? (root.peripherals.find(b => b.kind === "mouse") ?? null) : null
+    readonly property var mice: root.periph.mice ?? []
+    readonly property var miceOffline: root.periph.mice_offline ?? []
+    readonly property var mouseBattery: root.mice.length > 0 ? (root.peripherals.find(b => b.kind === "mouse") ?? null) : null
 
     readonly property var scrollOptions: [
         { value: "0.5", label: qsTr("Slow") },
@@ -41,6 +44,15 @@ PageBase {
         return (n ?? "").replace(/\s*\(.*?\)\s*$/, "");
     }
 
+    // Aba de um mouse: id = modelo (o mesmo do IPC `nexus openMouse`), rotulo sem a marca
+    function tabId(m: var): string {
+        return m.model ?? m.id ?? m.name ?? "";
+    }
+
+    function tabLabel(m: var): string {
+        return root.mouseName(m.name).replace(/^Razer\s+/i, "");
+    }
+
     function batteryText(b: var): string {
         return b.charging ? qsTr("Charging") : b.stale ? qsTr("Last known level — the device is asleep") : "";
     }
@@ -55,6 +67,17 @@ PageBase {
 
     title: qsTr("Mouse")
     description: qsTr("Pointer, touchpad, gaming mice")
+    tabs: {
+        const t = [{ id: "general", label: qsTr("General") }];
+        if (root.input.touchpad?.present)
+            t.push({ id: "touchpad", label: qsTr("Touchpad") });
+        for (const m of root.mice)
+            t.push({ id: root.tabId(m), label: root.tabLabel(m) });
+        for (const m of root.miceOffline)
+            t.push({ id: root.tabId(m), label: root.tabLabel(m) });
+        t.push({ id: "advanced", label: qsTr("Advanced") });
+        return t;
+    }
 
     ToolBridge {
         id: inputBridge
@@ -87,130 +110,133 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // ------------------------------------------------------------- Mouse
-        SectionHeader {
-            first: true
-            visible: !!root.input.pointer
-            text: qsTr("All mice")
+        // ----------------------------------------------------------- General
+        TabPane {
+            active: root.tab === "general"
+
+            SectionHeader {
+                first: true
+                visible: !!root.input.pointer
+                text: qsTr("All mice")
+            }
+
+            ChipSelectRow {
+                first: true
+                visible: !!root.input.pointer
+                label: qsTr("Pointer speed")
+                subtext: qsTr("Multiplies the speed of every mouse and the touchpad, instantly. Gaming mice also have their own DPI in hardware — set it in their tab.")
+                options: [
+                    { value: "-0.5", label: qsTr("Slower") },
+                    { value: "-0.25", label: qsTr("Slow") },
+                    { value: "0", label: qsTr("Default") },
+                    { value: "0.25", label: qsTr("Fast") },
+                    { value: "0.5", label: qsTr("Faster") }
+                ]
+                current: String(Number(root.pointer.sensitivity ?? 0))
+                busy: inputBridge.busyAction.startsWith("sensitivity-")
+                onPicked: v => root.inputRun(`sensitivity-${v}`)
+            }
+
+            ToggleRow {
+                visible: !!root.input.pointer
+                text: qsTr("Mouse acceleration")
+                subtext: qsTr("Off is better for games: the pointer moves the same distance at any speed")
+                checked: root.pointer.accel_profile !== "flat"
+                disabled: inputBridge.busyAction !== ""
+                onToggled: root.inputRun(checked ? "accel-adaptive" : "accel-flat")
+            }
+
+            ChipSelectRow {
+                visible: !!root.input.pointer
+                label: qsTr("Scroll speed")
+                subtext: qsTr("How far one notch of the wheel scrolls")
+                options: root.scrollOptions
+                current: root.num(root.pointer.scroll_factor)
+                busy: inputBridge.busyAction.startsWith("scroll-")
+                onPicked: v => root.inputRun(`scroll-${v}`)
+            }
+
+            ToggleRow {
+                visible: !!root.input.pointer
+                text: qsTr("Natural scrolling")
+                subtext: qsTr("The wheel moves the content instead of the view")
+                checked: !!root.pointer.natural_scroll
+                disabled: inputBridge.busyAction !== ""
+                onToggled: root.inputRun(checked ? "mouse-natural-on" : "mouse-natural-off")
+            }
+
+            ToggleRow {
+                last: true
+                visible: !!root.input.pointer
+                text: qsTr("Left-handed")
+                subtext: qsTr("Swaps the left and right buttons")
+                checked: !!root.pointer.left_handed
+                disabled: inputBridge.busyAction !== ""
+                onToggled: root.inputRun(checked ? "left-handed-on" : "left-handed-off")
+            }
+
+            ActionErrorRow {
+                bridge: inputBridge
+            }
         }
 
-        ChipSelectRow {
-            first: true
-            visible: !!root.input.pointer
-            label: qsTr("Pointer speed")
-            subtext: qsTr("Multiplies the speed of every mouse and the touchpad, instantly. Gaming mice also have their own DPI in hardware — set it in the mouse's section below.")
-            options: [
-                { value: "-0.5", label: qsTr("Slower") },
-                { value: "-0.25", label: qsTr("Slow") },
-                { value: "0", label: qsTr("Default") },
-                { value: "0.25", label: qsTr("Fast") },
-                { value: "0.5", label: qsTr("Faster") }
-            ]
-            current: String(Number(root.pointer.sensitivity ?? 0))
-            busy: inputBridge.busyAction.startsWith("sensitivity-")
-            onPicked: v => root.inputRun(`sensitivity-${v}`)
+        // ---------------------------------------------------------- Touchpad
+        TabPane {
+            active: root.tab === "touchpad"
+
+            ToggleRow {
+                first: true
+                text: qsTr("Tap to click")
+                subtext: qsTr("A light tap counts as a click")
+                checked: !!root.input.touchpad?.tap_to_click
+                disabled: inputBridge.busyAction !== ""
+                onToggled: root.inputRun(checked ? "tap-on" : "tap-off")
+            }
+
+            ToggleRow {
+                text: qsTr("Natural scrolling")
+                subtext: qsTr("Content follows your fingers, like a phone")
+                checked: !!root.input.touchpad?.natural_scroll
+                disabled: inputBridge.busyAction !== ""
+                onToggled: root.inputRun(checked ? "natural-scroll-on" : "natural-scroll-off")
+            }
+
+            ToggleRow {
+                text: qsTr("Ignore while typing")
+                subtext: qsTr("Stops a palm on the touchpad from moving the cursor")
+                checked: !!root.input.touchpad?.disable_while_typing
+                disabled: inputBridge.busyAction !== ""
+                onToggled: root.inputRun(checked ? "dwt-on" : "dwt-off")
+            }
+
+            ChipSelectRow {
+                last: true
+                label: qsTr("Scroll speed")
+                options: root.scrollOptions
+                current: root.num(root.input.touchpad?.scroll_factor)
+                busy: inputBridge.busyAction.startsWith("tp-scroll-")
+                onPicked: v => root.inputRun(`tp-scroll-${v}`)
+            }
+
+            ActionErrorRow {
+                bridge: inputBridge
+            }
         }
 
-        ToggleRow {
-            visible: !!root.input.pointer
-            text: qsTr("Mouse acceleration")
-            subtext: qsTr("Off is better for games: the pointer moves the same distance at any speed")
-            checked: root.pointer.accel_profile !== "flat"
-            disabled: inputBridge.busyAction !== ""
-            onToggled: root.inputRun(checked ? "accel-adaptive" : "accel-flat")
-        }
-
-        ChipSelectRow {
-            visible: !!root.input.pointer
-            label: qsTr("Scroll speed")
-            subtext: qsTr("How far one notch of the wheel scrolls")
-            options: root.scrollOptions
-            current: root.num(root.pointer.scroll_factor)
-            busy: inputBridge.busyAction.startsWith("scroll-")
-            onPicked: v => root.inputRun(`scroll-${v}`)
-        }
-
-        ToggleRow {
-            visible: !!root.input.pointer
-            text: qsTr("Natural scrolling")
-            subtext: qsTr("The wheel moves the content instead of the view")
-            checked: !!root.pointer.natural_scroll
-            disabled: inputBridge.busyAction !== ""
-            onToggled: root.inputRun(checked ? "mouse-natural-on" : "mouse-natural-off")
-        }
-
-        ToggleRow {
-            last: true
-            visible: !!root.input.pointer
-            text: qsTr("Left-handed")
-            subtext: qsTr("Swaps the left and right buttons")
-            checked: !!root.pointer.left_handed
-            disabled: inputBridge.busyAction !== ""
-            onToggled: root.inputRun(checked ? "left-handed-on" : "left-handed-off")
-        }
-
-        // Touchpad
-        SubsectionHeader {
-            visible: !!root.input.touchpad?.present
-            icon: "touchpad_mouse"
-            text: qsTr("Touchpad")
-        }
-
-        ToggleRow {
-            first: true
-            visible: !!root.input.touchpad?.present
-            text: qsTr("Tap to click")
-            subtext: qsTr("A light tap counts as a click")
-            checked: !!root.input.touchpad?.tap_to_click
-            disabled: inputBridge.busyAction !== ""
-            onToggled: root.inputRun(checked ? "tap-on" : "tap-off")
-        }
-
-        ToggleRow {
-            visible: !!root.input.touchpad?.present
-            text: qsTr("Natural scrolling")
-            subtext: qsTr("Content follows your fingers, like a phone")
-            checked: !!root.input.touchpad?.natural_scroll
-            disabled: inputBridge.busyAction !== ""
-            onToggled: root.inputRun(checked ? "natural-scroll-on" : "natural-scroll-off")
-        }
-
-        ToggleRow {
-            visible: !!root.input.touchpad?.present
-            text: qsTr("Ignore while typing")
-            subtext: qsTr("Stops a palm on the touchpad from moving the cursor")
-            checked: !!root.input.touchpad?.disable_while_typing
-            disabled: inputBridge.busyAction !== ""
-            onToggled: root.inputRun(checked ? "dwt-on" : "dwt-off")
-        }
-
-        ChipSelectRow {
-            last: true
-            visible: !!root.input.touchpad?.present
-            label: qsTr("Scroll speed")
-            options: root.scrollOptions
-            current: root.num(root.input.touchpad?.scroll_factor)
-            busy: inputBridge.busyAction.startsWith("tp-scroll-")
-            onPicked: v => root.inputRun(`tp-scroll-${v}`)
-        }
-
-        ActionErrorRow {
-            bridge: inputBridge
-        }
-
+        // ------------------------------------------------- Um mouse por aba
         // Mouses com driver (openrazer): bateria, DPI, polling; botoes,
         // estagios e energia na subpagina
         Repeater {
-            model: (root.periph.mice ?? []).length
+            model: root.mice.length
 
-            ColumnLayout {
+            TabPane {
                 id: mouse
 
                 // Modelo = quantidade: atualizar o status nao recria a linha
                 // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
                 // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: (root.periph.mice ?? [])[index] ?? ({})
-                readonly property var liveItem: (root.periph.mice ?? [])[index]
+                property var modelData: root.mice[index] ?? ({})
+                readonly property var liveItem: root.mice[index]
                 onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
@@ -223,8 +249,7 @@ PageBase {
                 }
                 readonly property int remapped: (mouse.modelData.buttons ?? []).filter(b => b.action !== "default").length
 
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
+                active: root.tab === root.tabId(mouse.modelData)
 
                 SubsectionHeader {
                     icon: "mouse"
@@ -287,27 +312,30 @@ PageBase {
                         root.nState.openSubPage(1);
                     }
                 }
+
+                ActionErrorRow {
+                    bridge: periphBridge
+                }
             }
         }
 
         // Mouses ja vistos que nao estao conectados agora (o Atheris quando
-        // desligado): a secao fica, com o motivo de estar vazia
+        // desligado): a aba fica, com o motivo de estar vazia
         Repeater {
-            model: (root.periph.mice_offline ?? []).length
+            model: root.miceOffline.length
 
-            ColumnLayout {
+            TabPane {
                 id: offline
 
                 // Modelo = quantidade: atualizar o status nao recria a linha
                 // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
                 // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: (root.periph.mice_offline ?? [])[index] ?? ({})
-                readonly property var liveItem: (root.periph.mice_offline ?? [])[index]
+                property var modelData: root.miceOffline[index] ?? ({})
+                readonly property var liveItem: root.miceOffline[index]
                 onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
 
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
+                active: root.tab === root.tabId(offline.modelData)
 
                 SubsectionHeader {
                     icon: "mouse"
@@ -325,15 +353,16 @@ PageBase {
             }
         }
 
-        ActionErrorRow {
-            bridge: periphBridge
-        }
+        // ---------------------------------------------------------- Advanced
+        TabPane {
+            active: root.tab === "advanced"
 
-        AdvancedGroup {
-            apps: [
-                { id: "app.polychromatic.controller", alt: ["polychromatic"], text: qsTr("Razer devices"), subtext: qsTr("Buttons, DPI and lighting (Polychromatic)") },
-                { id: "org.freedesktop.Piper", text: qsTr("Gaming mouse"), subtext: qsTr("Buttons and DPI profiles (Piper)") }
-            ]
+            AdvancedGroup {
+                apps: [
+                    { id: "app.polychromatic.controller", alt: ["polychromatic"], text: qsTr("Razer devices"), subtext: qsTr("Buttons, DPI and lighting (Polychromatic)") },
+                    { id: "org.freedesktop.Piper", text: qsTr("Gaming mouse"), subtext: qsTr("Buttons and DPI profiles (Piper)") }
+                ]
+            }
         }
     }
 }

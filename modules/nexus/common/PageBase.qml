@@ -50,6 +50,9 @@ ColumnLayout {
             root.nState.rememberTab(root.pageId, root.tab);
     }
 
+    // Abas dinamicas (um mouse por aba): o deep link pode chegar antes delas
+    onTabsChanged: root.applyRequestedTab()
+
     Component.onCompleted: {
         if (root.tabs.length === 0 || root.isSubPage)
             return;
