@@ -32,11 +32,18 @@ TestCase {
 
     function test_rowsAreOrderedAndArrowsStacked() {
         const ks = L.keys();
-        const up = ks.find(k => k.label === "▲ PgUp");
-        const down = ks.find(k => k.label === "▼ PgDn");
+        const up = ks.find(k => k.label === "▲ PGUP");
+        const down = ks.find(k => k.label === "▼ PGDN");
         compare(up.x, down.x);
         fuzzyCompare(up.y + up.h, down.y, 1e-9);
         compare(up.h, 0.48);
+        // T invertido: Home e End sao meias teclas na linha de baixo, ao lado do PgDn
+        const home = ks.find(k => k.label === "◀ HOME");
+        const end = ks.find(k => k.label === "END ▶");
+        fuzzyCompare(home.y, down.y, 1e-9);
+        fuzzyCompare(end.y, down.y, 1e-9);
+        compare(home.h, 0.48);
+        fuzzyCompare(home.x + home.w, down.x, 1e-9);
         // fila Fn comeca depois das hotkeys e antes dos numeros; hotkeys e fila Fn sao baixas
         const f1 = ks.find(k => k.id === "f1");
         const m1 = ks.find(k => k.id === "m1");
@@ -46,7 +53,7 @@ TestCase {
         // respiros do manual: M1 acima da F2 (x = 2u); Esc, respiro, F1 em 1.38u; Delete fecha a fila
         compare(m1.x, 2);
         fuzzyCompare(f1.x, 1.38, 1e-9);
-        const del = ks.find(k => k.label === "Delete");
+        const del = ks.find(k => k.label === "DELETE");
         const f12 = ks.find(k => k.id === "f12");
         verify(f12.x + f12.w < del.x && del.x + del.w <= 15);
     }

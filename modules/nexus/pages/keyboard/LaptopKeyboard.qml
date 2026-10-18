@@ -6,10 +6,11 @@ import qs.components
 import qs.services
 import "laptopLayout.js" as Lk
 
-// Diagrama esquematico do teclado do notebook (GU603, laptopLayout.js): as 16
-// teclas especiais (M1-M4 e a fila Fn) em destaque e clicaveis, com o icone da
-// funcao impressa; o resto so da contexto, apagado. Mesmo papel do
-// MouseDiagram do Naga, mas teclas sao retangulos -- dispensa SVG.
+// Diagrama do teclado do notebook (GU603, laptopLayout.js) no traco do manual
+// da ASUS: teclas so de contorno, cantos pouco arredondados, respiros reais.
+// As 16 especiais (M1-M4 e a fila Fn) tem contorno e icone em destaque e sao
+// clicaveis; o resto so da contexto. Mesmo papel do MouseDiagram do Naga, mas
+// teclas sao retangulos -- dispensa SVG.
 Item {
     id: root
 
@@ -17,7 +18,9 @@ Item {
     readonly property var keys: Lk.keys()
     readonly property var size: Lk.size()
     readonly property real unit: root.width / root.size.w
-    readonly property real gap: root.unit * 0.05
+    // metade do respiro entre teclas (0.16u no manual) e raio dos cantos (~0.1u)
+    readonly property real gap: root.unit * 0.08
+    readonly property real corner: root.unit * 0.1
 
     signal picked(id: string)
 
@@ -38,19 +41,19 @@ Item {
             y: key.modelData.y * root.unit + root.gap
             width: key.modelData.w * root.unit - root.gap * 2
             height: key.modelData.h * root.unit - root.gap * 2
-            radius: Tokens.rounding.small
-            color: key.active ? Colours.palette.m3tertiary : key.special ? Colours.palette.m3surfaceContainerHighest : Colours.palette.m3surfaceContainer
-            border.width: key.special && !key.active ? 1 : 0
-            border.color: Colours.palette.m3outlineVariant
+            radius: root.corner
+            color: key.active ? Colours.palette.m3tertiary : "transparent"
+            border.width: key.active ? 0 : key.special ? 2 : 1
+            border.color: key.special ? Colours.palette.m3tertiary : Colours.palette.m3outline
 
             // Tecla comum: so o rotulo, apagado
             Text {
                 anchors.centerIn: parent
                 visible: !key.special
                 text: key.modelData.label
-                color: Colours.palette.m3outline
+                color: Colours.palette.m3onSurfaceVariant
                 font.family: Tokens.font.label.small.family
-                font.pixelSize: Math.max(7, root.unit * 0.3)
+                font.pixelSize: Math.max(7, root.unit * (key.modelData.label.length > 3 ? 0.2 : 0.3))
                 renderType: Text.NativeRendering
             }
 
@@ -61,7 +64,7 @@ Item {
                 anchors.leftMargin: root.gap * 2
                 visible: key.special
                 text: key.modelData.label
-                color: key.active ? Colours.palette.m3onTertiary : Colours.palette.m3onSurfaceVariant
+                color: key.active ? Colours.palette.m3onTertiary : Colours.palette.m3tertiary
                 font.family: Tokens.font.label.small.family
                 font.pixelSize: Math.max(7, root.unit * 0.24)
                 renderType: Text.NativeRendering
