@@ -224,26 +224,29 @@ PageBase {
                                                 visible: root.showAll || item.modelData.main
                                                 spacing: Tokens.spacing.extraSmall / 2
 
-                                                // Text puro (sem Behaviors do StyledText): sao dezenas por pagina
-                                                Text {
-                                                    width: parent.width
+                                                // Variante + nota "(all monitors)" ao lado, menor e mais apagada.
+                                                // Text puro (sem Behaviors do StyledText): sao dezenas por pagina.
+                                                Row {
                                                     visible: item.modelData.variant !== ""
-                                                    text: item.modelData.variant
-                                                    color: Colours.palette.m3onSurfaceVariant
-                                                    font: Tokens.font.label.medium
-                                                    wrapMode: Text.WordWrap
-                                                    renderType: Text.NativeRendering
-                                                }
+                                                    spacing: Tokens.spacing.extraSmall
 
-                                                // "(all monitors)" numa linha menor, em vez de quebrar o texto
-                                                Text {
-                                                    width: parent.width
-                                                    visible: item.modelData.note !== ""
-                                                    text: item.modelData.note
-                                                    color: Colours.palette.m3outline
-                                                    font: Tokens.font.label.small
-                                                    wrapMode: Text.WordWrap
-                                                    renderType: Text.NativeRendering
+                                                    Text {
+                                                        anchors.baseline: note.baseline
+                                                        text: item.modelData.variant
+                                                        color: Colours.palette.m3onSurfaceVariant
+                                                        font: Tokens.font.label.medium
+                                                        renderType: Text.NativeRendering
+                                                    }
+
+                                                    Text {
+                                                        id: note
+
+                                                        visible: item.modelData.note !== ""
+                                                        text: "(" + item.modelData.note + ")"
+                                                        color: Colours.palette.m3outline
+                                                        font: Tokens.font.label.small
+                                                        renderType: Text.NativeRendering
+                                                    }
                                                 }
 
                                                 // Uma combinacao por linha; se nao couber, as teclas quebram linha
