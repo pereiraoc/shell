@@ -7,7 +7,7 @@ import qs.services
 // (tertiary), o foco principal; Ctrl/Shift/Alt/Fn em matizes fixos distintos
 // (azul, verde, roxo, laranja) que seguem claro/escuro -- os papeis do tema
 // nao dao 5 cores distinguiveis (primary == secondary, error == tertiary).
-// A base, mais escura, e o proprio retangulo (relevo de 3 px); a tampa e um filho.
+// A base, mais escura, e o proprio retangulo (relevo de 2 px); a tampa e um filho.
 StyledRect {
     id: root
 
@@ -19,14 +19,14 @@ StyledRect {
     readonly property color capColour: root.kind === "super" ? Colours.palette.m3tertiary : root.tinted ? Qt.hsla(root.hue, 0.35, Colours.light ? 0.82 : 0.28, 1) : Colours.tPalette.m3surfaceContainerHigh
     readonly property color textColour: root.kind === "super" ? Colours.palette.m3onTertiary : root.tinted ? Qt.hsla(root.hue, 0.55, Colours.light ? 0.18 : 0.92, 1) : Colours.palette.m3onSurface
 
-    implicitWidth: Math.max(label.implicitWidth + Tokens.padding.medium * 2, implicitHeight)
-    implicitHeight: label.implicitHeight + Tokens.padding.small * 2 + 3
+    implicitWidth: Math.max(label.implicitWidth + Tokens.padding.small * 2, implicitHeight)
+    implicitHeight: label.implicitHeight + Tokens.padding.extraSmall * 2 + 2
     radius: Tokens.rounding.extraSmall
     color: Qt.darker(root.capColour, 1.35)
 
     StyledRect {
         anchors.fill: parent
-        anchors.bottomMargin: 3
+        anchors.bottomMargin: 2
         radius: Tokens.rounding.extraSmall
         color: root.capColour
         border.width: 1
@@ -37,7 +37,7 @@ StyledRect {
 
             anchors.centerIn: parent
             text: root.text
-            font: Tokens.font.label.medium
+            font: Tokens.font.label.small
             color: root.textColour
         }
     }

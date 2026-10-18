@@ -207,15 +207,26 @@ PageBase {
                                                     wrapMode: Text.WordWrap
                                                 }
 
-                                                // Uma combinacao por linha
+                                                // "(all monitors)" numa linha menor, em vez de quebrar o texto
+                                                StyledText {
+                                                    Layout.fillWidth: true
+                                                    visible: item.modelData.note !== ""
+                                                    text: item.modelData.note
+                                                    color: Colours.palette.m3outline
+                                                    font: Tokens.font.label.small
+                                                    wrapMode: Text.WordWrap
+                                                }
+
+                                                // Uma combinacao por linha; se nao couber, as teclas quebram linha
                                                 Repeater {
                                                     model: item.modelData.combos
 
-                                                    Row {
+                                                    Flow {
                                                         id: combo
 
                                                         required property var modelData
 
+                                                        Layout.fillWidth: true
                                                         spacing: Tokens.spacing.extraSmall / 2
 
                                                         Repeater {
@@ -229,12 +240,8 @@ PageBase {
 
                                                                 spacing: Tokens.spacing.extraSmall / 2
 
-                                                                StyledText {
-                                                                    anchors.verticalCenter: parent.verticalCenter
+                                                                KeySeparator {
                                                                     visible: tok.index > 0
-                                                                    text: "+"
-                                                                    color: Colours.palette.m3outline
-                                                                    font: Tokens.font.label.small
                                                                 }
 
                                                                 KeyCap {
@@ -244,32 +251,29 @@ PageBase {
                                                             }
                                                         }
 
-                                                        StyledText {
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            visible: combo.modelData.prefix.length > 0
-                                                            text: "+"
-                                                            color: Colours.palette.m3outline
-                                                            font: Tokens.font.label.small
-                                                        }
+                                                        Row {
+                                                            spacing: Tokens.spacing.extraSmall / 2
 
-                                                        KeyCap {
-                                                            visible: combo.modelData.alts.length === 1
-                                                            text: combo.modelData.alts[0]
-                                                            kind: Shortcuts.modKind(combo.modelData.alts[0])
-                                                        }
+                                                            KeySeparator {
+                                                                visible: combo.modelData.prefix.length > 0
+                                                            }
 
-                                                        KeyAlternatives {
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            visible: combo.modelData.alts.length > 1
-                                                            alts: combo.modelData.alts
-                                                        }
+                                                            KeyCap {
+                                                                visible: combo.modelData.alts.length === 1
+                                                                text: combo.modelData.alts[0]
+                                                                kind: Shortcuts.modKind(combo.modelData.alts[0])
+                                                            }
 
-                                                        StyledText {
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            visible: combo.modelData.tap
-                                                            text: Tr.tr("tap")
-                                                            color: Colours.palette.m3outline
-                                                            font: Tokens.font.label.small
+                                                            KeyAlternatives {
+                                                                anchors.verticalCenter: parent.verticalCenter
+                                                                visible: combo.modelData.alts.length > 1
+                                                                alts: combo.modelData.alts
+                                                            }
+
+                                                            KeySeparator {
+                                                                visible: combo.modelData.tap
+                                                                text: Tr.tr("tap")
+                                                            }
                                                         }
                                                     }
                                                 }

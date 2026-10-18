@@ -12,7 +12,7 @@ Item {
 
     property var alts: []
 
-    readonly property int pad: Tokens.padding.extraSmall
+    readonly property int pad: Tokens.padding.extraSmall / 2
 
     implicitWidth: row.implicitWidth + root.pad * 2
     implicitHeight: row.implicitHeight + root.pad * 2

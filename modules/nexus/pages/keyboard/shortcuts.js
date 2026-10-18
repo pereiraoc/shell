@@ -118,6 +118,13 @@ function split(description) {
     return d;
 }
 
+// "next / previous window (all monitors)" -> texto + nota, para a nota ir
+// numa linha menor em vez de quebrar o texto
+function splitNote(text) {
+    const m = /^(.*\S)\s+\(([^()]*)\)$/.exec(text);
+    return m ? { text: m[1], note: m[2] } : { text: text, note: "" };
+}
+
 function parseTags(tags) {
     let main = false;
     let icon = "";
@@ -173,7 +180,10 @@ function group(binds) {
             title: g.title,
             icon: g.icon,
             main: g.main,
-            items: g.items.map(i => ({ variant: i.variant, icon: i.icon, main: i.main, combos: mergeCombos(i.raw) }))
+            items: g.items.map(i => {
+                const v = splitNote(i.variant);
+                return { variant: v.text, note: v.note, icon: i.icon, main: i.main, combos: mergeCombos(i.raw) };
+            })
         }))
     }));
 }
