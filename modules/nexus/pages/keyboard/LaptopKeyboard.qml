@@ -54,26 +54,27 @@ Item {
                 renderType: Text.NativeRendering
             }
 
-            // Tecla especial: rotulo no canto + icone da funcao impressa
+            // Tecla especial (baixa): rotulo a esquerda, icone da funcao impressa a direita
             Text {
                 anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.margins: root.gap * 1.5
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: root.gap * 2
                 visible: key.special
                 text: key.modelData.label
                 color: key.active ? Colours.palette.m3onTertiary : Colours.palette.m3onSurfaceVariant
                 font.family: Tokens.font.label.small.family
-                font.pixelSize: Math.max(7, root.unit * 0.26)
+                font.pixelSize: Math.max(7, root.unit * 0.24)
                 renderType: Text.NativeRendering
             }
 
             MaterialIcon {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: root.gap * 1.5
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: root.gap * 2
                 visible: key.special
                 text: key.modelData.icon
                 color: key.active ? Colours.palette.m3onTertiary : Colours.palette.m3tertiary
+                fontStyle: Tokens.font.icon.small
             }
 
             MouseArea {

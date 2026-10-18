@@ -25,23 +25,30 @@ TestCase {
             for (let j = i + 1; j < ks.length; j++)
                 verify(!overlaps(ks[i], ks[j]), `${ks[i].label} sobrepoe ${ks[j].label}`);
         }
-        // 15.25u de largura (fila de baixo), 7.2u de altura
+        // 15u de largura (filas de letras e a de baixo), 6.32u de altura
         compare(s.w, 15);
-        compare(s.h, 7.2);
+        fuzzyCompare(s.h, 6.32, 1e-9);
     }
 
     function test_rowsAreOrderedAndArrowsStacked() {
         const ks = L.keys();
-        const up = ks.find(k => k.label === "↑");
-        const down = ks.find(k => k.label === "↓");
+        const up = ks.find(k => k.label === "▲ PgUp");
+        const down = ks.find(k => k.label === "▼ PgDn");
         compare(up.x, down.x);
-        compare(up.y + up.h, down.y);
-        compare(up.h, 0.5);
-        // fila Fn comeca depois das hotkeys e antes dos numeros
+        fuzzyCompare(up.y + up.h, down.y, 1e-9);
+        compare(up.h, 0.48);
+        // fila Fn comeca depois das hotkeys e antes dos numeros; hotkeys e fila Fn sao baixas
         const f1 = ks.find(k => k.id === "f1");
         const m1 = ks.find(k => k.id === "m1");
         const one = ks.find(k => k.label === "1");
         verify(m1.y < f1.y && f1.y < one.y);
+        verify(m1.h < f1.h && f1.h < one.h);
+        // respiros do manual: M1 acima da F2 (x = 2u); Esc, respiro, F1 em 1.38u; Delete fecha a fila
+        compare(m1.x, 2);
+        fuzzyCompare(f1.x, 1.38, 1e-9);
+        const del = ks.find(k => k.label === "Delete");
+        const f12 = ks.find(k => k.id === "f12");
+        verify(f12.x + f12.w < del.x && del.x + del.w <= 15);
     }
 
     function test_labels() {
