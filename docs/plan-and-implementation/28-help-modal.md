@@ -1,9 +1,9 @@
 # ❓ Help Modal - Keyboard Shortcuts
 
 **ID**: 28  
-**Status**: ❌ Removido — módulo `modules/help/` apagado no cleanup do US-007 Fase F (commit `861efd1e`); Super+F1 virou "ir ao grupo 1" (redesign 3×3, 2026-07-03). Recriar do zero no Nexus com tecla nova: setup `development/docs/21-caelestia-custom-v3.md` § V3-05  
+**Status**: ✅ Substituído (2026-10-18) pela página **Nexus › Keyboard › Shortcuts** (`modules/nexus/pages/keyboard/ShortcutsPage.qml` + `shortcuts.js`), que lê os atalhos ao vivo do Hyprland (`hyprctl binds -j`, categoria no `desc` do `binds.lua`) e abre/fecha com `Super + /` (IPC `nexus togglePage keyboard 2`). Spec no setup: `docs/superpowers/specs/2026-10-18-keyboard-shortcuts-page-design.md`  
 **Complexidade**: 🟡 Média  
-**Tempo Estimado**: 2-3h (a refazer)
+**Tempo Estimado**: concluído
 
 ---
 
