@@ -43,6 +43,7 @@ ShellRoot {
     // contrario antes do systemctl
     Farewell {}
     Shortcuts {}
+    StateNotifier {}
     BatteryMonitor {}
     IdleMonitors {
         lock: lock
