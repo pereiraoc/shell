@@ -23,16 +23,20 @@ TestCase {
             for (let j = i + 1; j < ks.length; j++)
                 verify(!overlaps(ks[i], ks[j]), `${ks[i].label} sobrepoe ${ks[j].label}`);
         }
-        // coluna da direita: INS, PGUP, PGDN alinhados em x = 15; setas em T invertido (↑ sobre ↓ em x = 14)
-        const col = ["INS", "PGUP", "PGDN"].map(l => ks.find(k => k.label === l));
+        // coluna da direita, de cima para baixo: INS, DEL, PGUP, PGDN em x = 15, uma por fila
+        const col = ["INS", "DEL", "PGUP", "PGDN"].map(l => ks.find(k => k.label === l));
         verify(col.every(k => k.x === 15));
+        verify(col[0].y < col[1].y && col[1].y < col[2].y && col[2].y < col[3].y);
+        // setas em T invertido: ↑ sobre ↓ em x = 14; → fecha a coluna em x = 15
         compare(ks.find(k => k.id === "up").x, 14);
         compare(ks.find(k => k.id === "down").x, 14);
         compare(ks.find(k => k.id === "right").x, 15);
-        // OLED e knob no canto superior direito, a direita do DEL
+        // OLED largo e knob no canto superior direito, depois do F12, ate a borda
         const oled = ks.find(k => k.kind === "oled");
-        const del = ks.find(k => k.id === "del");
-        verify(oled.x > del.x + del.w && oled.y === 0);
+        const knob = ks.find(k => k.kind === "knob");
+        const f12 = ks.find(k => k.id === "f12");
+        verify(oled.x > f12.x + f12.w && oled.y === 0 && oled.w >= 1.5);
+        fuzzyCompare(knob.x + knob.w, 16, 1e-9);
     }
 
     function test_fnFunctions() {

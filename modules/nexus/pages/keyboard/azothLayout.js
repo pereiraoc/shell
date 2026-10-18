@@ -2,9 +2,10 @@
 
 // Teclado ROG Azoth (75 %, ANSI US, 81 teclas), em unidades de tecla, para o
 // diagrama de Nexus > Keyboard > Azoth. Silhueta: 16u de largura; fila Fn com
-// Esc, F1..F12 em grupos de quatro, Delete, e no canto superior direito o OLED
-// e o knob de tres posicoes; coluna da direita Ins / PgUp / PgDn; seta para
-// cima sob o PgDn e as outras tres na fila de baixo. As teclas com funcao na
+// Esc, F1..F12 em grupos de quatro e, no canto superior direito, o OLED largo
+// e o knob de tres posicoes; coluna da direita (de cima para baixo) Ins, Del,
+// PgUp, PgDn; seta para cima sob a Shift direita e as outras tres na fila de
+// baixo, com a seta direita fechando a coluna. As teclas com funcao na
 // camada Fn (manual E25289/QSG) tem `id` e `fn` (o que Fn + tecla faz); o OLED
 // e o knob sao elementos clicaveis proprios. Sem Qt: testavel com qmltestrunner.
 
@@ -34,9 +35,8 @@ var ROWS = [
         { id: "esc", label: "ESC", w: 1 }, { gap: 0.1 },
         { label: "F1", w: 1 }, { label: "F2", w: 1 }, { label: "F3", w: 1 }, { label: "F4", w: 1 }, { gap: 0.1 },
         { label: "F5", w: 1 }, { label: "F6", w: 1 }, { label: "F7", w: 1 }, { label: "F8", w: 1 }, { gap: 0.1 },
-        { label: "F9", w: 1 }, { label: "F10", w: 1 }, { label: "F11", w: 1 }, { id: "f12", label: "F12", w: 1 },
-        { id: "del", label: "DEL", w: 1 }, { gap: 0.1 },
-        { id: "oled", label: "OLED", w: 1, kind: "oled" }, { id: "knob", label: "", w: 0.6, kind: "knob" }
+        { label: "F9", w: 1 }, { label: "F10", w: 1 }, { label: "F11", w: 1 }, { id: "f12", label: "F12", w: 1 }, { gap: 0.2 },
+        { id: "oled", label: "OLED", w: 1.7, kind: "oled" }, { gap: 0.1 }, { id: "knob", label: "", w: 0.7, kind: "knob" }
     ] },
     { y: 1.1, h: 1, keys: [
         { label: "`", top: "~", w: 1 }, { id: "k1", label: "1", top: "!", w: 1 }, { id: "k2", label: "2", top: "@", w: 1 }, { id: "k3", label: "3", top: "#", w: 1 },
@@ -47,17 +47,17 @@ var ROWS = [
     { y: 2.1, h: 1, keys: [
         { id: "tab", label: "TAB", glyph: "⇤⇥", w: 1.5 }, { label: "Q", w: 1 }, { label: "W", w: 1 }, { label: "E", w: 1 }, { label: "R", w: 1 }, { label: "T", w: 1 },
         { label: "Y", w: 1 }, { label: "U", w: 1 }, { label: "I", w: 1 }, { label: "O", w: 1 }, { id: "p", label: "P", w: 1 }, { label: "[", top: "{", w: 1 },
-        { label: "]", top: "}", w: 1 }, { label: "\\", top: "|", w: 1.5 }, { id: "pgup", label: "PGUP", w: 1 }
+        { label: "]", top: "}", w: 1 }, { label: "\\", top: "|", w: 1.5 }, { id: "del", label: "DEL", w: 1 }
     ] },
     { y: 3.1, h: 1, keys: [
         { label: "CAPS", w: 1.75 }, { label: "A", w: 1 }, { label: "S", w: 1 }, { label: "D", w: 1 }, { label: "F", w: 1 }, { label: "G", w: 1 },
         { label: "H", w: 1 }, { label: "J", w: 1 }, { label: "K", w: 1 }, { label: "L", w: 1 }, { label: ";", top: ":", w: 1 }, { label: "'", top: "\"", w: 1 },
-        { label: "ENTER", glyph: "↵", w: 2.25 }, { id: "pgdn", label: "PGDN", w: 1 }
+        { label: "ENTER", glyph: "↵", w: 2.25 }, { id: "pgup", label: "PGUP", w: 1 }
     ] },
     { y: 4.1, h: 1, keys: [
         { label: "SHIFT", glyph: "⇧", w: 2.25 }, { label: "Z", w: 1 }, { label: "X", w: 1 }, { label: "C", w: 1 }, { label: "V", w: 1 }, { label: "B", w: 1 },
         { label: "N", w: 1 }, { label: "M", w: 1 }, { label: ",", top: "<", w: 1 }, { label: ".", top: ">", w: 1 }, { label: "/", top: "?", w: 1 },
-        { label: "SHIFT", glyph: "⇧", w: 1.75 }, { id: "up", label: "↑", w: 1 }
+        { label: "SHIFT", glyph: "⇧", w: 1.75 }, { id: "up", label: "↑", w: 1 }, { id: "pgdn", label: "PGDN", w: 1 }
     ] },
     { y: 5.1, h: 1, keys: [
         { label: "CTRL", w: 1.25 }, { label: "", micon: "window", w: 1.25 }, { id: "lalt", label: "ALT", w: 1.25 }, { label: "", bar: true, w: 6.25 },
