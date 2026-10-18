@@ -275,6 +275,23 @@ PageBase {
                 ActionErrorRow {
                     bridge: periphBridge
                 }
+
+                // Familia do Azoth (canal vendor): silhueta, camada Fn e OLED.
+                // So nasce quando a aba abre; depois fica viva.
+                Loader {
+                    id: azoth
+
+                    property bool opened
+
+                    Layout.fillWidth: true
+                    active: kbd.modelData.backend === "hid" && (azoth.opened || root.tab === kbd.modelData.id)
+                    visible: active
+                    onActiveChanged: if (active) opened = true
+                    sourceComponent: AzothView {
+                        device: kbd.modelData
+                        bridge: periphBridge
+                    }
+                }
             }
         }
 

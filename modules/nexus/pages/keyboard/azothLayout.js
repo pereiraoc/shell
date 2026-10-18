@@ -31,12 +31,12 @@ var FN = {
 
 var ROWS = [
     { y: 0, h: 1, keys: [
-        { id: "esc", label: "ESC", w: 1 }, { gap: 0.25 },
-        { label: "F1", w: 1 }, { label: "F2", w: 1 }, { label: "F3", w: 1 }, { label: "F4", w: 1 }, { gap: 0.25 },
-        { label: "F5", w: 1 }, { label: "F6", w: 1 }, { label: "F7", w: 1 }, { label: "F8", w: 1 }, { gap: 0.25 },
+        { id: "esc", label: "ESC", w: 1 }, { gap: 0.1 },
+        { label: "F1", w: 1 }, { label: "F2", w: 1 }, { label: "F3", w: 1 }, { label: "F4", w: 1 }, { gap: 0.1 },
+        { label: "F5", w: 1 }, { label: "F6", w: 1 }, { label: "F7", w: 1 }, { label: "F8", w: 1 }, { gap: 0.1 },
         { label: "F9", w: 1 }, { label: "F10", w: 1 }, { label: "F11", w: 1 }, { id: "f12", label: "F12", w: 1 },
-        { id: "del", label: "DEL", w: 1 }, { gap: 0.25 },
-        { id: "oled", label: "OLED", w: 1.25, kind: "oled" }, { id: "knob", label: "", w: 0.75, kind: "knob" }
+        { id: "del", label: "DEL", w: 1 }, { gap: 0.1 },
+        { id: "oled", label: "OLED", w: 1, kind: "oled" }, { id: "knob", label: "", w: 0.6, kind: "knob" }
     ] },
     { y: 1.1, h: 1, keys: [
         { label: "`", top: "~", w: 1 }, { id: "k1", label: "1", top: "!", w: 1 }, { id: "k2", label: "2", top: "@", w: 1 }, { id: "k3", label: "3", top: "#", w: 1 },

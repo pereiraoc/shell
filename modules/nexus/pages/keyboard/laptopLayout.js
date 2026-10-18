@@ -66,7 +66,8 @@ var SPECIAL = ["m1", "m2", "m3", "m4", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
 
 function entry(k, label, x, y, w, h) {
     const id = k.id || "";
-    return { id: id, label: label, icon: id ? ICONS[id] : "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, x: x, y: y, w: w, h: h };
+    // corner: onde fica o nome pequeno da tecla especial (F: superior direito; M: inferior direito)
+    return { id: id, label: label, icon: id ? ICONS[id] : "", fn: "", kind: "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, corner: isFn(id) ? "tr" : "br", x: x, y: y, w: w, h: h };
 }
 
 // Teclas achatadas, com posicao absoluta em u:

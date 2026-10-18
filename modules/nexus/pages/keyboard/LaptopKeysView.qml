@@ -71,8 +71,10 @@ ColumnLayout {
         wrapMode: Text.WordWrap
     }
 
-    LaptopKeyboard {
+    KeyboardDiagram {
         Layout.fillWidth: true
+        keys: Lk.keys()
+        size: Lk.size()
         selected: root.selected
         onPicked: id => root.selected = root.selected === id ? "" : id
     }
