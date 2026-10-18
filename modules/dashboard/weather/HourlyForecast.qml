@@ -54,9 +54,12 @@ ColumnLayout {
         return Colours.palette.m3tertiary;
     }
 
+    // Chuva = chance (%) por hora: quase sempre ha chance e quase nunca ha mm
+    // previstos -- em mm o grafico ficava vazio com o eixo 0-2. Os mm entram no
+    // rotulo e escurecem a barra.
     function valueOf(h: var): real {
         if (metric === "rain")
-            return h.precipMm;
+            return h.precipChance;
         if (metric === "wind")
             return h.windSpeed;
         if (metric === "humidity")
@@ -66,7 +69,7 @@ ColumnLayout {
 
     function labelOf(h: var): string {
         if (metric === "rain")
-            return h.precipMm > 0 ? `${Number(h.precipMm.toFixed(1))} mm` : Strings.percent(h.precipChance);
+            return Strings.percent(h.precipChance) + (h.precipMm > 0 ? ` · ${Number(h.precipMm.toFixed(1))} mm` : "");
         if (metric === "wind")
             return `${h.windSpeed} km/h`;
         if (metric === "humidity")
@@ -158,7 +161,7 @@ ColumnLayout {
                 id: chart
 
                 // Faixas verticais: ícone em cima do ponto, valor embaixo, horas no rodape
-                readonly property real axisWidth: 32
+                readonly property real axisWidth: root.metric === "rain" ? 40 : 32
                 readonly property real iconSpace: 34
                 readonly property real labelSpace: 26
                 readonly property real hourSpace: 22
@@ -177,14 +180,12 @@ ColumnLayout {
                 readonly property real maxV: {
                     if (values.length === 0)
                         return 1;
-                    const m = Math.max(...values);
-                    if (root.metric === "rain")
-                        return Math.max(m, 1);
-                    return m;
+                    return Math.max(...values);
                 }
-                // Folga em cima/embaixo para a curva nao encostar nos rotulos
+                // Folga em cima/embaixo para a curva nao encostar nos rotulos;
+                // chuva e uma chance: eixo fixo 0-100 %
                 readonly property real lo: root.metric === "rain" ? 0 : Math.floor(minV - Math.max(1, (maxV - minV) * 0.25))
-                readonly property real hi: Math.ceil(maxV + Math.max(1, (maxV - minV) * 0.25))
+                readonly property real hi: root.metric === "rain" ? 100 : Math.ceil(maxV + Math.max(1, (maxV - minV) * 0.25))
 
                 function xAt(i: int): real {
                     return plotLeft + step * (i + 0.5);
@@ -214,7 +215,7 @@ ColumnLayout {
                         y: chart.yAt(v) - height / 2
                         width: chart.axisWidth - Tokens.spacing.small
                         horizontalAlignment: Text.AlignRight
-                        text: Math.round(v)
+                        text: root.metric === "rain" ? `${Math.round(v)}%` : Math.round(v)
                         font: Tokens.font.body.small
                         color: Colours.palette.m3onSurfaceVariant
                         opacity: 0.7
@@ -250,12 +251,12 @@ ColumnLayout {
                         ctx.stroke();
 
                         if (root.metric === "rain") {
-                            // Chuva em barras (mm por hora)
+                            // Chance de chuva em barras; com mm previstos a barra fica cheia
                             const bw = Math.max(3, chart.step * 0.5);
-                            ctx.fillStyle = css(colour, 0.75);
                             for (let i = 0; i < n; i++) {
                                 const y = chart.yAt(vals[i]);
                                 const h = chart.plotBottom - y;
+                                ctx.fillStyle = css(colour, (root.hours[i]?.precipMm ?? 0) > 0 ? 0.95 : 0.55);
                                 if (h > 0.5)
                                     ctx.fillRect(chart.xAt(i) - bw / 2, y, bw, h);
                             }
