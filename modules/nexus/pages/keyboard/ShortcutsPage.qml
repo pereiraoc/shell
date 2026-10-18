@@ -167,7 +167,7 @@ PageBase {
                                 anchors.right: parent.right
                                 anchors.top: parent.top
                                 anchors.margins: Tokens.padding.large
-                                spacing: Tokens.spacing.medium
+                                spacing: Tokens.spacing.largeIncreased
 
                                 StyledText {
                                     width: parent.width
@@ -179,15 +179,25 @@ PageBase {
                                 Repeater {
                                     model: card.modelData.groups
 
-                                    // Grupo: icone + titulo curto; embaixo as variantes
+                                    // Grupo: icone + titulo curto; embaixo as variantes.
+                                    // Entre grupos, uma linha bem leve.
                                     Column {
                                         id: grp
 
+                                        required property int index
                                         required property var modelData
 
                                         width: parent.width
                                         visible: root.showAll || grp.modelData.main
                                         spacing: Tokens.spacing.extraSmall
+
+                                        Rectangle {
+                                            width: parent.width
+                                            height: 1
+                                            visible: grp.index > 0
+                                            color: Colours.palette.m3outlineVariant
+                                            opacity: 0.5
+                                        }
 
                                         Row {
                                             id: grpHeader
