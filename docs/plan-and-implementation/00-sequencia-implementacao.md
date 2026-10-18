@@ -77,7 +77,7 @@ flowchart TB
 | **21** Lock Screen Auth Selector | ✅ | Face/PIN selection |
 | **24** Workspace Visual Grouping | ✅ | Groups de 5 workspaces |
 | **25** Gaps Configuration | ✅ | Inner/outer gaps |
-| **28** Help Modal | ✅ | 212 linhas, Super+F1 |
+| **28** Help Modal | ❌ | removido em `861efd1e` (US-007 Fase F); Super+F1 hoje = grupo 1; recriar no Nexus (V3-05) |
 | **32** GPU Mode Selector | ✅ | NVIDIA/Intel toggle |
 
 ---
@@ -196,7 +196,7 @@ flowchart TB
 | - | 21 Lock Screen | - | - | ✅ Implementado |
 | - | 24 Workspace Grouping | - | - | ✅ Implementado |
 | - | 25 Gaps Configuration | - | - | ✅ Implementado |
-| - | 28 Help Modal | - | - | ✅ Implementado |
+| - | 28 Help Modal | - | - | ❌ Removido (861efd1e) — recriar, V3-05 |
 | - | 32 GPU Mode Selector | - | - | ✅ Implementado |
 | 0 | **41 Workspace Groups per Monitor** | 0 | 7-8h | 🔄 **EM IMPLEMENTAÇÃO** (US-005) |
 | 1 | **38 Wallpaper per Monitor** | 1 | 6-8h | ⏱️ Próximo |

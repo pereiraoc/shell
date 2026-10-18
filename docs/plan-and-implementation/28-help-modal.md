@@ -1,9 +1,9 @@
 # ❓ Help Modal - Keyboard Shortcuts
 
 **ID**: 28  
-**Status**: ✅ Implementado  
+**Status**: ❌ Removido — módulo `modules/help/` apagado no cleanup do US-007 Fase F (commit `861efd1e`); Super+F1 virou "ir ao grupo 1" (redesign 3×3, 2026-07-03). Recriar do zero no Nexus com tecla nova: setup `development/docs/21-caelestia-custom-v3.md` § V3-05  
 **Complexidade**: 🟡 Média  
-**Tempo Estimado**: 2-3h (concluído)
+**Tempo Estimado**: 2-3h (a refazer)
 
 ---
 
