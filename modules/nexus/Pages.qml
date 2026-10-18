@@ -64,7 +64,7 @@ Item {
     Connections {
         function onCurrentPageIdxChanged(): void {
             switchAnim.complete();
-            root.animOff = root.Tokens.padding.extraLarge * (root.nState.currentPageIdx > root.lastPageIdx ? 1 : -1);
+            root.animOff = root.Tokens.padding.medium * (root.nState.currentPageIdx > root.lastPageIdx ? 1 : -1);
             switchAnim.start();
             root.lastPageIdx = root.nState.currentPageIdx;
         }
@@ -72,14 +72,17 @@ Item {
         target: root.nState
     }
 
+    // Troca de pagina "snappy" (18/10/2026): antes eram 200 ms de fade-out +
+    // 300 ms de fade-in e deslize -- meio segundo parado a cada clique no menu,
+    // sendo que a pagina nova nasce em 20-100 ms. Agora a antiga some na hora e
+    // a nova entra num fade curto com um deslize pequeno.
     SequentialAnimation {
         id: switchAnim
 
-        Anim {
+        PropertyAction {
             target: container
             property: "opacity"
-            to: 0
-            type: Anim.DefaultEffects
+            value: 0
         }
         ScriptAction {
             script: root.loadPage(root.nState.currentPageIdx, false)
@@ -100,13 +103,13 @@ Item {
                 property: "opacity"
                 from: 0
                 to: 1
-                type: Anim.SlowEffects
+                duration: 120
             }
             Anim {
                 target: container.anchors
                 properties: "topMargin,bottomMargin"
                 to: 0
-                type: Anim.SlowEffects
+                duration: 120
             }
         }
     }
