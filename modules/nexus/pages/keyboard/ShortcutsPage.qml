@@ -15,12 +15,14 @@ import "shortcuts.js" as Shortcuts
 // do Hyprland (`hyprctl binds -j`) e relidos a cada reload dele. Categoria =
 // 1o campo do desc do binds.lua; "Grupo › variante" na acao agrupa variantes
 // sob um titulo curto; @main marca os principais (Essentials, a vista que o
-// Super+/ abre) e @icon da o simbolo. Cartoes repartidos em colunas (masonry);
-// trocar Essentials/All so muda visibilidade -- nada e recriado.
+// Super+/ abre) e @icon da o simbolo. Cartoes repartidos em colunas (masonry)
+// pelo @col; @col:12 = par que vive dentro dos primeiros cartoes das colunas
+// 1-2 (navegar a esquerda, manipular a direita, mesma linha, num pontilhado).
+// Trocar Essentials/All so muda visibilidade -- nada e recriado.
 PageBase {
     id: root
 
-    // [{ name, groups: [{ title, icon, main, items: [{ variant, main, combos: [{ label, prefix, alts, tap }] }] }] }]
+    // [{ name, col, groups: [{ title, icon, main, items: [{ variant, note, level, icon, main, combos: [{ label, prefix, alts, tap }] }] }] }]
     property var categories: []
     property bool failed
     // Essentials (so @main) a cada abertura; "All" e escolha do momento
@@ -30,9 +32,12 @@ PageBase {
     // enquanto a pagina nao tem largura: criar os cartoes antes de ela estar
     // anexada caia em incubacao assincrona aninhada (pingando por ~2 s) e, ao
     // chegar a largura, tudo era recriado para 3 colunas.
-    // Uma expressao so: `columns` e `cappedWidth` mudando em separado
+    // Uma expressao so por modelo: `columns` e `cappedWidth` mudando em separado
     // reconstruiam os cartoes duas vezes (1 coluna, depois 3).
-    readonly property var columnsModel: root.cappedWidth > 0 ? Shortcuts.distribute(root.categories, root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1) : []
+    readonly property int columns: root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1
+    readonly property var columnsModel: root.cappedWidth > 0 ? Shortcuts.distribute(root.categories, root.columns) : []
+    // Pares (@col:12): linhas alinhadas dentro dos cartoes das colunas 1-2
+    readonly property var pairsModel: root.cappedWidth > 0 ? Shortcuts.pairs(root.categories, root.columns) : []
     // Altura de um keycap (KeyCap.qml): separadores "+", "/" e "tap" se alinham a ela
     readonly property int capHeight: capMetrics.height + Tokens.padding.extraSmall * 2 + 2
 
@@ -121,248 +126,44 @@ PageBase {
         // Colunas independentes: cada cartao encosta no de cima (sem buracos).
         // Com 3 colunas, Manipulate (combos longos como Super + Shift + F1/F2/F3)
         // leva mais; Navigate sobra espaco e a 3a precisa caber "Capture region".
+        // As colunas 1-2 andam juntas: os pares (@col:12) vivem dentro dos
+        // primeiros cartoes delas, alinhados e cercados por um pontilhado.
         Row {
             id: grid
 
-            readonly property var weights: root.columnsModel.length === 3 ? [0.95, 1.15, 0.9] : root.columnsModel.map(() => 1)
-            readonly property real unit: root.columnsModel.length > 0 ? (width - spacing * (root.columnsModel.length - 1)) / grid.weights.reduce((a, b) => a + b, 0) : 0
+            readonly property int cols: root.columnsModel.length
+            readonly property var weights: grid.cols === 3 ? [0.95, 1.15, 0.9] : root.columnsModel.map(() => 1)
+            readonly property real unit: grid.cols > 0 ? (width - spacing * (grid.cols - 1)) / grid.weights.reduce((a, b) => a + b, 0) : 0
+
+            function colWidth(i: int): int {
+                return i < grid.cols ? Math.floor(grid.unit * grid.weights[i]) : 0;
+            }
 
             Layout.fillWidth: true
             spacing: Tokens.spacing.medium
 
+            ShortcutPairedColumns {
+                pairs: root.pairsModel
+                leftCats: root.columnsModel[0] || []
+                rightCats: root.columnsModel[1] || []
+                showAll: root.showAll
+                capHeight: root.capHeight
+                leftWidth: grid.colWidth(0)
+                rightWidth: grid.colWidth(1)
+                gap: grid.spacing
+            }
+
             Repeater {
-                model: root.columnsModel
+                model: root.columnsModel.slice(2)
 
-                Column {
-                    id: column
-
+                ShortcutColumn {
                     required property int index
                     required property var modelData
 
-                    width: Math.floor(grid.unit * grid.weights[column.index])
-                    spacing: Tokens.spacing.medium
-
-                    Repeater {
-                        model: column.modelData
-
-                        StyledRect {
-                            id: card
-
-                            required property var modelData
-
-                            readonly property bool hasMain: card.modelData.groups.some(g => g.main)
-                            readonly property bool single: card.modelData.groups.length === 1 && card.modelData.groups[0].title === card.modelData.name
-
-                            width: parent.width
-                            visible: root.showAll || card.hasMain
-                            implicitHeight: col.implicitHeight + Tokens.padding.large * 2
-                            radius: Tokens.rounding.large
-                            color: Colours.tPalette.m3surfaceContainer
-
-                            // Posicionadores (Column/Row/Flow) de proposito: com Layouts
-                            // por grupo e por item a pagina levava ~250 ms so para nascer.
-                            Column {
-                                id: col
-
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: Tokens.padding.large
-                                spacing: Tokens.spacing.largeIncreased
-
-                                // Cartao de um grupo so com o mesmo nome (Float, Capture): o
-                                // cabecalho do grupo some e o icone dele vem para o titulo.
-                                Row {
-                                    width: parent.width
-                                    spacing: Tokens.spacing.small
-
-                                    MaterialIcon {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        visible: card.single
-                                        text: card.modelData.groups[0]?.icon || "keyboard"
-                                        color: Colours.palette.m3primary
-                                    }
-
-                                    StyledText {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: card.modelData.name
-                                        font: Tokens.font.title.small
-                                        color: Colours.palette.m3primary
-                                    }
-                                }
-
-                                Repeater {
-                                    model: card.modelData.groups
-
-                                    // Grupo: icone + titulo curto; embaixo as variantes.
-                                    // Entre grupos, uma linha bem leve.
-                                    Column {
-                                        id: grp
-
-                                        required property int index
-                                        required property var modelData
-
-                                        width: parent.width
-                                        visible: root.showAll || grp.modelData.main
-                                        spacing: Tokens.spacing.extraSmall
-
-                                        Rectangle {
-                                            width: parent.width
-                                            height: 1
-                                            visible: grp.index > 0
-                                            color: Colours.palette.m3outlineVariant
-                                            opacity: 0.5
-                                        }
-
-                                        Row {
-                                            id: grpHeader
-
-                                            width: parent.width
-                                            // Cartao com um grupo so e o mesmo nome (Float): nao repetir
-                                            visible: !card.single
-                                            spacing: Tokens.spacing.small
-
-                                            MaterialIcon {
-                                                id: grpIcon
-
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                text: grp.modelData.icon || "keyboard"
-                                                color: Colours.palette.m3primary
-                                            }
-
-                                            StyledText {
-                                                width: grpHeader.width - grpIcon.width - grpHeader.spacing
-                                                text: grp.modelData.title
-                                                font: Tokens.font.body.medium
-                                                wrapMode: Text.WordWrap
-                                            }
-                                        }
-
-                                        Repeater {
-                                            model: grp.modelData.items
-
-                                            Column {
-                                                id: item
-
-                                                required property var modelData
-
-                                                // nivel 2 ("pin" sob "toggle"): texto E keycaps recuam juntos;
-                                                // a seta fica na margem, alinhada com a variante de cima
-                                                readonly property int arrowSlot: Tokens.padding.largeIncreased
-
-                                                x: Tokens.padding.largeIncreased + (item.modelData.level > 1 ? arrowSlot : 0)
-                                                width: parent.width - x
-                                                visible: root.showAll || item.modelData.main
-                                                spacing: Tokens.spacing.extraSmall / 2
-
-                                                // Variante + nota "(all monitors)" ao lado, menor e mais apagada.
-                                                // Text puro (sem Behaviors do StyledText): sao dezenas por pagina.
-                                                Row {
-                                                    x: item.modelData.level > 1 ? -item.arrowSlot : 0
-                                                    visible: item.modelData.variant !== ""
-                                                    spacing: Tokens.spacing.extraSmall
-
-                                                    // nivel 2: "↳" na margem, no nivel da variante de cima
-                                                    Text {
-                                                        anchors.baseline: note.baseline
-                                                        width: item.arrowSlot - parent.spacing
-                                                        visible: item.modelData.level > 1
-                                                        text: "↳"
-                                                        color: Colours.palette.m3outline
-                                                        font: Tokens.font.label.medium
-                                                        renderType: Text.NativeRendering
-                                                    }
-
-                                                    Text {
-                                                        anchors.baseline: note.baseline
-                                                        text: item.modelData.variant
-                                                        color: Colours.palette.m3onSurfaceVariant
-                                                        font: Tokens.font.label.medium
-                                                        renderType: Text.NativeRendering
-                                                    }
-
-                                                    Text {
-                                                        id: note
-
-                                                        visible: item.modelData.note !== ""
-                                                        text: "(" + item.modelData.note + ")"
-                                                        color: Colours.palette.m3outline
-                                                        font: Tokens.font.label.small
-                                                        renderType: Text.NativeRendering
-                                                    }
-                                                }
-
-                                                // Uma combinacao por linha; se nao couber, as teclas quebram linha
-                                                Repeater {
-                                                    model: item.modelData.combos
-
-                                                    Flow {
-                                                        id: combo
-
-                                                        required property var modelData
-
-                                                        width: parent.width
-                                                        spacing: Tokens.spacing.extraSmall / 2
-
-                                                        Repeater {
-                                                            model: combo.modelData.prefix
-
-                                                            Row {
-                                                                id: tok
-
-                                                                required property int index
-                                                                required property string modelData
-
-                                                                spacing: Tokens.spacing.extraSmall / 2
-
-                                                                KeySeparator {
-                                                                    height: root.capHeight
-                                                                    visible: tok.index > 0
-                                                                }
-
-                                                                KeyCap {
-                                                                    text: tok.modelData
-                                                                    kind: Shortcuts.modKind(tok.modelData)
-                                                                }
-                                                            }
-                                                        }
-
-                                                        Row {
-                                                            spacing: Tokens.spacing.extraSmall / 2
-
-                                                            KeySeparator {
-                                                                height: root.capHeight
-                                                                visible: combo.modelData.prefix.length > 0
-                                                            }
-
-                                                            KeyCap {
-                                                                visible: combo.modelData.alts.length === 1
-                                                                text: combo.modelData.alts[0]
-                                                                kind: Shortcuts.modKind(combo.modelData.alts[0])
-                                                            }
-
-                                                            KeyAlternatives {
-                                                                anchors.verticalCenter: parent.verticalCenter
-                                                                visible: combo.modelData.alts.length > 1
-                                                                alts: combo.modelData.alts
-                                                                capHeight: root.capHeight
-                                                            }
-
-                                                            KeySeparator {
-                                                                height: root.capHeight
-                                                                visible: combo.modelData.tap
-                                                                text: Tr.tr("tap")
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    width: grid.colWidth(index + 2)
+                    categories: modelData
+                    showAll: root.showAll
+                    capHeight: root.capHeight
                 }
             }
         }

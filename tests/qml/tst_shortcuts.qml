@@ -123,6 +123,25 @@ TestCase {
         compare(parsed[0].col, 2);
     }
 
+    function test_distribute_pairs() {
+        const cats = [
+            { name: "W", col: 12, groups: [{ title: "Go to", items: [1, 2] }, { title: "Move window", items: [1] }] },
+            { name: "A", col: 1, groups: [{ items: [1] }] },
+            { name: "B", col: 2, groups: [{ items: [1] }] },
+            { name: "C", col: 3, groups: [{ items: [1] }] }
+        ];
+        // com 2+ colunas o par sai das colunas e vai a faixa de cima
+        compare(S.pairs(cats, 3).map(c => c.name), ["W"]);
+        compare(S.distribute(cats, 3).map(c => c.map(x => x.name)), [["A"], ["B"], ["C"]]);
+        compare(S.sides(cats[0]).map(s => s.map(g => g.title)), [["Go to"], ["Move window"]]);
+        compare(S.sides({ groups: [1, 2, 3] }), [[1, 2], [3]]);
+        // uma coluna so: vira cartao comum da coluna 1, na ordem
+        compare(S.pairs(cats, 1), []);
+        compare(S.distribute(cats, 1).map(c => c.map(x => x.name)), [["W", "A", "B", "C"]]);
+        // parse le @col:12
+        compare(S.parse(JSON.stringify([{ modmask: 64, key: "1", release: false, description: "Workspaces · Go to › subgroup · @main @icon:grid_view @col:12" }]))[0].col, 12);
+    }
+
     function test_distribute_balancesByItems() {
         const cats = [
             { name: "A", groups: [{ items: [1, 2, 3, 4] }] },
@@ -149,6 +168,18 @@ TestCase {
         ]));
         compare(cats[0].groups[0].items[0].variant, "next / previous window");
         compare(cats[0].groups[0].items[0].note, "all monitors");
+    }
+
+    function test_parse_nestedVariant() {
+        const cats = S.parse(JSON.stringify([
+            { modmask: 64, key: "V", release: false, description: "Manipulate · Float › toggle · @main @icon:picture_in_picture" },
+            { modmask: 64, key: "P", release: false, description: "Manipulate · Float › toggle › pin · @main @icon:push_pin" },
+            { modmask: 64, key: "C", release: false, description: "Manipulate · Float › toggle › center · @icon:center_focus_strong" }
+        ]));
+        const items = cats[0].groups[0].items;
+        compare(items.map(i => i.variant), ["toggle", "pin", "center"]);
+        compare(items.map(i => i.level), [1, 2, 2]);
+        compare(items[1].combos[0].label, "Super + P");
     }
 
     function test_parse_badInput() {
