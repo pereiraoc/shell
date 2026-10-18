@@ -48,6 +48,74 @@ function comboLabel(bind) {
     return c.tokens.join(" + ") + (c.tap ? " (tap)" : "");
 }
 
+// Tipo do keycap: modificadores tem cor propria na pagina
+function modKind(token) {
+    switch (token) {
+    case "Super":
+        return "super";
+    case "Ctrl":
+        return "ctrl";
+    case "Shift":
+        return "shift";
+    case "Alt":
+        return "alt";
+    case "Fn":
+        return "fn";
+    default:
+        return "key";
+    }
+}
+
+// Teclas que formam familia e podem dividir um keycap: digitos, F1-F12, setas
+var MERGEABLE = /^(\d|F\d{1,2}|[←→↑↓])$/;
+
+// Combos da mesma linha que so diferem na ultima tecla, quando ela e de uma
+// familia (Super + 1/2/3, Super + ←/→), viram uma so. Alternativas soltas
+// (Enter / T), o toque no Super e combos de uma tecla ficam como estao.
+function mergeCombos(combos) {
+    const out = [];
+    const byPrefix = {};
+    for (const c of combos) {
+        if (c.tap || c.tokens.length < 2 || !MERGEABLE.test(c.tokens[c.tokens.length - 1])) {
+            out.push(c);
+            continue;
+        }
+        const prefix = c.tokens.slice(0, -1);
+        const key = prefix.join("\u0000");
+        const last = c.tokens[c.tokens.length - 1];
+        let m = byPrefix[key];
+        if (!m) {
+            m = { tokens: prefix.concat([last]), lasts: [last], tap: false, label: "" };
+            byPrefix[key] = m;
+            out.push(m);
+        } else if (m.lasts.indexOf(last) < 0) {
+            m.lasts.push(last);
+            m.tokens = prefix.concat([m.lasts.join("/")]);
+        }
+    }
+    return out.map(c => ({ label: c.tokens.join(" + ") + (c.tap ? " (tap)" : ""), tokens: c.tokens, tap: c.tap }));
+}
+
+// Reparte as categorias em `n` colunas, cada uma na coluna mais curta ate
+// entao (peso = numero de linhas), mantendo a ordem de aparicao.
+function distribute(cats, n) {
+    const cols = [];
+    const heights = [];
+    for (let i = 0; i < n; i++) {
+        cols.push([]);
+        heights.push(0);
+    }
+    for (const c of cats) {
+        let best = 0;
+        for (let i = 1; i < n; i++)
+            if (heights[i] < heights[best])
+                best = i;
+        cols[best].push(c);
+        heights[best] += c.rows.length;
+    }
+    return cols;
+}
+
 // Botoes do mouse (code:N), LEDs (Caps/Num Lock) e binds sem descricao ficam fora
 function isHuman(bind) {
     return !!bind.description && !!bind.key && bind.key.indexOf("code:") !== 0
@@ -101,6 +169,9 @@ function group(binds) {
         if (!row.combos.some(c => c.label === label))
             row.combos.push({ label: label, tokens: combo.tokens, tap: combo.tap });
     }
+    for (const c of cats)
+        for (const r of c.rows)
+            r.combos = mergeCombos(r.combos);
     return cats.map(c => ({ name: c.name, rows: c.rows }));
 }
 
