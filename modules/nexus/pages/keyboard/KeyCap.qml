@@ -1,14 +1,15 @@
 import QtQuick
 import Caelestia.Config
-import qs.components
 import qs.services
 
 // Tecla desenhada como keycap (Keyboard > Shortcuts). Super = amarelo do tema
 // (tertiary), o foco principal; Ctrl/Shift/Alt/Fn em matizes fixos distintos
 // (azul, verde, roxo, laranja) que seguem claro/escuro -- os papeis do tema
 // nao dao 5 cores distinguiveis (primary == secondary, error == tertiary).
-// A base, mais escura, e o proprio retangulo (relevo de 2 px); a tampa e um filho.
-StyledRect {
+// A base, mais escura, e o proprio retangulo (relevo de 2 px); a tampa e um
+// filho. Rectangle/Text puros de proposito: sao centenas por pagina e nao
+// animam -- StyledRect/StyledText custariam ~2x na abertura.
+Rectangle {
     id: root
 
     property string text
@@ -24,7 +25,7 @@ StyledRect {
     radius: Tokens.rounding.extraSmall
     color: Qt.darker(root.capColour, 1.35)
 
-    StyledRect {
+    Rectangle {
         anchors.fill: parent
         anchors.bottomMargin: 2
         radius: Tokens.rounding.extraSmall
@@ -32,13 +33,14 @@ StyledRect {
         border.width: 1
         border.color: Qt.darker(root.capColour, 1.2)
 
-        StyledText {
+        Text {
             id: label
 
             anchors.centerIn: parent
             text: root.text
             font: Tokens.font.label.small
             color: root.textColour
+            renderType: Text.NativeRendering
         }
     }
 }

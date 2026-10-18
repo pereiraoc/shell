@@ -1,22 +1,16 @@
 import QtQuick
 import Caelestia.Config
-import qs.components
 import qs.services
 
-// "+" / "tap" entre keycaps, com a altura de um keycap (KeyCap.qml) para
-// ficar centrado mesmo dentro de um Flow, que nao aceita anchors.
-StyledText {
+// "+" / "tap" entre keycaps. Quem usa da a altura (ShortcutsPage.capHeight,
+// a de um KeyCap) para centrar mesmo dentro de um Flow, que nao aceita
+// anchors. Text puro: sao centenas por pagina.
+Text {
     id: root
 
-    height: metrics.height + Tokens.padding.extraSmall * 2 + 2
     verticalAlignment: Text.AlignVCenter
     text: "+"
     color: Colours.palette.m3outline
     font: Tokens.font.label.small
-
-    FontMetrics {
-        id: metrics
-
-        font: Tokens.font.label.small
-    }
+    renderType: Text.NativeRendering
 }

@@ -26,9 +26,15 @@ PageBase {
     // Essentials (so @main) a cada abertura; "All" e escolha do momento
     property bool showAll
 
-    readonly property int columns: root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1
-    // Calculado por leitura, nao por vista: a vista so esconde linhas
-    readonly property var columnsModel: Shortcuts.distribute(root.categories, root.columns)
+    // Calculado por leitura, nao por vista: a vista so esconde linhas. Vazio
+    // enquanto a pagina nao tem largura: criar os cartoes antes de ela estar
+    // anexada caia em incubacao assincrona aninhada (pingando por ~2 s) e, ao
+    // chegar a largura, tudo era recriado para 3 colunas.
+    // Uma expressao so: `columns` e `cappedWidth` mudando em separado
+    // reconstruiam os cartoes duas vezes (1 coluna, depois 3).
+    readonly property var columnsModel: root.cappedWidth > 0 ? Shortcuts.distribute(root.categories, root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1) : []
+    // Altura de um keycap (KeyCap.qml): separadores "+", "/" e "tap" se alinham a ela
+    readonly property int capHeight: capMetrics.height + Tokens.padding.extraSmall * 2 + 2
 
     function reload(): void {
         proc.running = true;
@@ -43,6 +49,12 @@ PageBase {
     // Process e Connections vivem dentro de um Item (o PageBase so aceita Item
     // como filho), como no StorageBrowser.
     Item {
+        FontMetrics {
+            id: capMetrics
+
+            font: Tokens.font.label.small
+        }
+
         Process {
             id: proc
 
@@ -139,7 +151,9 @@ PageBase {
                             radius: Tokens.rounding.large
                             color: Colours.tPalette.m3surfaceContainer
 
-                            ColumnLayout {
+                            // Posicionadores (Column/Row/Flow) de proposito: com Layouts
+                            // por grupo e por item a pagina levava ~250 ms so para nascer.
+                            Column {
                                 id: col
 
                                 anchors.left: parent.left
@@ -149,7 +163,7 @@ PageBase {
                                 spacing: Tokens.spacing.medium
 
                                 StyledText {
-                                    Layout.fillWidth: true
+                                    width: parent.width
                                     text: card.modelData.name
                                     font: Tokens.font.title.small
                                     color: Colours.palette.m3primary
@@ -159,26 +173,31 @@ PageBase {
                                     model: card.modelData.groups
 
                                     // Grupo: icone + titulo curto; embaixo as variantes
-                                    ColumnLayout {
+                                    Column {
                                         id: grp
 
                                         required property var modelData
 
-                                        Layout.fillWidth: true
+                                        width: parent.width
                                         visible: root.showAll || grp.modelData.main
                                         spacing: Tokens.spacing.extraSmall
 
-                                        RowLayout {
-                                            Layout.fillWidth: true
+                                        Row {
+                                            id: grpHeader
+
+                                            width: parent.width
                                             spacing: Tokens.spacing.small
 
                                             MaterialIcon {
+                                                id: grpIcon
+
+                                                anchors.verticalCenter: parent.verticalCenter
                                                 text: grp.modelData.icon || "keyboard"
                                                 color: Colours.palette.m3primary
                                             }
 
                                             StyledText {
-                                                Layout.fillWidth: true
+                                                width: grpHeader.width - grpIcon.width - grpHeader.spacing
                                                 text: grp.modelData.title
                                                 font: Tokens.font.body.medium
                                                 wrapMode: Text.WordWrap
@@ -188,33 +207,36 @@ PageBase {
                                         Repeater {
                                             model: grp.modelData.items
 
-                                            ColumnLayout {
+                                            Column {
                                                 id: item
 
                                                 required property var modelData
 
-                                                Layout.fillWidth: true
-                                                Layout.leftMargin: Tokens.padding.extraLarge
+                                                x: Tokens.padding.extraLarge
+                                                width: parent.width - x
                                                 visible: root.showAll || item.modelData.main
                                                 spacing: Tokens.spacing.extraSmall / 2
 
-                                                StyledText {
-                                                    Layout.fillWidth: true
+                                                // Text puro (sem Behaviors do StyledText): sao dezenas por pagina
+                                                Text {
+                                                    width: parent.width
                                                     visible: item.modelData.variant !== ""
                                                     text: item.modelData.variant
                                                     color: Colours.palette.m3onSurfaceVariant
                                                     font: Tokens.font.label.medium
                                                     wrapMode: Text.WordWrap
+                                                    renderType: Text.NativeRendering
                                                 }
 
                                                 // "(all monitors)" numa linha menor, em vez de quebrar o texto
-                                                StyledText {
-                                                    Layout.fillWidth: true
+                                                Text {
+                                                    width: parent.width
                                                     visible: item.modelData.note !== ""
                                                     text: item.modelData.note
                                                     color: Colours.palette.m3outline
                                                     font: Tokens.font.label.small
                                                     wrapMode: Text.WordWrap
+                                                    renderType: Text.NativeRendering
                                                 }
 
                                                 // Uma combinacao por linha; se nao couber, as teclas quebram linha
@@ -226,7 +248,7 @@ PageBase {
 
                                                         required property var modelData
 
-                                                        Layout.fillWidth: true
+                                                        width: parent.width
                                                         spacing: Tokens.spacing.extraSmall / 2
 
                                                         Repeater {
@@ -241,6 +263,7 @@ PageBase {
                                                                 spacing: Tokens.spacing.extraSmall / 2
 
                                                                 KeySeparator {
+                                                                    height: root.capHeight
                                                                     visible: tok.index > 0
                                                                 }
 
@@ -255,6 +278,7 @@ PageBase {
                                                             spacing: Tokens.spacing.extraSmall / 2
 
                                                             KeySeparator {
+                                                                height: root.capHeight
                                                                 visible: combo.modelData.prefix.length > 0
                                                             }
 
@@ -268,9 +292,11 @@ PageBase {
                                                                 anchors.verticalCenter: parent.verticalCenter
                                                                 visible: combo.modelData.alts.length > 1
                                                                 alts: combo.modelData.alts
+                                                                capHeight: root.capHeight
                                                             }
 
                                                             KeySeparator {
+                                                                height: root.capHeight
                                                                 visible: combo.modelData.tap
                                                                 text: Tr.tr("tap")
                                                             }

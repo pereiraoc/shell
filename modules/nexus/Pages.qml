@@ -14,7 +14,7 @@ Item {
 
     property int loadSerial
 
-    function loadPage(idx: int): void {
+    function loadPage(idx: int, sync: bool): void {
         if (currentItem)
             currentItem.destroy();
         currentItem = null;
@@ -22,12 +22,15 @@ Item {
         // Paginas pesadas (Display) incubam de forma assincrona: trocar de
         // menu antes de terminar deixava a antiga nascer DEPOIS e ficar
         // empilhada sobre a nova. So a ultima pedida pode entrar.
+        // A pagina INICIAL de uma janela nova nasce sincrona (a janela ainda
+        // nem apareceu): assincrona, a subpagina pedida por IPC/Super+/
+        // corria com a chegada dos dados e nascia sem largura, pingando.
         const serial = ++root.loadSerial;
         const comp = PageCompRegistry.forId(PageRegistry.pages[idx]?.id ?? "");
         const incubator = comp.incubateObject(container, {
             nState,
             pageIdx: idx
-        });
+        }, sync ? Qt.Synchronous : Qt.Asynchronous);
 
         const attach = () => {
             if (serial !== root.loadSerial) {
@@ -55,7 +58,7 @@ Item {
         objectName: "PageContainer"
         anchors.fill: parent
         layer.enabled: opacity < 1
-        Component.onCompleted: root.loadPage(root.nState.currentPageIdx)
+        Component.onCompleted: root.loadPage(root.nState.currentPageIdx, true)
     }
 
     Connections {
@@ -79,7 +82,7 @@ Item {
             type: Anim.DefaultEffects
         }
         ScriptAction {
-            script: root.loadPage(root.nState.currentPageIdx)
+            script: root.loadPage(root.nState.currentPageIdx, false)
         }
         PropertyAction {
             target: container.anchors
