@@ -9,8 +9,10 @@ import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
-// Uso de disco e limpezas seguras. Tudo vem do caelestia-storage (repositorio
-// de setup) pela ToolBridge; a pagina so desenha e dispara.
+// Uso de disco e limpezas seguras, em abas: Partitions (uso por particao,
+// clicar abre a arvore), Clean up (limpezas seguras + ultima limpeza) e Largest
+// (maiores pastas por particao). Tudo vem do caelestia-storage (repositorio de
+// setup) pela ToolBridge; a pagina so desenha e dispara.
 //
 // Limpeza pede dois cliques: o shell nao tem dialogo de confirmacao, e um
 // clique perdido nao pode apagar 10 GB.
@@ -20,6 +22,7 @@ PageBase {
     property string armed: ""
 
     readonly property var partitions: storage.info.partitions ?? []
+    readonly property var withLargest: root.partitions.filter(p => (p.largest ?? []).length > 0)
 
     function fmt(bytes: var): string {
         if (bytes === null || bytes === undefined)
@@ -57,6 +60,11 @@ PageBase {
 
     title: qsTr("Storage")
     description: qsTr("Disk usage, what takes space, safe cleanups")
+    tabs: [
+        { id: "partitions", label: qsTr("Partitions") },
+        { id: "cleanup", label: qsTr("Clean up") },
+        { id: "largest", label: qsTr("Largest") }
+    ]
 
     // O PageBase so aceita Item como filho; o Timer mora dentro da ponte
     // (que e Item). Direto na pagina, "Type StoragePage unavailable" -- e no
@@ -80,16 +88,6 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        StyledText {
-            Layout.fillWidth: true
-            Layout.leftMargin: Tokens.padding.small
-            Layout.bottomMargin: Tokens.spacing.medium
-            text: qsTr("Disk usage and safe cleanups from caelestia-storage — also usable in a terminal (caelestia-storage status). Cleanups with a lock ask for your password in the Caelestia authentication dialog. Old system logs are archived compressed, not deleted (search: caelestia-journal-search).")
-            color: Colours.palette.m3outline
-            font: Tokens.font.body.small
-            wrapMode: Text.WordWrap
-        }
-
         InfoRow {
             visible: storage.error !== ""
             first: true
@@ -100,206 +98,249 @@ PageBase {
             subtext: storage.error
         }
 
-        // --- Particoes
-        SectionHeader {
-            first: true
-            text: storage.loading ? qsTr("PARTITIONS  ·  refreshing…") : qsTr("PARTITIONS")
-        }
+        // -------------------------------------------------------- Partitions
+        TabPane {
+            active: root.tab === "partitions"
 
-        Repeater {
-            model: root.partitions.length
-
-            ConnectedRect {
-                id: part
-
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: root.partitions[index] ?? ({})
-                readonly property var liveItem: root.partitions[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
-
+            StyledText {
                 Layout.fillWidth: true
-                implicitHeight: partCol.implicitHeight + Tokens.padding.medium * 2
-                first: part.index === 0
-                last: part.index === root.partitions.length - 1
+                Layout.leftMargin: Tokens.padding.small
+                Layout.bottomMargin: Tokens.spacing.medium
+                text: qsTr("Disk usage from caelestia-storage — also usable in a terminal (caelestia-storage status). Click a partition to browse it.")
+                color: Colours.palette.m3outline
+                font: Tokens.font.body.small
+                wrapMode: Text.WordWrap
+            }
 
-                // Clicar na particao abre a arvore nela.
-                StateLayer {
-                    onClicked: root.browse(part.modelData.mount)
-                }
+            SectionHeader {
+                first: true
+                text: storage.loading ? qsTr("PARTITIONS  ·  refreshing…") : qsTr("PARTITIONS")
+            }
 
-                ColumnLayout {
-                    id: partCol
+            Repeater {
+                model: root.partitions.length
 
-                    anchors.fill: parent
-                    anchors.margins: Tokens.padding.medium
-                    anchors.leftMargin: Tokens.padding.largeIncreased
-                    anchors.rightMargin: Tokens.padding.largeIncreased
-                    spacing: Tokens.spacing.small
+                ConnectedRect {
+                    id: part
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Tokens.spacing.medium
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: root.partitions[index] ?? ({})
+                    readonly property var liveItem: root.partitions[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
 
-                        MaterialIcon {
-                            text: part.modelData.level === "ok" ? "hard_drive" : "warning"
-                            color: root.levelColour(part.modelData.level)
-                            fontStyle: Tokens.font.icon.small
-                        }
+                    Layout.fillWidth: true
+                    implicitHeight: partCol.implicitHeight + Tokens.padding.medium * 2
+                    first: part.index === 0
+                    last: part.index === root.partitions.length - 1
 
-                        StyledText {
-                            Layout.fillWidth: true
-                            text: part.modelData.mount
-                            font: Tokens.font.body.small
-                            elide: Text.ElideRight
-                        }
-
-                        StyledText {
-                            text: qsTr("%1 free of %2  ·  %3%").arg(root.fmt(part.modelData.avail)).arg(root.fmt(part.modelData.size)).arg(part.modelData.pct)
-                            color: Colours.palette.m3onSurfaceVariant
-                            font: Tokens.font.body.small
-                        }
-
-                        MaterialIcon {
-                            text: "chevron_right"
-                            color: Colours.palette.m3onSurfaceVariant
-                            fontStyle: Tokens.font.icon.small
-                        }
+                    // Clicar na particao abre a arvore nela.
+                    StateLayer {
+                        onClicked: root.browse(part.modelData.mount)
                     }
 
-                    // Barra de uso
-                    StyledRect {
-                        Layout.fillWidth: true
-                        implicitHeight: 6
-                        radius: Tokens.rounding.full
-                        color: Colours.tPalette.m3surfaceContainerHighest
+                    ColumnLayout {
+                        id: partCol
 
+                        anchors.fill: parent
+                        anchors.margins: Tokens.padding.medium
+                        anchors.leftMargin: Tokens.padding.largeIncreased
+                        anchors.rightMargin: Tokens.padding.largeIncreased
+                        spacing: Tokens.spacing.small
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Tokens.spacing.medium
+
+                            MaterialIcon {
+                                text: part.modelData.level === "ok" ? "hard_drive" : "warning"
+                                color: root.levelColour(part.modelData.level)
+                                fontStyle: Tokens.font.icon.small
+                            }
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: part.modelData.mount
+                                font: Tokens.font.body.small
+                                elide: Text.ElideRight
+                            }
+
+                            StyledText {
+                                text: qsTr("%1 free of %2  ·  %3%").arg(root.fmt(part.modelData.avail)).arg(root.fmt(part.modelData.size)).arg(part.modelData.pct)
+                                color: Colours.palette.m3onSurfaceVariant
+                                font: Tokens.font.body.small
+                            }
+
+                            MaterialIcon {
+                                text: "chevron_right"
+                                color: Colours.palette.m3onSurfaceVariant
+                                fontStyle: Tokens.font.icon.small
+                            }
+                        }
+
+                        // Barra de uso
                         StyledRect {
-                            anchors.left: parent.left
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            width: parent.width * Math.min(part.modelData.pct, 100) / 100
+                            Layout.fillWidth: true
+                            implicitHeight: 6
                             radius: Tokens.rounding.full
-                            color: root.levelColour(part.modelData.level)
+                            color: Colours.tPalette.m3surfaceContainerHighest
+
+                            StyledRect {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: parent.width * Math.min(part.modelData.pct, 100) / 100
+                                radius: Tokens.rounding.full
+                                color: root.levelColour(part.modelData.level)
+                            }
                         }
                     }
                 }
             }
-        }
-
-        // --- Limpezas
-        SectionHeader {
-            text: qsTr("SAFE CLEANUPS  ·  %1 available").arg(root.fmt(storage.actions.reduce((acc, a) => acc + (a.estimate_bytes ?? 0), 0)))
-        }
-
-        InfoRow {
-            visible: storage.actions.length === 0
-            first: true
-            last: true
-            icon: "check_circle"
-            label: qsTr("Nothing worth cleaning")
-            subtext: qsTr("Only cleanups that free more than 100 MB are listed")
-        }
-
-        Repeater {
-            model: storage.actions.length
 
             RowButton {
-                id: act
-
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: storage.actions[index] ?? ({})
-                readonly property var liveItem: storage.actions[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
-
-                readonly property bool isArmed: root.armed === act.modelData.id
-                readonly property bool isBusy: storage.busyAction === act.modelData.id
-
-                first: act.index === 0
-                last: act.index === storage.actions.length - 1
-                color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
-                icon: act.isBusy ? "hourglass_top" : (act.modelData.risk === "medium" ? "delete_forever" : "cleaning_services")
-                text: act.isArmed ? qsTr("Click again to free %1").arg(root.fmt(act.modelData.estimate_bytes)) : act.isBusy ? qsTr("%1 — running…").arg(act.modelData.label) : `${act.modelData.label}  ·  ${root.fmt(act.modelData.estimate_bytes)}`
-                subtext: act.modelData.detail
-                trailingIcon: act.modelData.root ? "lock" : ""
-                disabled: storage.busyAction !== "" && !act.isBusy
-                onClicked: {
-                    if (!act.isBusy)
-                        root.press(act.modelData);
-                }
+                Layout.topMargin: Tokens.spacing.small
+                first: true
+                last: true
+                icon: "refresh"
+                text: qsTr("Refresh")
+                subtext: storage.info.checked_at ? qsTr("Checked %1").arg(Qt.formatDateTime(new Date(storage.info.checked_at * 1000), "dd/MM hh:mm")) : ""
+                disabled: storage.loading
+                onClicked: storage.refresh()
             }
         }
 
-        InfoRow {
-            visible: storage.lastResult !== null
-            Layout.topMargin: Tokens.spacing.small
-            first: true
-            last: true
-            icon: storage.lastResult?.ok ? "task_alt" : "error"
-            iconColour: storage.lastResult?.ok ? Colours.palette.m3primary : Colours.palette.m3error
-            label: storage.lastResult?.ok ? qsTr("Last cleanup: %1 freed").arg(root.fmt(storage.lastResult?.freed_bytes)) : qsTr("Last cleanup failed")
-            subtext: `${storage.last.action ?? ""}  ·  ${storage.last.at ? Qt.formatDateTime(new Date(storage.last.at * 1000), "dd/MM hh:mm") : ""}${storage.lastResult?.ok ? "" : "  ·  " + (storage.lastResult?.message ?? "")}`
-        }
+        // ---------------------------------------------------------- Clean up
+        TabPane {
+            active: root.tab === "cleanup"
 
-        RowButton {
-            Layout.topMargin: Tokens.spacing.small
-            first: true
-            last: true
-            icon: "refresh"
-            text: qsTr("Refresh")
-            subtext: storage.info.checked_at ? qsTr("Checked %1").arg(Qt.formatDateTime(new Date(storage.info.checked_at * 1000), "dd/MM hh:mm")) : ""
-            disabled: storage.loading
-            onClicked: storage.refresh()
-        }
-
-        // --- Maiores pastas, por particao
-        Repeater {
-            model: (root.partitions.filter(p => (p.largest ?? []).length > 0)).length
-
-            ColumnLayout {
-                id: big
-
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: (root.partitions.filter(p => (p.largest ?? []).length > 0))[index] ?? ({})
-                readonly property var liveItem: (root.partitions.filter(p => (p.largest ?? []).length > 0))[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
-
+            StyledText {
                 Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
+                Layout.leftMargin: Tokens.padding.small
+                Layout.bottomMargin: Tokens.spacing.medium
+                text: qsTr("Cleanups with a lock ask for your password. Each one needs two clicks.")
+                color: Colours.palette.m3outline
+                font: Tokens.font.body.small
+                wrapMode: Text.WordWrap
+            }
 
-                SectionHeader {
-                    text: qsTr("LARGEST IN %1").arg(big.modelData.mount)
+            SectionHeader {
+                first: true
+                text: qsTr("SAFE CLEANUPS  ·  %1 available").arg(root.fmt(storage.actions.reduce((acc, a) => acc + (a.estimate_bytes ?? 0), 0)))
+            }
+
+            InfoRow {
+                visible: storage.actions.length === 0
+                first: true
+                last: true
+                icon: "check_circle"
+                label: qsTr("Nothing worth cleaning")
+                subtext: qsTr("Only cleanups that free more than 100 MB are listed")
+            }
+
+            Repeater {
+                model: storage.actions.length
+
+                RowButton {
+                    id: act
+
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: storage.actions[index] ?? ({})
+                    readonly property var liveItem: storage.actions[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
+
+                    readonly property bool isArmed: root.armed === act.modelData.id
+                    readonly property bool isBusy: storage.busyAction === act.modelData.id
+
+                    first: act.index === 0
+                    last: act.index === storage.actions.length - 1
+                    color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
+                    icon: act.isBusy ? "hourglass_top" : (act.modelData.risk === "medium" ? "delete_forever" : "cleaning_services")
+                    text: act.isArmed ? qsTr("Click again to free %1").arg(root.fmt(act.modelData.estimate_bytes)) : act.isBusy ? qsTr("%1 — running…").arg(act.modelData.label) : `${act.modelData.label}  ·  ${root.fmt(act.modelData.estimate_bytes)}`
+                    subtext: act.modelData.detail
+                    trailingIcon: act.modelData.root ? "lock" : ""
+                    disabled: storage.busyAction !== "" && !act.isBusy
+                    onClicked: {
+                        if (!act.isBusy)
+                            root.press(act.modelData);
+                    }
                 }
+            }
 
-                Repeater {
-                    model: big.modelData.largest.length
+            InfoRow {
+                visible: storage.lastResult !== null
+                Layout.topMargin: Tokens.spacing.small
+                first: true
+                last: true
+                icon: storage.lastResult?.ok ? "task_alt" : "error"
+                iconColour: storage.lastResult?.ok ? Colours.palette.m3primary : Colours.palette.m3error
+                label: storage.lastResult?.ok ? qsTr("Last cleanup: %1 freed").arg(root.fmt(storage.lastResult?.freed_bytes)) : qsTr("Last cleanup failed")
+                subtext: `${storage.last.action ?? ""}  ·  ${storage.last.at ? Qt.formatDateTime(new Date(storage.last.at * 1000), "dd/MM hh:mm") : ""}${storage.lastResult?.message ? "  ·  " + storage.lastResult.message : ""}`
+            }
+        }
 
-                    RowButton {
-                        id: dir
+        // ----------------------------------------------------------- Largest
+        TabPane {
+            active: root.tab === "largest"
 
-                        // Modelo = quantidade: atualizar o status nao recria a linha
-                        // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                        // que vai sumir guarda o ultimo item ate ser destruida.
-                        property var modelData: big.modelData.largest[index] ?? ({})
-                        readonly property var liveItem: big.modelData.largest[index]
-                        onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                        required property int index
+            InfoRow {
+                visible: root.withLargest.length === 0
+                first: true
+                last: true
+                icon: "hourglass_empty"
+                label: storage.loading ? qsTr("Measuring folders…") : qsTr("No folder sizes yet")
+                subtext: qsTr("Measured by du once every 15 minutes")
+            }
 
-                        first: dir.index === 0
-                        last: dir.index === big.modelData.largest.length - 1
-                        icon: "folder"
-                        text: dir.modelData.path
-                        subtext: root.fmt(dir.modelData.size)
-                        trailingIcon: "chevron_right"
-                        onClicked: root.browse(dir.modelData.path)
+            Repeater {
+                model: root.withLargest.length
+
+                ColumnLayout {
+                    id: big
+
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: root.withLargest[index] ?? ({})
+                    readonly property var liveItem: root.withLargest[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall / 2
+
+                    SectionHeader {
+                        first: big.index === 0
+                        text: qsTr("LARGEST IN %1").arg(big.modelData.mount)
+                    }
+
+                    Repeater {
+                        model: big.modelData.largest.length
+
+                        RowButton {
+                            id: dir
+
+                            // Modelo = quantidade: atualizar o status nao recria a linha
+                            // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                            // que vai sumir guarda o ultimo item ate ser destruida.
+                            property var modelData: big.modelData.largest[index] ?? ({})
+                            readonly property var liveItem: big.modelData.largest[index]
+                            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                            required property int index
+
+                            first: dir.index === 0
+                            last: dir.index === big.modelData.largest.length - 1
+                            icon: "folder"
+                            text: dir.modelData.path
+                            subtext: root.fmt(dir.modelData.size)
+                            trailingIcon: "chevron_right"
+                            onClicked: root.browse(dir.modelData.path)
+                        }
                     }
                 }
             }

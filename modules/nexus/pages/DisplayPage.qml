@@ -8,10 +8,12 @@ import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
-// Telas: resolucao/taxa, escala e liga/desliga por monitor, brilho, tamanho de
-// texto dos apps X11. Logica no caelestia-display (repositorio de setup):
-// toda mudanca e aplicada SO ao vivo (try-*) e o banner de 15 s pergunta se
-// mantem -- sem resposta, volta ao monitors.conf.
+// Telas, em abas: General (monitores conhecidos, tamanho de texto dos apps
+// X11), uma aba por monitor ligado (resolucao/taxa, escala, brilho, lado da
+// barra, liga/desliga) e Advanced. Logica no caelestia-display (repositorio de
+// setup): toda mudanca e aplicada SO ao vivo (try-*) e o banner de 15 s
+// pergunta se mantem -- sem resposta, volta ao monitors.conf. O banner fica
+// acima das abas, para aparecer em qualquer uma.
 PageBase {
     id: root
 
@@ -42,8 +44,24 @@ PageBase {
         return d || m.name;
     }
 
+    // Rotulo curto da aba: "Laptop screen" / "LG ULTRAWIDE" (sem a marca repetida)
+    function tabLabel(m: var): string {
+        if (m.internal)
+            return qsTr("Laptop screen");
+        const d = root.friendlyName(m);
+        const words = d.split(/\s+/);
+        return words.length > 2 ? words.slice(-2).join(" ") : d;
+    }
+
     title: qsTr("Display")
     description: qsTr("Resolution, refresh rate, scale and brightness for each screen")
+    tabs: {
+        const t = [{ id: "general", label: qsTr("General") }];
+        for (const m of root.monitors)
+            t.push({ id: m.name, label: root.tabLabel(m) });
+        t.push({ id: "advanced", label: qsTr("Advanced") });
+        return t;
+    }
 
     // Monitores conhecidos (caelestia-app-monitor), base do App placement
     ToolBridge {
@@ -99,10 +117,95 @@ PageBase {
             bridge: bridge
         }
 
+        // ----------------------------------------------------------- General
+        TabPane {
+            active: root.tab === "general"
+
+            // Monitores ja conectados alguma vez (caelestia-app-monitor): e deles que
+            // sai a escolha de monitor por app em Apps > App placement.
+            SectionHeader {
+                first: !banner.visible && bridge.error === ""
+                text: qsTr("Known monitors")
+            }
+
+            Repeater {
+                model: (appmon.info.monitors ?? []).length
+
+                ColumnLayout {
+                    id: known
+
+                    required property int index
+                    readonly property var mon: appmon.info.monitors[index] ?? ({})
+                    readonly property int count: (appmon.info.monitors ?? []).length
+                    property bool confirmForget
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.extraSmall / 2
+
+                    InfoRow {
+                        first: known.index === 0
+                        icon: known.mon.internal ? "laptop" : "desktop_windows"
+                        iconColour: known.mon.connected ? Colours.palette.m3primary : Colours.palette.m3outline
+                        label: known.mon.label ?? ""
+                        subtext: `${known.mon.connected ? qsTr("Connected · %1").arg(known.mon.connector) : qsTr("Not connected")} · ${known.mon.width}×${known.mon.height}`
+                    }
+
+                    TextFieldRow {
+                        label: qsTr("Nickname")
+                        subtext: qsTr("Shown when picking where an app opens")
+                        value: known.mon.alias ?? ""
+                        placeholderText: known.mon.label ?? ""
+                        maximumLength: 40
+                        smallField: true
+                        onEditingFinished: v => {
+                            if (v !== (known.mon.alias ?? ""))
+                                appmon.run({ id: `alias~${known.mon.id}~${v}` });
+                        }
+                    }
+
+                    RowButton {
+                        last: known.index === known.count - 1
+                        visible: !known.mon.connected
+                        icon: "delete"
+                        text: known.confirmForget ? qsTr("Click again to forget") : qsTr("Forget this monitor")
+                        onClicked: {
+                            if (!known.confirmForget) {
+                                known.confirmForget = true;
+                                return;
+                            }
+                            appmon.run({ id: `forget~${known.mon.id}` });
+                            known.confirmForget = false;
+                        }
+                    }
+                }
+            }
+
+            SectionHeader {
+                text: qsTr("Text size for X11 apps")
+            }
+
+            ChipSelectRow {
+                first: true
+                last: true
+                label: qsTr("Steam, games and other X11 apps")
+                subtext: qsTr("These apps ignore the per-screen scale. Restart them after changing.")
+                options: [
+                    { value: "96", label: "100%" },
+                    { value: "120", label: "125%" },
+                    { value: "144", label: "150%" },
+                    { value: "192", label: "200%" }
+                ]
+                current: String(bridge.info.xft_dpi ?? "")
+                busy: bridge.busyAction.startsWith("dpi-")
+                onPicked: v => bridge.run({ id: `dpi-${v}` })
+            }
+        }
+
+        // ----------------------------------------------- Um monitor por aba
         Repeater {
             model: root.monitors.length
 
-            ColumnLayout {
+            TabPane {
                 id: mon
 
                 // Modelo = quantidade: atualizar o status nao recria a linha
@@ -116,18 +219,12 @@ PageBase {
                 readonly property var brightness: Brightness.getMonitor(mon.modelData.name)
                 readonly property bool busy: bridge.busyAction.endsWith(mon.modelData.name) || bridge.busyAction.includes(`-${mon.modelData.name}-`)
 
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
-
-                SectionHeader {
-                    first: mon.index === 0 && !banner.visible && bridge.error === ""
-                    text: root.friendlyName(mon.modelData)
-                }
+                active: root.tab === mon.modelData.name
 
                 InfoRow {
                     first: true
                     icon: mon.modelData.internal ? "laptop" : "desktop_windows"
-                    label: mon.modelData.enabled ? qsTr("%1 · %2 workspace area").arg(mon.modelData.name).arg(mon.modelData.logical.replace("x", " × ")) : qsTr("%1 · turned off").arg(mon.modelData.name)
+                    label: mon.modelData.enabled ? qsTr("%1 · %2 workspace area").arg(mon.modelData.name).arg(mon.modelData.logical.replace("x", " × ")) : qsTr("%1 · off").arg(mon.modelData.name)
                     subtext: mon.modelData.description
                 }
 
@@ -208,88 +305,15 @@ PageBase {
             }
         }
 
-        // Monitores ja conectados alguma vez (caelestia-app-monitor): e deles que
-        // sai a escolha de monitor por app em Apps > App placement.
-        SectionHeader {
-            text: qsTr("Known monitors")
-        }
+        // ---------------------------------------------------------- Advanced
+        TabPane {
+            active: root.tab === "advanced"
 
-        Repeater {
-            model: (appmon.info.monitors ?? []).length
-
-            ColumnLayout {
-                id: known
-
-                required property int index
-                readonly property var mon: appmon.info.monitors[index] ?? ({})
-                readonly property int count: (appmon.info.monitors ?? []).length
-                property bool confirmForget
-
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
-
-                InfoRow {
-                    first: known.index === 0
-                    icon: known.mon.internal ? "laptop" : "desktop_windows"
-                    iconColour: known.mon.connected ? Colours.palette.m3primary : Colours.palette.m3outline
-                    label: known.mon.label ?? ""
-                    subtext: `${known.mon.connected ? qsTr("Connected · %1").arg(known.mon.connector) : qsTr("Not connected")} · ${known.mon.width}×${known.mon.height} · ${known.mon.description}`
-                }
-
-                TextFieldRow {
-                    label: qsTr("Nickname")
-                    subtext: qsTr("Shown when picking where an app opens")
-                    value: known.mon.alias ?? ""
-                    placeholderText: known.mon.label ?? ""
-                    maximumLength: 40
-                    smallField: true
-                    onEditingFinished: v => {
-                        if (v !== (known.mon.alias ?? ""))
-                            appmon.run({ id: `alias~${known.mon.id}~${v}` });
-                    }
-                }
-
-                RowButton {
-                    last: known.index === known.count - 1
-                    visible: !known.mon.connected
-                    icon: "delete"
-                    text: known.confirmForget ? qsTr("Click again to forget") : qsTr("Forget this monitor")
-                    onClicked: {
-                        if (!known.confirmForget) {
-                            known.confirmForget = true;
-                            return;
-                        }
-                        appmon.run({ id: `forget~${known.mon.id}` });
-                        known.confirmForget = false;
-                    }
-                }
+            AdvancedGroup {
+                apps: [
+                    { id: "nwg-displays", text: qsTr("Arrange displays"), subtext: qsTr("Position screens side by side, mirror (nwg-displays)") }
+                ]
             }
-        }
-
-        SectionHeader {
-            text: qsTr("Text size for X11 apps")
-        }
-
-        ChipSelectRow {
-            first: true
-            last: true
-            label: qsTr("Steam, games and other X11 apps")
-            subtext: qsTr("These apps ignore the scale above. Restart them after changing.")
-            options: [
-                { value: "96", label: "100%" },
-                { value: "120", label: "125%" },
-                { value: "144", label: "150%" },
-                { value: "192", label: "200%" }
-            ]
-            current: String(bridge.info.xft_dpi ?? "")
-            busy: bridge.busyAction.startsWith("dpi-")
-            onPicked: v => bridge.run({ id: `dpi-${v}` })
-        }
-
-        AdvancedGroup {
-            apps: [
-                { id: "nwg-displays", text: qsTr("Arrange displays"), subtext: qsTr("Position screens side by side, mirror (nwg-displays)") }
-            ]
         }
     }
 }
