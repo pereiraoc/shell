@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Caelestia
 import Caelestia.Config
+import Caelestia.I18n
 import Caelestia.Services
 import qs.components
 import qs.components.controls
@@ -15,6 +17,21 @@ Column {
 
     required property ScreenState screenState
 
+    // Ordem dos botoes para a navegacao por teclado. Um botao sem comando
+    // (lista vazia no shell.json, ex.: "hibernate": []) fica escondido e as
+    // setas pulam por cima dele.
+    readonly property list<Item> buttons: [logout, shutdown, suspend, hibernate, reboot]
+
+    function neighbour(item: Item, step: int): Item {
+        let i = buttons.indexOf(item) + step;
+        while (i >= 0 && i < buttons.length) {
+            if (buttons[i].visible)
+                return buttons[i];
+            i += step;
+        }
+        return null;
+    }
+
     padding: Tokens.padding.large
     rightPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
     spacing: Tokens.spacing.large
@@ -22,10 +39,9 @@ Column {
     SessionButton {
         id: logout
 
+        tooltip: Tr.tr("Log out")
         icon: Config.session.icons.logout
         command: Config.session.commands.logout
-
-        KeyNavigation.down: shutdown
 
         Component.onCompleted: forceActiveFocus()
 
@@ -42,11 +58,9 @@ Column {
     SessionButton {
         id: shutdown
 
+        tooltip: Tr.tr("Shut down")
         icon: Config.session.icons.shutdown
         command: Config.session.commands.shutdown
-
-        KeyNavigation.up: logout
-        KeyNavigation.down: suspend
     }
 
     AnimatedImage {
@@ -62,46 +76,45 @@ Column {
     }
 
     // Suspender (RAM, volta em segundos) e hibernar (disco, sobrevive a falta
-    // de bateria) sao coisas diferentes: os dois botoes ficam.
+    // de bateria) sao coisas diferentes: os dois botoes ficam. Hibernar so
+    // volta a sessao com resume= configurado; sem isso, esconder o botao com
+    // "hibernate": [] no shell.json.
     SessionButton {
         id: suspend
 
+        tooltip: Tr.tr("Suspend")
         icon: Config.session.icons.suspend
         command: Config.session.commands.suspend
-
-        KeyNavigation.up: shutdown
-        KeyNavigation.down: hibernate
     }
 
     SessionButton {
         id: hibernate
 
+        tooltip: Tr.tr("Hibernate")
         icon: Config.session.icons.hibernate
         command: Config.session.commands.hibernate
-
-        KeyNavigation.up: suspend
-        KeyNavigation.down: reboot
     }
 
     SessionButton {
         id: reboot
 
+        tooltip: Tr.tr("Reboot")
         icon: Config.session.icons.reboot
         command: Config.session.commands.reboot
-
-        KeyNavigation.up: hibernate
     }
 
     component SessionButton: IconButton {
         id: button
 
         required property list<string> command
+        required property string tooltip
 
         function exec(): void {
             if (!SessionManager.exec(command))
                 Quickshell.execDetached(command);
         }
 
+        visible: command.length > 0
         implicitWidth: Tokens.sizes.session.button
         implicitHeight: Tokens.sizes.session.button
 
@@ -110,6 +123,12 @@ Column {
         radius: pressed ? Tokens.rounding.medium : activeFocus ? Tokens.rounding.extraLarge : Tokens.rounding.largeIncreased
         font: Tokens.font.icon.builders.large.scale(1.3).build()
         onClicked: exec()
+
+        KeyNavigation.up: root.neighbour(button, -1)
+        KeyNavigation.down: root.neighbour(button, 1)
+
+        ToolTip.visible: button.hovered
+        ToolTip.text: button.tooltip
 
         Keys.onEnterPressed: exec()
         Keys.onReturnPressed: exec()
