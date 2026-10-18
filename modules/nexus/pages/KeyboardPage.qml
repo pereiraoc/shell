@@ -209,7 +209,18 @@ PageBase {
                 text: qsTr("Special keys")
             }
 
-            LaptopKeysView {}
+            // Diagrama e ferramenta so nascem quando a aba abre; depois ficam vivos
+            Loader {
+                id: laptopKeys
+
+                property bool opened
+
+                Layout.fillWidth: true
+                active: laptopKeys.opened || root.tab === "laptop"
+                visible: active
+                onActiveChanged: if (active) opened = true
+                sourceComponent: LaptopKeysView {}
+            }
         }
 
         // ------------------------------------------- Um teclado externo por aba
@@ -271,7 +282,18 @@ PageBase {
         TabPane {
             active: root.tab === "shortcuts"
 
-            ShortcutsView {}
+            // A grade de atalhos custa ~0,4 s para nascer: so na 1a abertura da aba
+            Loader {
+                id: shortcuts
+
+                property bool opened
+
+                Layout.fillWidth: true
+                active: shortcuts.opened || root.tab === "shortcuts"
+                visible: active
+                onActiveChanged: if (active) opened = true
+                sourceComponent: ShortcutsView {}
+            }
         }
 
         // ---------------------------------------------------------- Advanced

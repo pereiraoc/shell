@@ -21,7 +21,8 @@ ColumnLayout {
     readonly property var info: bridge.info
     readonly property var keyInfo: (root.info.keys ?? []).find(k => k.id === root.selected) ?? null
     readonly property var backlight: root.info.kbd_backlight ?? null
-    property string selected: "f11"
+    // Nada selecionado de inicio; clicar na tecla marcada desmarca (como no Naga)
+    property string selected
 
     function backlightText(b: var): string {
         if (!b)
@@ -73,12 +74,13 @@ ColumnLayout {
     LaptopKeyboard {
         Layout.fillWidth: true
         selected: root.selected
-        onPicked: id => root.selected = id
+        onPicked: id => root.selected = root.selected === id ? "" : id
     }
 
     // Cartao da tecla selecionada
     StyledRect {
         Layout.fillWidth: true
+        visible: root.selected !== ""
         implicitHeight: card.implicitHeight + Tokens.padding.large * 2
         radius: Tokens.rounding.large
         color: Colours.tPalette.m3surfaceContainer

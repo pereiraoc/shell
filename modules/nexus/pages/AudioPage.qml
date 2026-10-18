@@ -10,10 +10,11 @@ import qs.services
 import qs.utils
 import qs.modules.nexus.common
 
-// Som: saida, cena, entrada, ganho de hardware do mic, quem toca/grava em
-// qual dispositivo e efeitos. Substitui o uso diario do pavucontrol,
-// qpwgraph (ver o roteamento) e EasyEffects (trocar preset). Roteamento e
-// efeitos pelo caelestia-sound; ganho pelo caelestia-mic-gain.
+// Som, em abas: Output (volume, dispositivo, cena, fones, quem esta tocando e
+// o mixer por app), Input (mic, dispositivo, ganho de hardware, quem esta
+// gravando), Effects (EasyEffects) e Advanced. Substitui o uso diario do
+// pavucontrol, qpwgraph (ver o roteamento) e EasyEffects (trocar preset).
+// Roteamento e efeitos pelo caelestia-sound; ganho pelo caelestia-mic-gain.
 PageBase {
     id: root
 
@@ -36,6 +37,12 @@ PageBase {
 
     title: qsTr("Sound")
     description: qsTr("Devices, headphone modes, apps, effects and microphone")
+    tabs: [
+        { id: "output", label: qsTr("Output") },
+        { id: "input", label: qsTr("Input") },
+        { id: "effects", label: qsTr("Effects") },
+        { id: "advanced", label: qsTr("Advanced") }
+    ]
 
     ToolBridge {
         id: soundBridge
@@ -70,269 +77,296 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        SectionHeader {
-            first: true
-            text: qsTr("Output")
+        // ------------------------------------------------------------ Output
+        TabPane {
+            active: root.tab === "output"
+
+            SliderRow {
+                first: true
+                icon: Icons.getVolumeIcon(Audio.volume, Audio.muted)
+                label: Tr.trCtx("Output", "audio output")
+                valueLabel: Strings.percentOne(value)
+                value: Audio.volume
+                enabled: !Audio.muted
+                onMoved: v => Audio.setVolume(v)
+            }
+
+            ToggleRow {
+                text: Tr.trCtx("Muted", "audio output muted")
+                checked: Audio.muted
+                onToggled: Audio.setStreamMuted(Audio.sink, checked)
+            }
+
+            AudioDeviceList {
+                nodes: Audio.sinks
+                // outputDevice, nao sink: com a cadeia CUSTOM ativa o sink default
+                // e o filtro, cujo id nao casa com nenhum device -- e nenhuma linha
+                // ficava marcada como ativa.
+                currentId: Audio.outputDevice?.id ?? -1
+                iconName: "speaker"
+                placeholderIcon: "speaker"
+                placeholderText: Tr.trCtx("No output devices", "no audio outputs")
+                onSelected: node => Audio.setAudioSink(node)
+            }
+
+            // Cena de audio. O componente ja traz nome e descricao do selecionado.
+            AudioSceneSelector {
+                Layout.topMargin: Tokens.spacing.large - parent.spacing
+                Layout.fillWidth: true
+                // Aqui ha espaco para explicar; no popout da barra, nao.
+                showDescription: true
+            }
+
+            // Fones com controle proprio (Sony, Huawei): modos na subpagina
+            SectionHeader {
+                visible: root.headphones.length > 0
+                text: qsTr("Headphones")
+            }
+
+            Repeater {
+                model: root.headphones.length
+
+                RowButton {
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: root.headphones[index] ?? ({})
+                    readonly property var liveItem: root.headphones[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
+
+                    first: index === 0
+                    last: index === root.headphones.length - 1
+                    icon: modelData.buds ? "earbuds" : "headphones"
+                    iconLabel.color: modelData.connected ? Colours.palette.m3primary : Colours.palette.m3outline
+                    text: modelData.name
+                    subtext: root.hpText(modelData)
+                    trailingIcon: "chevron_right"
+                    onClicked: {
+                        root.nState.selectedHeadphone = modelData.id;
+                        root.nState.openSubPage(2);
+                    }
+                }
+            }
+
+            // Quem toca onde (a pergunta que levava ao qpwgraph) e o mixer por app
+            SectionHeader {
+                text: qsTr("Apps")
+            }
+
+            InfoRow {
+                first: true
+                visible: (root.routes.playback ?? []).length === 0
+                icon: "music_off"
+                label: qsTr("Nothing is playing")
+            }
+
+            Repeater {
+                model: (root.routes.playback ?? []).length
+
+                InfoRow {
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: (root.routes.playback ?? [])[index] ?? ({})
+                    readonly property var liveItem: (root.routes.playback ?? [])[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
+
+                    first: index === 0
+                    icon: modelData.corked ? "pause_circle" : "play_circle"
+                    label: modelData.app
+                    subtext: [modelData.media, modelData.corked ? qsTr("paused") : ""].filter(x => x).join(" · ")
+                    value: (modelData.device || modelData.target) + (modelData.filtered ? qsTr(" · with effects") : "")
+                }
+            }
+
+            NavRow {
+                last: true
+                icon: "tune"
+                text: Tr.tr("App volumes")
+                subtext: Audio.streams.length === 0 ? Tr.tr("No apps playing audio") : Tr.trN("%n app playing audio", "%n apps playing audio", Audio.streams.length)
+                onClicked: root.nState.openSubPage(1)
+            }
+
+            ActionErrorRow {
+                bridge: soundBridge
+            }
         }
 
-        SliderRow {
-            first: true
-            icon: Icons.getVolumeIcon(Audio.volume, Audio.muted)
-            label: Tr.trCtx("Output", "audio output")
-            valueLabel: Strings.percentOne(value)
-            value: Audio.volume
-            enabled: !Audio.muted
-            onMoved: v => Audio.setVolume(v)
-        }
+        // ------------------------------------------------------------- Input
+        TabPane {
+            active: root.tab === "input"
 
-        ToggleRow {
-            text: Tr.trCtx("Muted", "audio output muted")
-            checked: Audio.muted
-            onToggled: Audio.setStreamMuted(Audio.sink, checked)
-        }
+            SliderRow {
+                first: true
+                icon: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
+                label: Tr.trCtx("Input", "audio input")
+                valueLabel: Strings.percentOne(value)
+                value: Audio.sourceVolume
+                enabled: !Audio.sourceMuted
+                onMoved: v => Audio.setSourceVolume(v)
+            }
 
-        AudioDeviceList {
-            nodes: Audio.sinks
-            // outputDevice, nao sink: com a cadeia CUSTOM ativa o sink default
-            // e o filtro, cujo id nao casa com nenhum device -- e nenhuma linha
-            // ficava marcada como ativa.
-            currentId: Audio.outputDevice?.id ?? -1
-            iconName: "speaker"
-            placeholderIcon: "speaker"
-            placeholderText: Tr.trCtx("No output devices", "no audio outputs")
-            onSelected: node => Audio.setAudioSink(node)
-        }
+            ToggleRow {
+                text: Tr.trCtx("Muted", "audio input muted")
+                checked: Audio.sourceMuted
+                onToggled: Audio.setStreamMuted(Audio.source, checked)
+            }
 
-        // Cena de audio. O componente ja traz nome e descricao do selecionado.
-        AudioSceneSelector {
-            Layout.topMargin: Tokens.spacing.large - parent.spacing
-            Layout.fillWidth: true
-            // Aqui ha espaco para explicar; no popout da barra, nao.
-            showDescription: true
-        }
+            AudioDeviceList {
+                nodes: Audio.sources
+                currentId: Audio.source?.id ?? -1
+                iconName: "mic"
+                placeholderIcon: "mic_off"
+                placeholderText: Tr.trCtx("No input devices", "no audio inputs")
+                onSelected: node => Audio.setAudioSource(node)
+            }
 
-        // Fones com controle proprio (Sony, Huawei): modos na subpagina
-        SectionHeader {
-            visible: root.headphones.length > 0
-            text: qsTr("Headphones")
-        }
+            // Ganho de hardware do mic interno: o PipeWire usa soft-mixer e nao
+            // toca no ALSA, entao quem fixa o ganho e o caelestia-mic-gain.
+            SectionHeader {
+                visible: !!root.mic.card
+                text: qsTr("Microphone hardware gain")
+            }
 
-        Repeater {
-            model: root.headphones.length
+            ChipSelectRow {
+                first: true
+                last: root.mic.in_sync !== false
+                visible: !!root.mic.card
+                label: qsTr("Built-in microphone boost")
+                subtext: qsTr("+30 dB keeps game voice and Discord from clipping. Raise it only for distant sound. The Input slider is software volume on top of this.")
+                options: [
+                    { value: "0", label: "+30 dB" },
+                    { value: "1", label: "+40 dB" },
+                    { value: "2", label: "+50 dB" }
+                ]
+                current: String(root.mic.target?.boost ?? "")
+                busy: micBridge.busyAction.startsWith("boost-")
+                onPicked: v => micBridge.run({ id: `boost-${v}` })
+            }
 
             RowButton {
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: root.headphones[index] ?? ({})
-                readonly property var liveItem: root.headphones[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
+                last: true
+                visible: root.mic.in_sync === false
+                icon: "sync_problem"
+                iconLabel.color: Colours.palette.m3tertiary
+                text: qsTr("Something changed the gain to +%1 dB").arg(Math.round(root.mic.total_db ?? 0))
+                subtext: qsTr("Click to reapply the chosen boost")
+                disabled: micBridge.busyAction !== ""
+                onClicked: micBridge.run({ id: "apply" })
+            }
 
-                first: index === 0
-                last: index === root.headphones.length - 1
-                icon: modelData.buds ? "earbuds" : "headphones"
-                iconLabel.color: modelData.connected ? Colours.palette.m3primary : Colours.palette.m3outline
-                text: modelData.name
-                subtext: root.hpText(modelData)
-                trailingIcon: "chevron_right"
-                onClicked: {
-                    root.nState.selectedHeadphone = modelData.id;
-                    root.nState.openSubPage(2);
+            ActionErrorRow {
+                bridge: micBridge
+            }
+
+            // Quem esta gravando, e com qual fonte
+            SectionHeader {
+                text: qsTr("Apps")
+            }
+
+            InfoRow {
+                first: true
+                last: (root.routes.recording ?? []).length === 0
+                visible: (root.routes.recording ?? []).length === 0
+                icon: "mic_off"
+                label: qsTr("Nothing is using the microphone")
+            }
+
+            Repeater {
+                model: (root.routes.recording ?? []).length
+
+                InfoRow {
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: (root.routes.recording ?? [])[index] ?? ({})
+                    readonly property var liveItem: (root.routes.recording ?? [])[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
+
+                    first: index === 0
+                    last: index === (root.routes.recording ?? []).length - 1
+                    icon: modelData.raw ? "warning" : "mic"
+                    iconColour: modelData.raw ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
+                    label: qsTr("%1 is recording").arg(modelData.app)
+                    subtext: modelData.raw ? qsTr("Uses the raw microphone — no noise filter or echo cancelling. Pick “Default” in the app's settings.") : (modelData.filtered ? qsTr("Through the noise filter") : "")
+                    value: modelData.device || modelData.target
                 }
             }
         }
 
-        SectionHeader {
-            text: qsTr("Input")
-        }
-
-        SliderRow {
-            first: true
-            icon: Icons.getMicVolumeIcon(Audio.sourceVolume, Audio.sourceMuted)
-            label: Tr.trCtx("Input", "audio input")
-            valueLabel: Strings.percentOne(value)
-            value: Audio.sourceVolume
-            enabled: !Audio.sourceMuted
-            onMoved: v => Audio.setSourceVolume(v)
-        }
-
-        ToggleRow {
-            text: Tr.trCtx("Muted", "audio input muted")
-            checked: Audio.sourceMuted
-            onToggled: Audio.setStreamMuted(Audio.source, checked)
-        }
-
-        AudioDeviceList {
-            nodes: Audio.sources
-            currentId: Audio.source?.id ?? -1
-            iconName: "mic"
-            placeholderIcon: "mic_off"
-            placeholderText: Tr.trCtx("No input devices", "no audio inputs")
-            onSelected: node => Audio.setAudioSource(node)
-        }
-
-        // Ganho de hardware do mic interno: o PipeWire usa soft-mixer e nao
-        // toca no ALSA, entao quem fixa o ganho e o caelestia-mic-gain.
-        SectionHeader {
-            visible: !!root.mic.card
-            text: qsTr("Microphone hardware gain")
-        }
-
-        ChipSelectRow {
-            first: true
-            last: root.mic.in_sync !== false
-            visible: !!root.mic.card
-            label: qsTr("Built-in microphone boost")
-            subtext: qsTr("+30 dB keeps game voice and Discord from clipping. Raise it only for distant sound. The Input slider is software volume on top of this.")
-            options: [
-                { value: "0", label: "+30 dB" },
-                { value: "1", label: "+40 dB" },
-                { value: "2", label: "+50 dB" }
-            ]
-            current: String(root.mic.target?.boost ?? "")
-            busy: micBridge.busyAction.startsWith("boost-")
-            onPicked: v => micBridge.run({ id: `boost-${v}` })
-        }
-
-        RowButton {
-            last: true
-            visible: root.mic.in_sync === false
-            icon: "sync_problem"
-            iconLabel.color: Colours.palette.m3tertiary
-            text: qsTr("Something changed the gain to +%1 dB").arg(Math.round(root.mic.total_db ?? 0))
-            subtext: qsTr("Click to reapply the chosen boost")
-            disabled: micBridge.busyAction !== ""
-            onClicked: micBridge.run({ id: "apply" })
-        }
-
-        ActionErrorRow {
-            bridge: micBridge
-        }
-
-        // Quem toca e quem grava: a pergunta que levava ao qpwgraph.
-        SectionHeader {
-            text: qsTr("Apps")
-        }
-
-        InfoRow {
-            first: true
-            visible: (root.routes.playback ?? []).length === 0
-            icon: "music_off"
-            label: qsTr("Nothing is playing")
-        }
-
-        Repeater {
-            model: (root.routes.playback ?? []).length
+        // ----------------------------------------------------------- Effects
+        TabPane {
+            active: root.tab === "effects"
 
             InfoRow {
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: (root.routes.playback ?? [])[index] ?? ({})
-                readonly property var liveItem: (root.routes.playback ?? [])[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
+                first: true
+                last: true
+                visible: root.effects.available !== true
+                icon: "graphic_eq"
+                label: qsTr("EasyEffects is not installed")
+                subtext: qsTr("Equalizer and noise presets need it")
+            }
 
-                first: index === 0
-                icon: modelData.corked ? "pause_circle" : "play_circle"
-                label: modelData.app
-                subtext: [modelData.media, modelData.corked ? qsTr("paused") : ""].filter(x => x).join(" · ")
-                value: (modelData.device || modelData.target) + (modelData.filtered ? qsTr(" · with effects") : "")
+            InfoRow {
+                first: true
+                last: true
+                visible: root.effects.available === true && !root.effects.running
+                icon: "graphic_eq"
+                label: qsTr("EasyEffects is not running")
+                subtext: qsTr("Open it from the Advanced tab to use equalizer and noise presets")
+            }
+
+            ToggleRow {
+                first: true
+                last: (root.effects.output_presets ?? []).length === 0 && (root.effects.input_presets ?? []).length === 0
+                visible: root.effects.running === true
+                text: qsTr("Effects enabled")
+                subtext: qsTr("Turn off to hear the sound without any processing")
+                checked: root.effects.bypass === false
+                onToggled: soundBridge.run({ id: checked ? "ee-bypass-off" : "ee-bypass-on" })
+            }
+
+            ExpandSelectRow {
+                last: (root.effects.input_presets ?? []).length === 0
+                visible: root.effects.running === true && (root.effects.output_presets ?? []).length > 0
+                icon: "speaker"
+                label: qsTr("Output preset")
+                options: (root.effects.output_presets ?? []).map(p => ({ value: p, label: p }))
+                current: root.effects.active_output ?? ""
+                busy: soundBridge.busyAction.startsWith("ee-output-")
+                onPicked: v => soundBridge.run({ id: `ee-output-${v}` })
+            }
+
+            ExpandSelectRow {
+                last: true
+                visible: root.effects.running === true && (root.effects.input_presets ?? []).length > 0
+                icon: "mic"
+                label: qsTr("Microphone preset")
+                options: (root.effects.input_presets ?? []).map(p => ({ value: p, label: p }))
+                current: root.effects.active_input ?? ""
+                busy: soundBridge.busyAction.startsWith("ee-input-")
+                onPicked: v => soundBridge.run({ id: `ee-input-${v}` })
+            }
+
+            ActionErrorRow {
+                bridge: soundBridge
             }
         }
 
-        InfoRow {
-            visible: (root.routes.recording ?? []).length === 0
-            icon: "mic_off"
-            label: qsTr("Nothing is using the microphone")
-        }
+        // ---------------------------------------------------------- Advanced
+        TabPane {
+            active: root.tab === "advanced"
 
-        Repeater {
-            model: (root.routes.recording ?? []).length
-
-            InfoRow {
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: (root.routes.recording ?? [])[index] ?? ({})
-                readonly property var liveItem: (root.routes.recording ?? [])[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
-
-                icon: modelData.raw ? "warning" : "mic"
-                iconColour: modelData.raw ? Colours.palette.m3tertiary : Colours.palette.m3onSurfaceVariant
-                label: qsTr("%1 is recording").arg(modelData.app)
-                subtext: modelData.raw ? qsTr("Uses the raw microphone — no noise filter or echo cancelling. Pick “Default” in the app's settings.") : (modelData.filtered ? qsTr("Filtered microphone") : "")
-                value: modelData.device || modelData.target
+            AdvancedGroup {
+                apps: [
+                    { id: "org.rncbc.qpwgraph", text: qsTr("Audio routing graph"), subtext: qsTr("Connect any app to any device by hand (qpwgraph)") },
+                    { id: "com.github.wwmm.easyeffects", text: qsTr("EasyEffects"), subtext: qsTr("Edit equalizer, compressor and noise presets") },
+                    { id: "pavucontrol", alt: ["org.pulseaudio.pavucontrol"], text: qsTr("Volume control"), subtext: qsTr("Card profiles and per-device settings (pavucontrol)") }
+                ]
             }
-        }
-
-        NavRow {
-            last: true
-            icon: "tune"
-            text: Tr.tr("App volumes")
-            subtext: Audio.streams.length === 0 ? Tr.tr("No apps playing audio") : Tr.trN("%n app playing audio", "%n apps playing audio", Audio.streams.length)
-            onClicked: root.nState.openSubPage(1)
-        }
-
-        // Efeitos (EasyEffects)
-        SectionHeader {
-            visible: root.effects.available === true
-            text: qsTr("Effects")
-        }
-
-        InfoRow {
-            first: true
-            last: true
-            visible: root.effects.available === true && !root.effects.running
-            icon: "graphic_eq"
-            label: qsTr("EasyEffects is not running")
-            subtext: qsTr("Open it from Advanced below to use equalizer and noise presets")
-        }
-
-        ToggleRow {
-            first: true
-            last: (root.effects.output_presets ?? []).length === 0 && (root.effects.input_presets ?? []).length === 0
-            visible: root.effects.running === true
-            text: qsTr("Effects enabled")
-            subtext: qsTr("Turn off to hear the sound without any processing")
-            checked: root.effects.bypass === false
-            onToggled: soundBridge.run({ id: checked ? "ee-bypass-off" : "ee-bypass-on" })
-        }
-
-        ExpandSelectRow {
-            last: (root.effects.input_presets ?? []).length === 0
-            visible: root.effects.running === true && (root.effects.output_presets ?? []).length > 0
-            icon: "speaker"
-            label: qsTr("Output preset")
-            options: (root.effects.output_presets ?? []).map(p => ({ value: p, label: p }))
-            current: root.effects.active_output ?? ""
-            busy: soundBridge.busyAction.startsWith("ee-output-")
-            onPicked: v => soundBridge.run({ id: `ee-output-${v}` })
-        }
-
-        ExpandSelectRow {
-            last: true
-            visible: root.effects.running === true && (root.effects.input_presets ?? []).length > 0
-            icon: "mic"
-            label: qsTr("Microphone preset")
-            options: (root.effects.input_presets ?? []).map(p => ({ value: p, label: p }))
-            current: root.effects.active_input ?? ""
-            busy: soundBridge.busyAction.startsWith("ee-input-")
-            onPicked: v => soundBridge.run({ id: `ee-input-${v}` })
-        }
-
-        ActionErrorRow {
-            bridge: soundBridge
-        }
-
-        AdvancedGroup {
-            apps: [
-                { id: "org.rncbc.qpwgraph", text: qsTr("Audio routing graph"), subtext: qsTr("Connect any app to any device by hand (qpwgraph)") },
-                { id: "com.github.wwmm.easyeffects", text: qsTr("EasyEffects"), subtext: qsTr("Edit equalizer, compressor and noise presets") },
-                { id: "pavucontrol", alt: ["org.pulseaudio.pavucontrol"], text: qsTr("Volume control"), subtext: qsTr("Card profiles and per-device settings (pavucontrol)") }
-            ]
         }
     }
 }
