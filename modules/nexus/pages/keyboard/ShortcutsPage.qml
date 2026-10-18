@@ -118,34 +118,40 @@ PageBase {
             font: Tokens.font.body.medium
         }
 
-        // Colunas independentes: cada cartao encosta no de cima (sem buracos).
-        // Com 3 colunas, Manipulate (combos longos como Super + Shift + F1/F2/F3)
-        // leva mais; Navigate sobra espaco e a 3a precisa caber "Capture region".
+        // Colunas de largura igual; cada cartao encosta no de cima (sem buracos)
+        // e as colunas terminam na mesma linha (a mais alta manda).
         Row {
             id: grid
 
             readonly property int cols: root.columnsModel.length
-            readonly property var weights: grid.cols === 3 ? [0.95, 1.15, 0.9] : root.columnsModel.map(() => 1)
-            readonly property real unit: grid.cols > 0 ? (width - spacing * (grid.cols - 1)) / grid.weights.reduce((a, b) => a + b, 0) : 0
-
-            function colWidth(i: int): int {
-                return i < grid.cols ? Math.floor(grid.unit * grid.weights[i]) : 0;
+            readonly property int colWidth: grid.cols > 0 ? Math.floor((width - spacing * (grid.cols - 1)) / grid.cols) : 0
+            // Altura natural da coluna mais alta, lida das colunas criadas
+            readonly property int tallest: {
+                let h = 0;
+                for (let i = 0; i < columns.count; i++) {
+                    const c = columns.itemAt(i);
+                    if (c)
+                        h = Math.max(h, c.layout.natural);
+                }
+                return h;
             }
 
             Layout.fillWidth: true
             spacing: Tokens.spacing.medium
 
             Repeater {
+                id: columns
+
                 model: root.columnsModel
 
                 ShortcutColumn {
-                    required property int index
                     required property var modelData
 
-                    width: grid.colWidth(index)
+                    width: grid.colWidth
                     categories: modelData
                     showAll: root.showAll
                     capHeight: root.capHeight
+                    fill: grid.tallest
                 }
             }
         }
