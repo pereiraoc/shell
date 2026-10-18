@@ -1,9 +1,11 @@
 .pragma library
 
 // Transforma `hyprctl binds -j` no que a pagina Keyboard > Shortcuts desenha:
-// categorias (prefixo "Cat · " do desc que o binds.lua poe) -> linhas (uma
-// por descricao) -> chips (uma por combinacao de teclas). Sem Qt: testavel
-// com qmltestrunner (tests/qml/tst_shortcuts.qml).
+// categorias (1o campo do desc que o binds.lua poe) -> linhas (uma por
+// descricao) -> combos (uma por combinacao de teclas, cada tecla um token para
+// virar keycap). O 3o campo do desc traz tags: @main (entra em Essentials) e
+// @icon:NOME (Material Symbol). Sem Qt: testavel com qmltestrunner
+// (tests/qml/tst_shortcuts.qml).
 
 var SEP = " · ";
 var OTHER = "Other";
@@ -28,16 +30,22 @@ function keyLabel(key, release) {
     return key.length === 1 ? key.toUpperCase() : key;
 }
 
-function comboLabel(bind) {
-    // Toque no Super: o proprio Super e a tecla; nao repetir como modificador
+// Teclas da combinacao, uma por keycap; `tap` = toque na tecla Super
+function comboTokens(bind) {
     if (bind.key === "SUPER_L")
-        return keyLabel(bind.key, !!bind.release);
-    const parts = [];
+        return { tokens: ["Super"], tap: !!bind.release };
+    const tokens = [];
     for (const [mask, name] of MODS)
         if (bind.modmask & mask)
-            parts.push(name);
-    parts.push(keyLabel(bind.key, !!bind.release));
-    return parts.join(" + ");
+            tokens.push(name);
+    for (const part of keyLabel(bind.key, !!bind.release).split(" + "))
+        tokens.push(part);
+    return { tokens: tokens, tap: false };
+}
+
+function comboLabel(bind) {
+    const c = comboTokens(bind);
+    return c.tokens.join(" + ") + (c.tap ? " (tap)" : "");
 }
 
 // Botoes do mouse (code:N), LEDs (Caps/Num Lock) e binds sem descricao ficam fora
@@ -47,8 +55,22 @@ function isHuman(bind) {
 }
 
 function split(description) {
-    const i = description.indexOf(SEP);
-    return i < 0 ? [OTHER, description] : [description.slice(0, i), description.slice(i + SEP.length)];
+    const parts = description.split(SEP);
+    if (parts.length === 1)
+        return { cat: OTHER, action: parts[0], tags: "" };
+    return { cat: parts[0], action: parts[1], tags: parts.slice(2).join(" ") };
+}
+
+function parseTags(tags) {
+    let main = false;
+    let icon = "";
+    for (const t of tags.split(/\s+/)) {
+        if (t === "@main")
+            main = true;
+        else if (t.indexOf("@icon:") === 0)
+            icon = t.slice(6);
+    }
+    return { main: main, icon: icon };
 }
 
 function group(binds) {
@@ -57,22 +79,27 @@ function group(binds) {
     for (const b of binds) {
         if (!isHuman(b))
             continue;
-        const [catName, action] = split(b.description);
-        let cat = byName[catName];
+        const d = split(b.description);
+        const tags = parseTags(d.tags);
+        let cat = byName[d.cat];
         if (!cat) {
-            cat = { name: catName, rows: [], byAction: {} };
-            byName[catName] = cat;
+            cat = { name: d.cat, rows: [], byAction: {} };
+            byName[d.cat] = cat;
             cats.push(cat);
         }
-        let row = cat.byAction[action];
+        let row = cat.byAction[d.action];
         if (!row) {
-            row = { action: action, combos: [] };
-            cat.byAction[action] = row;
+            row = { action: d.action, icon: "", main: false, combos: [] };
+            cat.byAction[d.action] = row;
             cat.rows.push(row);
         }
+        if (!row.icon && tags.icon)
+            row.icon = tags.icon;
+        row.main = row.main || tags.main;
+        const combo = comboTokens(b);
         const label = comboLabel(b);
-        if (row.combos.indexOf(label) < 0)
-            row.combos.push(label);
+        if (!row.combos.some(c => c.label === label))
+            row.combos.push({ label: label, tokens: combo.tokens, tap: combo.tap });
     }
     return cats.map(c => ({ name: c.name, rows: c.rows }));
 }
