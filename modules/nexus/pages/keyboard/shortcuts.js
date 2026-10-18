@@ -1,13 +1,14 @@
 .pragma library
 
 // Transforma `hyprctl binds -j` no que a pagina Keyboard > Shortcuts desenha:
-// categorias (1o campo do desc que o binds.lua poe) -> linhas (uma por
-// descricao) -> combos (uma por combinacao de teclas, cada tecla um token para
-// virar keycap). O 3o campo do desc traz tags: @main (entra em Essentials) e
-// @icon:NOME (Material Symbol). Sem Qt: testavel com qmltestrunner
-// (tests/qml/tst_shortcuts.qml).
+//   categoria (1o campo do desc) -> grupos (titulo curto; "Grupo › variante" na
+//   acao) -> itens (uma variante) -> combos (uma por linha; a ultima tecla pode
+//   ter alternativas em familia: 1/2/3, F1/F2/F3, setas).
+// O 3o campo do desc traz tags: @main (entra em Essentials) e @icon:NOME.
+// Sem Qt: testavel com qmltestrunner (tests/qml/tst_shortcuts.qml).
 
 var SEP = " · ";
+var GROUP_SEP = " › ";
 var OTHER = "Other";
 
 // modmask do Hyprland, na ordem em que aparecem no rotulo
@@ -19,6 +20,9 @@ var KEYS = {
     equal: "=", minus: "-", slash: "/",
     XF86MonBrightnessUp: "Fn + F8", XF86MonBrightnessDown: "Fn + F7"
 };
+
+// Teclas que formam familia e dividem um contorno: digitos, F1-F12, setas
+var MERGEABLE = /^(\d|F\d{1,2}|[←→↑↓])$/;
 
 function keyLabel(key, release) {
     if (key === "SUPER_L")
@@ -66,54 +70,35 @@ function modKind(token) {
     }
 }
 
-// Teclas que formam familia e podem dividir um keycap: digitos, F1-F12, setas
-var MERGEABLE = /^(\d|F\d{1,2}|[←→↑↓])$/;
+function labelOf(prefix, alts, tap) {
+    return prefix.join(" + ") + (prefix.length > 0 ? " + " : "") + alts.join("/") + (tap ? " (tap)" : "");
+}
 
-// Combos da mesma linha que so diferem na ultima tecla, quando ela e de uma
-// familia (Super + 1/2/3, Super + ←/→), viram uma so. Alternativas soltas
-// (Enter / T), o toque no Super e combos de uma tecla ficam como estao.
+// [{ tokens, tap }] -> [{ label, prefix, alts, tap }]. Combos que so diferem na
+// ultima tecla, quando ela e de uma familia, juntam as alternativas em `alts`
+// (Super + 1/2/3); alternativas soltas (Enter / T), o toque no Super e combos
+// de uma tecla ficam como estao. Ordem = primeira aparicao.
 function mergeCombos(combos) {
     const out = [];
     const byPrefix = {};
     for (const c of combos) {
-        if (c.tap || c.tokens.length < 2 || !MERGEABLE.test(c.tokens[c.tokens.length - 1])) {
-            out.push(c);
+        const last = c.tokens[c.tokens.length - 1];
+        const prefix = c.tokens.slice(0, -1);
+        if (c.tap || c.tokens.length < 2 || !MERGEABLE.test(last)) {
+            out.push({ prefix: prefix, alts: [last], tap: !!c.tap });
             continue;
         }
-        const prefix = c.tokens.slice(0, -1);
         const key = prefix.join("\u0000");
-        const last = c.tokens[c.tokens.length - 1];
         let m = byPrefix[key];
         if (!m) {
-            m = { tokens: prefix.concat([last]), lasts: [last], tap: false, label: "" };
+            m = { prefix: prefix, alts: [last], tap: false };
             byPrefix[key] = m;
             out.push(m);
-        } else if (m.lasts.indexOf(last) < 0) {
-            m.lasts.push(last);
-            m.tokens = prefix.concat([m.lasts.join("/")]);
+        } else if (m.alts.indexOf(last) < 0) {
+            m.alts.push(last);
         }
     }
-    return out.map(c => ({ label: c.tokens.join(" + ") + (c.tap ? " (tap)" : ""), tokens: c.tokens, tap: c.tap }));
-}
-
-// Reparte as categorias em `n` colunas, cada uma na coluna mais curta ate
-// entao (peso = numero de linhas), mantendo a ordem de aparicao.
-function distribute(cats, n) {
-    const cols = [];
-    const heights = [];
-    for (let i = 0; i < n; i++) {
-        cols.push([]);
-        heights.push(0);
-    }
-    for (const c of cats) {
-        let best = 0;
-        for (let i = 1; i < n; i++)
-            if (heights[i] < heights[best])
-                best = i;
-        cols[best].push(c);
-        heights[best] += c.rows.length;
-    }
-    return cols;
+    return out.map(c => ({ label: labelOf(c.prefix, c.alts, c.tap), prefix: c.prefix, alts: c.alts, tap: c.tap }));
 }
 
 // Botoes do mouse (code:N), LEDs (Caps/Num Lock) e binds sem descricao ficam fora
@@ -124,9 +109,13 @@ function isHuman(bind) {
 
 function split(description) {
     const parts = description.split(SEP);
-    if (parts.length === 1)
-        return { cat: OTHER, action: parts[0], tags: "" };
-    return { cat: parts[0], action: parts[1], tags: parts.slice(2).join(" ") };
+    const d = parts.length === 1
+        ? { cat: OTHER, action: parts[0], tags: "" }
+        : { cat: parts[0], action: parts[1], tags: parts.slice(2).join(" ") };
+    const g = d.action.indexOf(GROUP_SEP);
+    d.title = g < 0 ? d.action : d.action.slice(0, g);
+    d.variant = g < 0 ? "" : d.action.slice(g + GROUP_SEP.length);
+    return d;
 }
 
 function parseTags(tags) {
@@ -151,28 +140,62 @@ function group(binds) {
         const tags = parseTags(d.tags);
         let cat = byName[d.cat];
         if (!cat) {
-            cat = { name: d.cat, rows: [], byAction: {} };
+            cat = { name: d.cat, groups: [], byTitle: {} };
             byName[d.cat] = cat;
             cats.push(cat);
         }
-        let row = cat.byAction[d.action];
-        if (!row) {
-            row = { action: d.action, icon: "", main: false, combos: [] };
-            cat.byAction[d.action] = row;
-            cat.rows.push(row);
+        let grp = cat.byTitle[d.title];
+        if (!grp) {
+            grp = { title: d.title, icon: "", main: false, items: [], byVariant: {} };
+            cat.byTitle[d.title] = grp;
+            cat.groups.push(grp);
         }
-        if (!row.icon && tags.icon)
-            row.icon = tags.icon;
-        row.main = row.main || tags.main;
-        const combo = comboTokens(b);
+        let item = grp.byVariant[d.variant];
+        if (!item) {
+            item = { variant: d.variant, icon: "", main: false, raw: [], combos: [] };
+            grp.byVariant[d.variant] = item;
+            grp.items.push(item);
+        }
+        if (!item.icon && tags.icon)
+            item.icon = tags.icon;
+        if (!grp.icon && tags.icon)
+            grp.icon = tags.icon;
+        item.main = item.main || tags.main;
+        grp.main = grp.main || tags.main;
+        const c = comboTokens(b);
         const label = comboLabel(b);
-        if (!row.combos.some(c => c.label === label))
-            row.combos.push({ label: label, tokens: combo.tokens, tap: combo.tap });
+        if (!item.raw.some(r => r.label === label))
+            item.raw.push({ label: label, tokens: c.tokens, tap: c.tap });
     }
-    for (const c of cats)
-        for (const r of c.rows)
-            r.combos = mergeCombos(r.combos);
-    return cats.map(c => ({ name: c.name, rows: c.rows }));
+    return cats.map(c => ({
+        name: c.name,
+        groups: c.groups.map(g => ({
+            title: g.title,
+            icon: g.icon,
+            main: g.main,
+            items: g.items.map(i => ({ variant: i.variant, icon: i.icon, main: i.main, combos: mergeCombos(i.raw) }))
+        }))
+    }));
+}
+
+// Reparte as categorias em `n` colunas, cada uma na coluna mais curta ate
+// entao (peso = numero de itens), mantendo a ordem de aparicao.
+function distribute(cats, n) {
+    const cols = [];
+    const heights = [];
+    for (let i = 0; i < n; i++) {
+        cols.push([]);
+        heights.push(0);
+    }
+    for (const c of cats) {
+        let best = 0;
+        for (let i = 1; i < n; i++)
+            if (heights[i] < heights[best])
+                best = i;
+        cols[best].push(c);
+        heights[best] += c.groups.reduce((acc, g) => acc + g.items.length, 0);
+    }
+    return cols;
 }
 
 function parse(jsonText) {
