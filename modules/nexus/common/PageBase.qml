@@ -17,7 +17,9 @@ ColumnLayout {
     property string description
     required property NexusState nState
     property bool isSubPage
-    readonly property int cappedWidth: Math.min(Tokens.sizes.nexus.maxContentWidth, width)
+    // Com a barra lateral recolhida o conteudo pode usar o espaco que ela deixou:
+    // o teto sobe 1,5x (800 -> 1200 px), senao a pagina ficava estreita com um vazio ao lado
+    readonly property int cappedWidth: Math.min(root.nState.navCollapsed ? Math.round(Tokens.sizes.nexus.maxContentWidth * 1.5) : Tokens.sizes.nexus.maxContentWidth, width)
     readonly property alias flickable: flickable
 
     default property Item contentChild
