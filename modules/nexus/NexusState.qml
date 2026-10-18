@@ -12,6 +12,10 @@ QtObject {
     // Menu lateral so com icones (toggle no topo; Super+/ abre assim)
     property bool navCollapsed
     property string searchText
+    // Abas das paginas (PageBase.tabs): a pedida por um deep link (busca, IPC,
+    // Super+/) e a ultima de cada pagina nesta sessao (id da pagina -> aba)
+    property string requestedTab
+    property var pageTabs: ({})
 
     property string selectedWallpaperCategory
     property BluetoothDevice selectedBtDevice
@@ -29,12 +33,28 @@ QtObject {
     signal subPageOpened(idx: int)
     signal subPageClosed
 
+    function tabFor(page: string): string {
+        return pageTabs[page] ?? "";
+    }
+
+    function rememberTab(page: string, tab: string): void {
+        if (!page || pageTabs[page] === tab)
+            return;
+        const next = Object.assign({}, pageTabs);
+        next[page] = tab;
+        pageTabs = next;
+    }
+
     // Abre uma pagina pelo id do PageRegistry (e, opcionalmente, uma subpagina
-    // do StackPage dela). Ninguem de fora deve usar currentPageIdx com numero.
-    function openPage(id: string, sub: int): void {
+    // do StackPage dela e/ou uma aba). Ninguem de fora deve usar currentPageIdx
+    // com numero.
+    function openPage(id: string, sub: int, tab: string): void {
         const idx = PageRegistry.indexOf(id);
         if (idx < 0)
             return;
+        // A aba vai ANTES da troca: a pagina nova le requestedTab ao nascer; a
+        // mesma pagina ja aberta reage a mudanca
+        requestedTab = tab ?? "";
         if (idx === currentPageIdx) {
             if (sub > 0)
                 openSubPage(sub);

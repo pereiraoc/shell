@@ -183,7 +183,7 @@ PageBase {
             trailingIcon: "chevron_right"
             onClicked: {
                 root.nState.selectedHeadphone = root.headphone.id;
-                root.nState.openPage("sound", 2);
+                root.nState.openPage("sound", 2, "");
             }
         }
 

@@ -102,7 +102,7 @@ Scope {
         // qmllint enable unresolved-type
         name: "shortcuts"
         description: "Toggle the keyboard shortcuts page"
-        onPressed: WindowFactory.toggleAt("keyboard", 2, true)
+        onPressed: WindowFactory.toggleAt("keyboard", 0, true, "shortcuts")
     }
 
     // qmllint disable unresolved-type
@@ -150,19 +150,19 @@ Scope {
             WindowFactory.create();
         }
 
-        // Pagina pelo id do PageRegistry (sub = subpagina, 0 = nenhuma)
-        function openPage(page: string, sub: int): void {
-            WindowFactory.openAt(page, sub, "", false);
+        // Pagina pelo id do PageRegistry (sub = subpagina, 0 = nenhuma; tab = aba, "" = a de sempre)
+        function openPage(page: string, sub: int, tab: string): void {
+            WindowFactory.openAt(page, sub, "", false, tab);
         }
 
-        // Botoes/DPI/energia de um mouse (modelo como no caelestia-peripherals)
+        // Botoes/DPI/energia de um mouse (modelo como no caelestia-peripherals): a aba dele
         function openMouse(model: string): void {
-            WindowFactory.openAt("mouse", 1, model, false);
+            WindowFactory.openAt("mouse", 0, model, false, model);
         }
 
-        // Pagina/subpagina pelo id do PageRegistry; se o Nexus ja esta nela, fecha
-        function togglePage(page: string, sub: int): void {
-            WindowFactory.toggleAt(page, sub, false);
+        // Pagina/subpagina/aba pelo id do PageRegistry; se o Nexus ja esta nela, fecha
+        function togglePage(page: string, sub: int, tab: string): void {
+            WindowFactory.toggleAt(page, sub, false, tab);
         }
 
         target: "nexus"

@@ -27,7 +27,7 @@ VerticalFadeFlickable {
     }
 
     function open(result: var): void {
-        root.nState.openPage(result.page, result.sub);
+        root.nState.openPage(result.page, result.sub, result.tab ?? "");
         root.picked();
     }
 

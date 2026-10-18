@@ -87,7 +87,7 @@ PageBase {
             value: Nmcli.activeEthernet ? qsTr("Ethernet") : Nmcli.active ? Nmcli.active.ssid : qsTr("Offline")
             detail: Nmcli.activeEthernet ? Nmcli.activeEthernet.ipAddress : Nmcli.active ? qsTr("Signal %1%").arg(Nmcli.active.strength) : qsTr("Not connected")
             level: Nmcli.activeEthernet || Nmcli.active ? "ok" : "warn"
-            onClicked: root.nState.openPage("network", 0)
+            onClicked: root.nState.openPage("network", 0, "")
         }
 
         StatusCard {
@@ -98,7 +98,7 @@ PageBase {
             value: Audio.muted ? qsTr("Muted") : `${Math.round(Audio.volume * 100)}%`
             detail: Audio.outputDevice?.description ?? qsTr("No output device")
             level: Audio.outputDevice ? "ok" : "warn"
-            onClicked: root.nState.openPage("sound", 0)
+            onClicked: root.nState.openPage("sound", 0, "")
         }
 
         StatusCard {
@@ -110,7 +110,7 @@ PageBase {
             value: root.power.battery?.present === false ? qsTr("Plugged in") : `${Math.round(pct)}%`
             detail: [UPower.onBattery ? qsTr("On battery") : qsTr("Plugged in"), root.power.profile?.active ?? ""].filter(x => x).join(" · ")
             level: UPower.onBattery && pct <= 20 ? "error" : (root.power.battery?.health_pct ?? 100) < 70 ? "warn" : "ok"
-            onClicked: root.nState.openPage("power", 0)
+            onClicked: root.nState.openPage("power", 0, "")
         }
 
         StatusCard {
@@ -121,7 +121,7 @@ PageBase {
             value: root.screensOn === 1 ? qsTr("1 screen") : qsTr("%1 screens").arg(root.screensOn)
             detail: root.internalMonitor ? qsTr("Built-in at %1 · %2 Hz").arg(`${Math.round(root.internalMonitor.scale * 100)}%`).arg(root.internalMonitor.mode.split("@")[1]) : ""
             level: root.display.pending ? "warn" : "ok"
-            onClicked: root.nState.openPage("display", 0)
+            onClicked: root.nState.openPage("display", 0, "")
         }
 
         StatusCard {
@@ -132,7 +132,7 @@ PageBase {
             value: GpuModeService.getModeName(GpuModeService.activeMode)
             detail: GpuModeService.pendingMode && GpuModeService.pendingMode !== GpuModeService.activeMode ? qsTr("%1 after reboot").arg(GpuModeService.getModeName(GpuModeService.pendingMode)) : GpuModeService.getModeDescription(GpuModeService.activeMode)
             level: GpuModeService.pendingMode && GpuModeService.pendingMode !== GpuModeService.activeMode ? "warn" : "ok"
-            onClicked: root.nState.openPage("power", 0)
+            onClicked: root.nState.openPage("power", 0, "")
         }
 
         StatusCard {
@@ -143,7 +143,7 @@ PageBase {
             value: root.worstDisk ? qsTr("%1 free").arg(root.gb(root.worstDisk.avail)) : qsTr("Reading…")
             detail: root.worstDisk ? qsTr("%1 is %2% full").arg(root.worstDisk.mount).arg(root.worstDisk.pct) : ""
             level: root.worstDisk?.level ?? "ok"
-            onClicked: root.nState.openPage("storage", 0)
+            onClicked: root.nState.openPage("storage", 0, "")
         }
 
         StatusCard {
@@ -154,7 +154,7 @@ PageBase {
             value: SoftwareInventory.updateCount > 0 ? qsTr("%1 available").arg(SoftwareInventory.updateCount) : qsTr("Up to date")
             detail: SoftwareInventory.updatesCheckedAt ? qsTr("Checked %1").arg(SoftwareInventory.updatesCheckedAt.toLocaleString(Qt.locale(), "dd/MM HH:mm")) : ""
             level: SoftwareInventory.updateCount > 0 ? "warn" : "ok"
-            onClicked: root.nState.openPage("software", 4)
+            onClicked: root.nState.openPage("software", 4, "")
         }
 
         StatusCard {
@@ -165,7 +165,7 @@ PageBase {
             value: root.lowestPeripheral ? `${Math.round(root.lowestPeripheral.pct * 100)}%` : qsTr("%1 connected").arg(Bluetooth.devices.values.filter(d => d.connected).length)
             detail: root.lowestPeripheral ? qsTr("%1 · lowest battery").arg(root.lowestPeripheral.name) : qsTr("Bluetooth devices")
             level: root.lowestPeripheral && root.lowestPeripheral.pct < 0.2 ? "warn" : "ok"
-            onClicked: root.nState.openPage("bluetooth", 0)
+            onClicked: root.nState.openPage("bluetooth", 0, "")
         }
     }
 }

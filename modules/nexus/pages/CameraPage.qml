@@ -265,7 +265,7 @@ PageBase {
                     text: qsTr("Used by face unlock")
                     subtext: qsTr("Models and unlock methods are in Security")
                     trailingIcon: "chevron_right"
-                    onClicked: root.nState.openPage("security", 0)
+                    onClicked: root.nState.openPage("security", 0, "")
                 }
 
                 InfoRow {

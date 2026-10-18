@@ -20,10 +20,10 @@ Singleton {
         return w;
     }
 
-    // IPC: abre (ou reaproveita) o Nexus direto numa pagina/subpagina. Janela
-    // nova ja nasce na pagina pedida (sem incubar a Home para depois trocar);
-    // `collapsed` recolhe o menu lateral (Super+/).
-    function openAt(page: string, sub: int, mouse: string, collapsed: bool): void {
+    // IPC: abre (ou reaproveita) o Nexus direto numa pagina/subpagina/aba.
+    // Janela nova ja nasce na pagina pedida (sem incubar a Home para depois
+    // trocar); `collapsed` recolhe o menu lateral (Super+/).
+    function openAt(page: string, sub: int, mouse: string, collapsed: bool, tab: string): void {
         let w = root.windows[0];
         if (!w) {
             const idx = PageRegistry.indexOf(page);
@@ -36,7 +36,7 @@ Singleton {
         }
         if (mouse)
             w.nState.selectedMouse = mouse;
-        w.nState.openPage(page, sub);
+        w.nState.openPage(page, sub, tab ?? "");
     }
 
     // Botao da barra: fecha se ja houver Nexus aberto, senao abre.
@@ -49,19 +49,20 @@ Singleton {
         }
     }
 
-    // Super+/: abre o Nexus nesta pagina/subpagina; se a janela ja esta
+    // Super+/: abre o Nexus nesta pagina/subpagina/aba; se a janela ja esta
     // exatamente nela, fecha (mesma tecla abre e fecha).
-    function toggleAt(page: string, sub: int, collapsed: bool): void {
+    function toggleAt(page: string, sub: int, collapsed: bool, tab: string): void {
         const w = root.windows[0];
         if (w) {
             const stack = w.nState.subPageIdxStack;
             const top = stack.length > 0 ? stack[stack.length - 1] : 0;
-            if (w.nState.currentPageIdx === PageRegistry.indexOf(page) && top === sub) {
+            const sameTab = !tab || w.nState.tabFor(page) === tab;
+            if (w.nState.currentPageIdx === PageRegistry.indexOf(page) && top === sub && sameTab) {
                 root.toggle();
                 return;
             }
         }
-        root.openAt(page, sub, "", collapsed);
+        root.openAt(page, sub, "", collapsed, tab ?? "");
     }
 
     QtObject {
