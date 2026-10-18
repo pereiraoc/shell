@@ -84,6 +84,9 @@ QtObject {
             Component {
                 ShortcutsPage {}
             }
+            Component {
+                LaptopKeysPage {}
+            }
         }
     }
 

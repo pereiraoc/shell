@@ -20,8 +20,15 @@ var KEYS = {
     Return: "Enter", space: "Space", Tab: "Tab", Print: "PrtSc", Escape: "Esc",
     left: "←", right: "→", up: "↑", down: "↓",
     equal: "=", minus: "-", slash: "/",
-    XF86MonBrightnessUp: "Fn + F8", XF86MonBrightnessDown: "Fn + F7"
+    // teclas especiais do notebook (M1-M4 e a fila Fn do GU603)
+    XF86AudioLowerVolume: "Vol −", XF86AudioRaiseVolume: "Vol +", XF86AudioMute: "Mute", XF86AudioMicMute: "Mic",
+    XF86Launch1: "ROG", XF86KbdBrightnessDown: "Fn + F2", XF86KbdBrightnessUp: "Fn + F3", XF86Launch3: "Fn + F4",
+    XF86MonBrightnessDown: "Fn + F7", XF86MonBrightnessUp: "Fn + F8", F21: "Fn + F10", XF86Sleep: "Fn + F11", XF86RFKill: "Fn + F12"
 };
+
+// Chords do firmware: Fn+F9 chega como Super+XF86Display (udev troca o P);
+// a tecla fisica e uma so, entao os modificadores nao aparecem
+var CHORDS = { XF86Display: ["Fn", "F9"] };
 
 function keyLabel(key, release) {
     if (key === "SUPER_L")
@@ -37,6 +44,8 @@ function keyLabel(key, release) {
 function comboTokens(bind) {
     if (bind.key === "SUPER_L")
         return { tokens: ["Super"], tap: !!bind.release };
+    if (CHORDS[bind.key])
+        return { tokens: CHORDS[bind.key].slice(), tap: false };
     const tokens = [];
     for (const [mask, name] of MODS)
         if (bind.modmask & mask)

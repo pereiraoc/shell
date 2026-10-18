@@ -170,13 +170,22 @@ PageBase {
 
         RowButton {
             first: root.periph.laptop_keyboard?.available !== true
-            last: true
             visible: !!root.laptopRgb
             icon: root.isOff(root.laptopRgb?.settings) ? "light_off" : "palette"
             text: qsTr("Lighting")
             subtext: root.lightingText(root.laptopRgb?.settings)
             trailingIcon: "chevron_right"
             onClicked: root.openLighting(root.laptopRgb.id)
+        }
+
+        RowButton {
+            first: root.periph.laptop_keyboard?.available !== true && !root.laptopRgb
+            last: true
+            icon: "keyboard_alt"
+            text: qsTr("Laptop keys")
+            subtext: qsTr("M1–M4 and the Fn row: what each key does")
+            trailingIcon: "chevron_right"
+            onClicked: root.nState.openSubPage(3)
         }
 
         // Teclados externos com luz (Azoth...): bateria + iluminacao

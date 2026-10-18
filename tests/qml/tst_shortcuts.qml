@@ -29,7 +29,8 @@ TestCase {
         compare(S.keyLabel("Return", false), "Enter");
         compare(S.keyLabel("left", false), "←");
         compare(S.keyLabel("XF86MonBrightnessUp", false), "Fn + F8");
-        compare(S.keyLabel("XF86AudioMute", false), "AudioMute");
+        compare(S.keyLabel("XF86AudioMute", false), "Mute");
+        compare(S.keyLabel("XF86AudioPlay", false), "AudioPlay");
         compare(S.keyLabel("t", false), "T");
         compare(S.keyLabel("SUPER_L", true), "Super (tap)");
     }
@@ -38,6 +39,10 @@ TestCase {
         compare(S.comboTokens({ modmask: 65, key: "T", release: false }), { tokens: ["Super", "Shift", "T"], tap: false });
         compare(S.comboTokens({ modmask: 64, key: "SUPER_L", release: true }), { tokens: ["Super"], tap: true });
         compare(S.comboTokens({ modmask: 0, key: "XF86MonBrightnessUp", release: false }), { tokens: ["Fn", "F8"], tap: false });
+        // chord do firmware: Fn+F9 = Super+XF86Display, mostrado como a tecla fisica
+        compare(S.comboTokens({ modmask: 64, key: "XF86Display", release: false }), { tokens: ["Fn", "F9"], tap: false });
+        compare(S.comboTokens({ modmask: 0, key: "XF86AudioMicMute", release: false }), { tokens: ["Mic"], tap: false });
+        compare(S.comboTokens({ modmask: 0, key: "F21", release: false }), { tokens: ["Fn", "F10"], tap: false });
     }
 
     function test_comboLabel() {
