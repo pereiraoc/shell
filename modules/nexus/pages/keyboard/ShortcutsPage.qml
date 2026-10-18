@@ -203,6 +203,8 @@ PageBase {
                                             id: grpHeader
 
                                             width: parent.width
+                                            // Cartao com um grupo so e o mesmo nome (Float): nao repetir
+                                            visible: !(card.modelData.groups.length === 1 && grp.modelData.title === card.modelData.name)
                                             spacing: Tokens.spacing.small
 
                                             MaterialIcon {
@@ -240,6 +242,16 @@ PageBase {
                                                 Row {
                                                     visible: item.modelData.variant !== ""
                                                     spacing: Tokens.spacing.extraSmall
+
+                                                    // nivel 2: "↳" deixa claro que depende da variante de cima
+                                                    Text {
+                                                        anchors.baseline: note.baseline
+                                                        visible: item.modelData.level > 1
+                                                        text: "↳"
+                                                        color: Colours.palette.m3outline
+                                                        font: Tokens.font.label.medium
+                                                        renderType: Text.NativeRendering
+                                                    }
 
                                                     Text {
                                                         anchors.baseline: note.baseline
