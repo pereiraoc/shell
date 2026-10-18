@@ -58,6 +58,20 @@ TestCase {
         verify(f12.x + f12.w < del.x && del.x + del.w <= 15);
     }
 
+    function test_printedExtras() {
+        const ks = L.keys();
+        compare(ks.find(k => k.label === "1").top, "!");
+        compare(ks.find(k => k.label === "TAB").glyph, "⇤⇥");
+        compare(ks.find(k => k.label === "ENTER").glyph, "↵");
+        compare(ks.filter(k => k.label === "SHIFT").every(k => k.glyph === "⇧"), true);
+        compare(ks.find(k => k.micon === "window").label, "");
+        compare(ks.find(k => k.bar).w, 5.2);
+        compare(ks.find(k => k.glyph === "⟵").w, 2);
+        // teclas comuns sem extras nao trazem lixo
+        const q = ks.find(k => k.label === "Q");
+        compare([q.top, q.glyph, q.micon, q.bar, q.icon], ["", "", "", false, ""]);
+    }
+
     function test_labels() {
         compare(L.comboLabel("f11"), "Fn + F11");
         compare(L.comboLabel("m4"), "M4");

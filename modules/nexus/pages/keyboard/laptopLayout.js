@@ -8,7 +8,10 @@
 // / PgDn / End em T invertido: PgUp em cima, Home / PgDn / End em meia altura
 // embaixo (as setas valem com Fn). So as 16 teclas especiais tem `id`
 // (m1..m4, f1..f12) e um icone da funcao impressa; as outras so desenham o
-// contexto. Sem Qt: testavel com qmltestrunner (tests/qml/tst_laptop_layout.qml).
+// contexto, com o que esta impresso nelas: `top` = simbolo com Shift (canto
+// superior esquerdo), `glyph` = simbolo abaixo do rotulo (TAB, ENTER, SHIFT...),
+// `micon` = icone Material no centro (logo do Windows), `bar` = o traco da
+// barra de espaco. Sem Qt: testavel com qmltestrunner (tests/qml/tst_laptop_layout.qml).
 
 var ICONS = {
     m1: "volume_down", m2: "volume_up", m3: "mic_off", m4: "settings",
@@ -17,9 +20,9 @@ var ICONS = {
     f9: "screenshot_monitor", f10: "touchpad_mouse", f11: "bedtime", f12: "airplanemode_active"
 };
 
-// Linhas: y e h em u; cada entrada e uma tecla { label, w, id?, half? }
-// (half = meia altura, encostada embaixo), um respiro { gap } ou duas meias
-// teclas empilhadas { stack: [cima, baixo], w }. Rotulos como no manual.
+// Linhas: y e h em u; cada entrada e uma tecla { label, w, id?, half?, top?,
+// glyph?, micon?, bar? } (half = meia altura, encostada embaixo), um respiro
+// { gap } ou duas meias teclas empilhadas { stack: [cima, baixo], w }.
 var ROWS = [
     { y: 0, h: 0.5, keys: [
         { gap: 2 },
@@ -33,33 +36,41 @@ var ROWS = [
         { label: "DELETE", w: 1 }
     ] },
     { y: 1.52, h: 0.96, keys: [
-        { label: "`", w: 1 }, { label: "1", w: 1 }, { label: "2", w: 1 }, { label: "3", w: 1 }, { label: "4", w: 1 }, { label: "5", w: 1 },
-        { label: "6", w: 1 }, { label: "7", w: 1 }, { label: "8", w: 1 }, { label: "9", w: 1 }, { label: "0", w: 1 }, { label: "-", w: 1 },
-        { label: "=", w: 1 }, { label: "⌫", w: 2 }
+        { label: "`", top: "~", w: 1 }, { label: "1", top: "!", w: 1 }, { label: "2", top: "@", w: 1 }, { label: "3", top: "#", w: 1 },
+        { label: "4", top: "$", w: 1 }, { label: "5", top: "%", w: 1 }, { label: "6", top: "^", w: 1 }, { label: "7", top: "&", w: 1 },
+        { label: "8", top: "*", w: 1 }, { label: "9", top: "(", w: 1 }, { label: "0", top: ")", w: 1 }, { label: "-", top: "_", w: 1 },
+        { label: "=", top: "+", w: 1 }, { label: "", glyph: "⟵", w: 2 }
     ] },
     { y: 2.48, h: 0.96, keys: [
-        { label: "TAB", w: 1.5 }, { label: "Q", w: 1 }, { label: "W", w: 1 }, { label: "E", w: 1 }, { label: "R", w: 1 }, { label: "T", w: 1 },
-        { label: "Y", w: 1 }, { label: "U", w: 1 }, { label: "I", w: 1 }, { label: "O", w: 1 }, { label: "P", w: 1 }, { label: "[", w: 1 },
-        { label: "]", w: 1 }, { label: "\\", w: 1.5 }
+        { label: "TAB", glyph: "⇤⇥", w: 1.5 }, { label: "Q", w: 1 }, { label: "W", w: 1 }, { label: "E", w: 1 }, { label: "R", w: 1 }, { label: "T", w: 1 },
+        { label: "Y", w: 1 }, { label: "U", w: 1 }, { label: "I", w: 1 }, { label: "O", w: 1 }, { label: "P", w: 1 }, { label: "[", top: "{", w: 1 },
+        { label: "]", top: "}", w: 1 }, { label: "\\", top: "|", w: 1.5 }
     ] },
     { y: 3.44, h: 0.96, keys: [
-        { label: "CAPS LOCK", w: 1.75 }, { label: "A", w: 1 }, { label: "S", w: 1 }, { label: "D", w: 1 }, { label: "F", w: 1 }, { label: "G", w: 1 },
-        { label: "H", w: 1 }, { label: "J", w: 1 }, { label: "K", w: 1 }, { label: "L", w: 1 }, { label: ";", w: 1 }, { label: "'", w: 1 },
-        { label: "ENTER", w: 2.25 }
+        { label: "CAPS\nLOCK", w: 1.75 }, { label: "A", w: 1 }, { label: "S", w: 1 }, { label: "D", w: 1 }, { label: "F", w: 1 }, { label: "G", w: 1 },
+        { label: "H", w: 1 }, { label: "J", w: 1 }, { label: "K", w: 1 }, { label: "L", w: 1 }, { label: ";", top: ":", w: 1 }, { label: "'", top: "\"", w: 1 },
+        { label: "ENTER", glyph: "↵", w: 2.25 }
     ] },
     { y: 4.4, h: 0.96, keys: [
-        { label: "SHIFT", w: 2.25 }, { label: "Z", w: 1 }, { label: "X", w: 1 }, { label: "C", w: 1 }, { label: "V", w: 1 }, { label: "B", w: 1 },
-        { label: "N", w: 1 }, { label: "M", w: 1 }, { label: ",", w: 1 }, { label: ".", w: 1 }, { label: "/", w: 1 }, { label: "SHIFT", w: 2.75 }
+        { label: "SHIFT", glyph: "⇧", w: 2.25 }, { label: "Z", w: 1 }, { label: "X", w: 1 }, { label: "C", w: 1 }, { label: "V", w: 1 }, { label: "B", w: 1 },
+        { label: "N", w: 1 }, { label: "M", w: 1 }, { label: ",", top: "<", w: 1 }, { label: ".", top: ">", w: 1 }, { label: "/", top: "?", w: 1 },
+        { label: "SHIFT", glyph: "⇧", w: 2.75 }
     ] },
     { y: 5.36, h: 0.96, keys: [
-        { label: "CTRL", w: 1.25 }, { label: "FN", w: 1 }, { label: "WIN", w: 1 }, { label: "ALT", w: 1 }, { label: "", w: 5.2 },
-        { label: "ALT", w: 1 }, { label: "CTRL", w: 1.25 }, { label: "◀ HOME", w: 1.1, half: true }, { stack: ["▲ PGUP", "▼ PGDN"], w: 1.1 }, { label: "END ▶", w: 1.1, half: true }
+        { label: "CTRL", w: 1.25 }, { label: "FN", w: 1 }, { label: "", micon: "window", w: 1 }, { label: "ALT", w: 1 }, { label: "", bar: true, w: 5.2 },
+        { label: "ALT", w: 1 }, { label: "CTRL", glyph: "☰", w: 1.25 }, { label: "◀ HOME", w: 1.1, half: true }, { stack: ["▲ PGUP", "▼ PGDN"], w: 1.1 }, { label: "END ▶", w: 1.1, half: true }
     ] }
 ];
 
 var SPECIAL = ["m1", "m2", "m3", "m4", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"];
 
-// Teclas achatadas, com posicao absoluta em u: [{ id, label, icon, x, y, w, h }]
+function entry(k, label, x, y, w, h) {
+    const id = k.id || "";
+    return { id: id, label: label, icon: id ? ICONS[id] : "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, x: x, y: y, w: w, h: h };
+}
+
+// Teclas achatadas, com posicao absoluta em u:
+// [{ id, label, icon, top, glyph, micon, bar, x, y, w, h }]
 function keys() {
     const out = [];
     for (const row of ROWS) {
@@ -71,12 +82,11 @@ function keys() {
             }
             if (k.stack) {
                 const h = row.h / 2;
-                out.push({ id: "", label: k.stack[0], icon: "", x: x, y: row.y, w: k.w, h: h });
-                out.push({ id: "", label: k.stack[1], icon: "", x: x, y: row.y + h, w: k.w, h: h });
+                out.push(entry({}, k.stack[0], x, row.y, k.w, h));
+                out.push(entry({}, k.stack[1], x, row.y + h, k.w, h));
             } else {
-                const id = k.id || "";
                 const h = k.half ? row.h / 2 : row.h;
-                out.push({ id: id, label: k.label, icon: id ? ICONS[id] : "", x: x, y: row.y + row.h - h, w: k.w, h: h });
+                out.push(entry(k, k.label, x, row.y + row.h - h, k.w, h));
             }
             x += k.w;
         }
