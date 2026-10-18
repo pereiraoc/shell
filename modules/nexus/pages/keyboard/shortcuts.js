@@ -21,9 +21,6 @@ var KEYS = {
     XF86MonBrightnessUp: "Fn + F8", XF86MonBrightnessDown: "Fn + F7"
 };
 
-// Teclas que formam familia e dividem um contorno: digitos, F1-F12, setas
-var MERGEABLE = /^(\d|F\d{1,2}|[←→↑↓])$/;
-
 function keyLabel(key, release) {
     if (key === "SUPER_L")
         return release ? "Super (tap)" : "Super";
@@ -75,16 +72,16 @@ function labelOf(prefix, alts, tap) {
 }
 
 // [{ tokens, tap }] -> [{ label, prefix, alts, tap }]. Combos que so diferem na
-// ultima tecla, quando ela e de uma familia, juntam as alternativas em `alts`
-// (Super + 1/2/3); alternativas soltas (Enter / T), o toque no Super e combos
-// de uma tecla ficam como estao. Ordem = primeira aparicao.
+// ultima tecla juntam as alternativas em `alts` (Super + 1/2/3, Super +
+// Enter/T); o toque no Super e combos de uma tecla ficam como estao.
+// Ordem = primeira aparicao.
 function mergeCombos(combos) {
     const out = [];
     const byPrefix = {};
     for (const c of combos) {
         const last = c.tokens[c.tokens.length - 1];
         const prefix = c.tokens.slice(0, -1);
-        if (c.tap || c.tokens.length < 2 || !MERGEABLE.test(last)) {
+        if (c.tap || c.tokens.length < 2) {
             out.push({ prefix: prefix, alts: [last], tap: !!c.tap });
             continue;
         }
@@ -128,13 +125,16 @@ function splitNote(text) {
 function parseTags(tags) {
     let main = false;
     let icon = "";
+    let col = 0;
     for (const t of tags.split(/\s+/)) {
         if (t === "@main")
             main = true;
         else if (t.indexOf("@icon:") === 0)
             icon = t.slice(6);
+        else if (t.indexOf("@col:") === 0)
+            col = parseInt(t.slice(5), 10) || 0;
     }
-    return { main: main, icon: icon };
+    return { main: main, icon: icon, col: col };
 }
 
 function group(binds) {
@@ -147,10 +147,12 @@ function group(binds) {
         const tags = parseTags(d.tags);
         let cat = byName[d.cat];
         if (!cat) {
-            cat = { name: d.cat, groups: [], byTitle: {} };
+            cat = { name: d.cat, col: 0, groups: [], byTitle: {} };
             byName[d.cat] = cat;
             cats.push(cat);
         }
+        if (!cat.col && tags.col)
+            cat.col = tags.col;
         let grp = cat.byTitle[d.title];
         if (!grp) {
             grp = { title: d.title, icon: "", main: false, items: [], byVariant: {} };
@@ -176,6 +178,7 @@ function group(binds) {
     }
     return cats.map(c => ({
         name: c.name,
+        col: c.col,
         groups: c.groups.map(g => ({
             title: g.title,
             icon: g.icon,
@@ -188,14 +191,20 @@ function group(binds) {
     }));
 }
 
-// Reparte as categorias em `n` colunas, cada uma na coluna mais curta ate
-// entao (peso = numero de itens), mantendo a ordem de aparicao.
+// Reparte as categorias em `n` colunas. Se todas trazem `col` (1..n, do
+// binds.lua: analogos lado a lado), obedece; senao cada uma vai para a coluna
+// mais curta ate entao (peso = numero de itens), na ordem de aparicao.
 function distribute(cats, n) {
     const cols = [];
     const heights = [];
     for (let i = 0; i < n; i++) {
         cols.push([]);
         heights.push(0);
+    }
+    if (cats.length > 0 && cats.every(c => c.col >= 1 && c.col <= n)) {
+        for (const c of cats)
+            cols[c.col - 1].push(c);
+        return cols;
     }
     for (const c of cats) {
         let best = 0;

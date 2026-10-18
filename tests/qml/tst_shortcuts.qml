@@ -65,8 +65,8 @@ TestCase {
         compare(merged.length, 2);
         compare(merged[0], { label: "Super + 1/2/3", prefix: ["Super"], alts: ["1", "2", "3"], tap: false });
         compare(merged[1], { label: "Alt + Tab", prefix: ["Alt"], alts: ["Tab"], tap: false });
-        // alternativas soltas (Enter / T) nao formam familia: uma por linha
-        compare(S.mergeCombos([{ tokens: ["Super", "Enter"], tap: false }, { tokens: ["Super", "T"], tap: false }]).map(c => c.label), ["Super + Enter", "Super + T"]);
+        // alternativas com o mesmo prefixo (Enter / T) tambem juntam
+        compare(S.mergeCombos([{ tokens: ["Super", "Enter"], tap: false }, { tokens: ["Super", "T"], tap: false }]).map(c => c.label), ["Super + Enter/T"]);
         // F-keys e setas sao familia; o toque no Super fica so
         compare(S.mergeCombos([{ tokens: ["Super", "Shift", "F1"], tap: false }, { tokens: ["Super", "Shift", "F2"], tap: false }])[0].alts, ["F1", "F2"]);
         compare(S.mergeCombos([{ tokens: ["Super"], tap: true }]), [{ label: "Super (tap)", prefix: [], alts: ["Super"], tap: true }]);
@@ -80,7 +80,8 @@ TestCase {
         compare(apps.groups.map(g => g.title), ["Terminal (Kitty)", "Launcher", "Terminal (Foot)"]);
         compare(apps.groups[0].items.length, 1);
         compare(apps.groups[0].items[0].variant, "");
-        compare(apps.groups[0].items[0].combos.map(c => c.label), ["Super + Enter", "Super + T"]);
+        compare(apps.groups[0].items[0].combos.map(c => c.label), ["Super + Enter/T"]);
+        compare(apps.groups[0].items[0].combos[0].alts, ["Enter", "T"]);
         compare(apps.groups[0].icon, "terminal");
         compare(apps.groups[0].main, true);
         compare(apps.groups[2].main, false);
@@ -88,6 +89,7 @@ TestCase {
         const ws = cats[1];
         compare(ws.groups.map(g => g.title), ["Ir para"]);
         compare(ws.groups[0].items.map(i => i.variant), ["subgrupo", "grupo"]);
+        compare(ws.groups[0].items[0].note, "");
         compare(ws.groups[0].items[0].combos[0].alts, ["1", "2", "3"]);
         compare(ws.groups[0].items[1].combos[0].alts, ["F1", "F2"]);
         compare(ws.groups[0].icon, "grid_view");
@@ -103,7 +105,22 @@ TestCase {
         const all = cats.reduce((acc, c) => acc.concat(c.groups.reduce((a, g) => a.concat(g.items.reduce((b, i) => b.concat(i.combos.map(x => x.label)), [])), [])), []);
         verify(!all.some(x => x.indexOf("code:") >= 0));
         verify(!all.some(x => x.indexOf("Caps") >= 0));
-        compare(all.length, 10); // Enter, T, tap, Foot, 1/2/3, F1/F2, =, ←/→, Fn+F8, Sem separador
+        compare(all.length, 9); // Enter/T, tap, Foot, 1/2/3, F1/F2, =, ←/→, Fn+F8, Sem separador
+    }
+
+    function test_distribute_byColumnHint() {
+        const cats = [
+            { name: "A", col: 1, groups: [{ items: [1] }] },
+            { name: "B", col: 3, groups: [{ items: [1, 2, 3, 4, 5] }] },
+            { name: "C", col: 2, groups: [{ items: [1] }] },
+            { name: "D", col: 1, groups: [{ items: [1] }] }
+        ];
+        compare(S.distribute(cats, 3).map(c => c.map(x => x.name)), [["A", "D"], ["C"], ["B"]]);
+        // menos colunas que as dicas: volta ao reparto pela mais curta
+        compare(S.distribute(cats, 2).map(c => c.map(x => x.name)), [["A", "C", "D"], ["B"]]);
+        // parse le @col
+        const parsed = S.parse(JSON.stringify([{ modmask: 64, key: "Q", release: false, description: "Close · Close window · @main @icon:close @col:2" }]));
+        compare(parsed[0].col, 2);
     }
 
     function test_distribute_balancesByItems() {
@@ -117,6 +134,21 @@ TestCase {
         compare(S.distribute(cats, 3).map(c => c.map(x => x.name)), [["A", "D", "E"], ["B"], ["C"]]);
         compare(S.distribute(cats, 1).map(c => c.map(x => x.name)), [["A", "B", "C", "D", "E"]]);
         compare(S.distribute([], 3), [[], [], []]);
+    }
+
+    function test_splitNote() {
+        compare(S.splitNote("next / previous window (all monitors)"), { text: "next / previous window", note: "all monitors" });
+        compare(S.splitNote("rescue (70%)"), { text: "rescue", note: "70%" });
+        compare(S.splitNote("subgroup"), { text: "subgroup", note: "" });
+        compare(S.splitNote("Terminal (Kitty) extra"), { text: "Terminal (Kitty) extra", note: "" });
+    }
+
+    function test_parse_variantNote() {
+        const cats = S.parse(JSON.stringify([
+            { modmask: 68, key: "left", release: false, description: "Windows · Move cursor › next / previous window (all monitors) · @icon:swap_horiz" }
+        ]));
+        compare(cats[0].groups[0].items[0].variant, "next / previous window");
+        compare(cats[0].groups[0].items[0].note, "all monitors");
     }
 
     function test_parse_badInput() {
