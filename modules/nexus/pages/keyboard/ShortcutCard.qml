@@ -8,7 +8,9 @@ import qs.services
 // Cartao de uma categoria: titulo + grupos (ShortcutGroup), com uma linha bem
 // leve entre eles. Um grupo so com o mesmo nome (Float, Capture): o cabecalho
 // do grupo some e o icone dele vem para o titulo. Em Essentials so aparece se
-// algum grupo e @main.
+// algum grupo e @main. Com `rowFill`, cada grupo visivel estica ate a altura
+// dada (shortcuts.js: alignRows), para as divisorias baterem com as dos
+// cartoes vizinhos.
 StyledRect {
     id: root
 
@@ -16,9 +18,27 @@ StyledRect {
     required property var category
     required property bool showAll
     required property int capHeight
+    // Alturas alvo dos grupos visiveis, em ordem ([] = natural)
+    property var rowFill: []
 
     readonly property bool hasMain: root.category.groups.some(g => g.main)
     readonly property bool single: root.category.groups.length === 1 && root.category.groups[0].title === root.category.name
+    // Indice de cada grupo entre os visiveis (-1 = escondido nesta vista)
+    readonly property var rows: {
+        let n = 0;
+        return root.category.groups.map(g => root.showAll || g.main ? n++ : -1);
+    }
+    // Grupos visiveis com linha e altura natural, para o alignRows da pagina.
+    // Le implicitHeight (nao height): a altura esticada nao entra, sem laco.
+    readonly property var rowSpec: {
+        const out = [];
+        for (let i = 0; i < groups.count; i++) {
+            const g = groups.itemAt(i);
+            if (g && g.visible)
+                out.push({ row: g.group.row, height: g.implicitHeight });
+        }
+        return out;
+    }
 
     visible: root.showAll || root.hasMain
     implicitHeight: col.implicitHeight + Tokens.padding.large * 2
@@ -54,13 +74,18 @@ StyledRect {
         }
 
         Repeater {
+            id: groups
+
             model: root.category.groups
 
             ShortcutGroup {
+                id: grp
+
                 required property int index
                 required property var modelData
 
                 width: parent.width
+                height: Math.max(grp.implicitHeight, root.rowFill[root.rows[grp.index]] || 0)
                 group: modelData
                 showAll: root.showAll
                 capHeight: root.capHeight

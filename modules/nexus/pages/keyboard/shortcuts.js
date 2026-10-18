@@ -4,8 +4,9 @@
 //   categoria (1o campo do desc) -> grupos (titulo curto; "Grupo › variante" na
 //   acao) -> itens (uma variante) -> combos (uma por linha; a ultima tecla pode
 //   ter alternativas em familia: 1/2/3, F1/F2/F3, setas).
-// O 3o campo do desc traz tags: @main (entra em Essentials), @icon:NOME e
-// @col:N (coluna da categoria na pagina).
+// O 3o campo do desc traz tags: @main (entra em Essentials), @icon:NOME,
+// @col:N (coluna da categoria na pagina) e @row:N (linha em que o grupo
+// comeca no cartao; ver alignRows).
 // Sem Qt: testavel com qmltestrunner (tests/qml/tst_shortcuts.qml).
 
 var SEP = " · ";
@@ -132,6 +133,7 @@ function parseTags(tags) {
     let main = false;
     let icon = "";
     let col = 0;
+    let row = 0;
     for (const t of tags.split(/\s+/)) {
         if (t === "@main")
             main = true;
@@ -139,8 +141,10 @@ function parseTags(tags) {
             icon = t.slice(6);
         else if (t.indexOf("@col:") === 0)
             col = parseInt(t.slice(5), 10) || 0;
+        else if (t.indexOf("@row:") === 0)
+            row = parseInt(t.slice(5), 10) || 0;
     }
-    return { main: main, icon: icon, col: col };
+    return { main: main, icon: icon, col: col, row: row };
 }
 
 function group(binds) {
@@ -161,7 +165,7 @@ function group(binds) {
             cat.col = tags.col;
         let grp = cat.byTitle[d.title];
         if (!grp) {
-            grp = { title: d.title, icon: "", main: false, items: [], byVariant: {} };
+            grp = { title: d.title, icon: "", main: false, row: 0, items: [], byVariant: {} };
             cat.byTitle[d.title] = grp;
             cat.groups.push(grp);
         }
@@ -175,6 +179,8 @@ function group(binds) {
             item.icon = tags.icon;
         if (!grp.icon && tags.icon)
             grp.icon = tags.icon;
+        if (!grp.row && tags.row)
+            grp.row = tags.row;
         item.main = item.main || tags.main;
         grp.main = grp.main || tags.main;
         const c = comboTokens(b);
@@ -189,6 +195,7 @@ function group(binds) {
             title: g.title,
             icon: g.icon,
             main: g.main,
+            row: g.row,
             items: g.items.map(i => {
                 const v = splitNote(i.variant);
                 return { variant: v.text, note: v.note, level: i.level, icon: i.icon, main: i.main, combos: mergeCombos(i.raw) };
@@ -221,6 +228,42 @@ function distribute(cats, n) {
         heights[best] += c.groups.reduce((acc, g) => acc + g.items.length, 0);
     }
     return cols;
+}
+
+// Alinha as divisorias entre cartoes vizinhos. `columns` = por cartao, os
+// grupos visiveis em ordem: [{ row, height }] (row do binds.lua, 0 = logo
+// apos o anterior; height = altura natural). Cada grupo ocupa da sua linha
+// ate a do proximo grupo do mesmo cartao (o ultimo, uma linha); a fronteira
+// de cada linha e a mais baixa que todos os grupos que terminam nela exigem.
+// Devolve, por cartao, as alturas esticadas (>= natural). `spacing` = vao
+// entre grupos no cartao, igual em todos.
+function alignRows(columns, spacing) {
+    const spans = [];
+    let last = 1;
+    for (const groups of columns) {
+        let prev = 0;
+        const col = [];
+        for (const g of groups) {
+            const start = Math.max(prev + 1, g.row || 0);
+            col.push({ start: start, end: start + 1, height: g.height });
+            if (col.length > 1)
+                col[col.length - 2].end = start;
+            prev = start;
+        }
+        spans.push(col);
+        if (col.length > 0)
+            last = Math.max(last, col[col.length - 1].end);
+    }
+    const bounds = [0, 0];
+    for (let k = 2; k <= last; k++) {
+        let y = bounds[k - 1];
+        for (const col of spans)
+            for (const s of col)
+                if (s.end === k)
+                    y = Math.max(y, bounds[s.start] + s.height + spacing);
+        bounds.push(y);
+    }
+    return spans.map(col => col.map(s => bounds[s.end] - bounds[s.start] - spacing));
 }
 
 function parse(jsonText) {

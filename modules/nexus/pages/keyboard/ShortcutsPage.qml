@@ -118,13 +118,23 @@ PageBase {
             font: Tokens.font.body.medium
         }
 
-        // Colunas de largura igual; cada cartao encosta no de cima (sem buracos)
-        // e as colunas terminam na mesma linha (a mais alta manda).
+        // Colunas de largura igual; cada cartao encosta no de cima (sem buracos),
+        // as divisorias dos 1os cartoes batem entre colunas (@row) e as colunas
+        // terminam na mesma linha (a mais alta manda).
         Row {
             id: grid
 
             readonly property int cols: root.columnsModel.length
             readonly property int colWidth: grid.cols > 0 ? Math.floor((width - spacing * (grid.cols - 1)) / grid.cols) : 0
+            // Alturas dos grupos dos 1os cartoes, por coluna, com as linhas alinhadas
+            readonly property var rowFills: {
+                const specs = [];
+                for (let i = 0; i < columns.count; i++) {
+                    const c = columns.itemAt(i);
+                    specs.push(c ? c.rowSpec : []);
+                }
+                return Shortcuts.alignRows(specs, Tokens.spacing.largeIncreased);
+            }
             // Altura natural da coluna mais alta, lida das colunas criadas
             readonly property int tallest: {
                 let h = 0;
@@ -145,6 +155,9 @@ PageBase {
                 model: root.columnsModel
 
                 ShortcutColumn {
+                    id: column
+
+                    required property int index
                     required property var modelData
 
                     width: grid.colWidth
@@ -152,6 +165,7 @@ PageBase {
                     showAll: root.showAll
                     capHeight: root.capHeight
                     fill: grid.tallest
+                    rowFill: grid.rowFills[column.index] || []
                 }
             }
         }

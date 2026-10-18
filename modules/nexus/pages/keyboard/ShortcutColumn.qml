@@ -5,7 +5,9 @@ import Caelestia.Config
 
 // Uma coluna da pagina: cartoes (ShortcutCard) empilhados, cada um encostado no
 // de cima (sem buracos). Com `fill`, o ultimo cartao visivel estica ate a
-// coluna ter essa altura -- as tres colunas terminam na mesma linha.
+// coluna ter essa altura -- as tres colunas terminam na mesma linha. O 1o
+// cartao expoe `rowSpec` e recebe `rowFill` (divisorias alinhadas entre
+// colunas; shortcuts.js: alignRows).
 Column {
     id: root
 
@@ -15,6 +17,9 @@ Column {
     required property int capHeight
     // Altura alvo da coluna (0 = natural)
     property int fill
+    property var rowFill: []
+
+    readonly property var rowSpec: repeater.count > 0 && repeater.itemAt(0) ? repeater.itemAt(0).rowSpec : []
 
     // Altura natural (cartoes visiveis + espacos) e indice do ultimo visivel,
     // lidos das alturas implicitas: a altura esticada nao entra, sem laco.
@@ -49,6 +54,7 @@ Column {
             category: modelData
             showAll: root.showAll
             capHeight: root.capHeight
+            rowFill: card.index === 0 ? root.rowFill : []
         }
     }
 }

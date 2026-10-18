@@ -118,9 +118,27 @@ TestCase {
         compare(S.distribute(cats, 3).map(c => c.map(x => x.name)), [["A", "D"], ["C"], ["B"]]);
         // menos colunas que as dicas: volta ao reparto pela mais curta
         compare(S.distribute(cats, 2).map(c => c.map(x => x.name)), [["A", "C", "D"], ["B"]]);
-        // parse le @col
-        const parsed = S.parse(JSON.stringify([{ modmask: 64, key: "Q", release: false, description: "Close · Close window · @main @icon:close @col:2" }]));
+        // parse le @col e @row (do 1o bind do grupo)
+        const parsed = S.parse(JSON.stringify([{ modmask: 64, key: "Q", release: false, description: "Close · Close window · @main @icon:close @col:2 @row:4" }]));
         compare(parsed[0].col, 2);
+        compare(parsed[0].groups[0].row, 4);
+    }
+
+    function test_alignRows() {
+        // Essentials de hoje: Navigate e Manipulate com 4 grupos nas linhas 1-4;
+        // Launch com Apps (1), Session (2, alta: ocupa 2-3) e Capture (4)
+        const cols = [
+            [{ row: 1, height: 40 }, { row: 2, height: 30 }, { row: 3, height: 20 }, { row: 4, height: 20 }],
+            [{ row: 1, height: 40 }, { row: 2, height: 20 }, { row: 3, height: 30 }, { row: 4, height: 20 }],
+            [{ row: 1, height: 30 }, { row: 2, height: 40 }, { row: 4, height: 20 }]
+        ];
+        // linha 1 = 40 (Apps estica); 2|3 alinha Go to next com Move window to next (30);
+        // 3|4: Open/Window size = 30 e Session = 30 + 10 + 30 = 70; linha 4 = 20
+        compare(S.alignRows(cols, 10), [[40, 30, 30, 20], [40, 30, 30, 20], [40, 70, 20]]);
+        // sem @row: sequencial; linhas so de um cartao ficam embaixo dos outros
+        compare(S.alignRows([[{ row: 0, height: 10 }, { row: 0, height: 10 }], [{ row: 0, height: 25 }]], 5), [[25, 10], [25]]);
+        compare(S.alignRows([[{ row: 1, height: 10 }], [{ row: 1, height: 10 }, { row: 2, height: 50 }]], 5), [[10], [10, 50]]);
+        compare(S.alignRows([[], []], 5), [[], []]);
     }
 
     function test_distribute_balancesByItems() {
