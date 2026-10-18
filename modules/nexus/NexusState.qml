@@ -9,6 +9,8 @@ QtObject {
     property int currentPageIdx
     property list<int> subPageIdxStack
     property bool searchOpen
+    // Menu lateral so com icones (toggle no topo; Super+/ abre assim)
+    property bool navCollapsed
     property string searchText
 
     property string selectedWallpaperCategory

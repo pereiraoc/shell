@@ -20,9 +20,20 @@ Singleton {
         return w;
     }
 
-    // IPC: abre (ou reaproveita) o Nexus direto numa pagina/subpagina
-    function openAt(page: string, sub: int, mouse: string): void {
-        const w = root.windows[0] ?? root.create();
+    // IPC: abre (ou reaproveita) o Nexus direto numa pagina/subpagina. Janela
+    // nova ja nasce na pagina pedida (sem incubar a Home para depois trocar);
+    // `collapsed` recolhe o menu lateral (Super+/).
+    function openAt(page: string, sub: int, mouse: string, collapsed: bool): void {
+        let w = root.windows[0];
+        if (!w) {
+            const idx = PageRegistry.indexOf(page);
+            w = root.create(null, {
+                initialPage: idx < 0 ? 0 : idx,
+                initialNavCollapsed: !!collapsed
+            });
+        } else if (collapsed) {
+            w.nState.navCollapsed = true;
+        }
         if (mouse)
             w.nState.selectedMouse = mouse;
         w.nState.openPage(page, sub);
@@ -40,7 +51,7 @@ Singleton {
 
     // Super+/: abre o Nexus nesta pagina/subpagina; se a janela ja esta
     // exatamente nela, fecha (mesma tecla abre e fecha).
-    function toggleAt(page: string, sub: int): void {
+    function toggleAt(page: string, sub: int, collapsed: bool): void {
         const w = root.windows[0];
         if (w) {
             const stack = w.nState.subPageIdxStack;
@@ -50,7 +61,7 @@ Singleton {
                 return;
             }
         }
-        root.openAt(page, sub, "");
+        root.openAt(page, sub, "", collapsed);
     }
 
     QtObject {
@@ -64,6 +75,9 @@ Singleton {
             id: win
 
             readonly property alias nState: nexus.nState
+            // Estado inicial (WindowFactory.openAt): pagina e menu recolhido
+            property int initialPage: 0
+            property bool initialNavCollapsed: false
 
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false
@@ -92,6 +106,8 @@ Singleton {
                 anchors.fill: parent
                 nState.screen: win.screen
                 nState.isWindow: true
+                nState.currentPageIdx: win.initialPage
+                nState.navCollapsed: win.initialNavCollapsed
                 onClose: win.destroy()
             }
 

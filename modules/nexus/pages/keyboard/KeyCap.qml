@@ -3,48 +3,21 @@ import Caelestia.Config
 import qs.components
 import qs.services
 
-// Tecla desenhada como keycap (Keyboard > Shortcuts). Modificadores tem cor
-// propria pelos papeis do tema: Super = primary, Ctrl = secondary, Shift =
-// tertiary, Alt = error, Fn = surface alta; teclas comuns = surface. A base,
-// mais escura, e o proprio retangulo (relevo de 3 px); a tampa e um filho.
+// Tecla desenhada como keycap (Keyboard > Shortcuts). Super = amarelo do tema
+// (tertiary), o foco principal; Ctrl/Shift/Alt/Fn em matizes fixos distintos
+// (azul, verde, roxo, laranja) que seguem claro/escuro -- os papeis do tema
+// nao dao 5 cores distinguiveis (primary == secondary, error == tertiary).
+// A base, mais escura, e o proprio retangulo (relevo de 3 px); a tampa e um filho.
 StyledRect {
     id: root
 
     property string text
     property string kind: "key"
 
-    readonly property color capColour: {
-        switch (root.kind) {
-        case "super":
-            return Colours.palette.m3primaryContainer;
-        case "ctrl":
-            return Colours.palette.m3secondaryContainer;
-        case "shift":
-            return Colours.palette.m3tertiaryContainer;
-        case "alt":
-            return Colours.palette.m3errorContainer;
-        case "fn":
-            return Colours.palette.m3surfaceContainerHighest;
-        default:
-            return Colours.tPalette.m3surfaceContainerHigh;
-        }
-    }
-    readonly property color textColour: {
-        switch (root.kind) {
-        case "super":
-            return Colours.palette.m3onPrimaryContainer;
-        case "ctrl":
-            return Colours.palette.m3onSecondaryContainer;
-        case "shift":
-            return Colours.palette.m3onTertiaryContainer;
-        case "alt":
-            return Colours.palette.m3onErrorContainer;
-        case "fn":
-            return Colours.palette.m3tertiary;
-        default:
-            return Colours.palette.m3onSurface;
-        }
-    }
+    readonly property real hue: root.kind === "ctrl" ? 215 / 360 : root.kind === "shift" ? 140 / 360 : root.kind === "alt" ? 300 / 360 : 25 / 360
+    readonly property bool tinted: root.kind === "ctrl" || root.kind === "shift" || root.kind === "alt" || root.kind === "fn"
+    readonly property color capColour: root.kind === "super" ? Colours.palette.m3tertiary : root.tinted ? Qt.hsla(root.hue, 0.35, Colours.light ? 0.82 : 0.28, 1) : Colours.tPalette.m3surfaceContainerHigh
+    readonly property color textColour: root.kind === "super" ? Colours.palette.m3onTertiary : root.tinted ? Qt.hsla(root.hue, 0.55, Colours.light ? 0.18 : 0.92, 1) : Colours.palette.m3onSurface
 
     implicitWidth: Math.max(label.implicitWidth + Tokens.padding.medium * 2, implicitHeight)
     implicitHeight: label.implicitHeight + Tokens.padding.small * 2 + 3

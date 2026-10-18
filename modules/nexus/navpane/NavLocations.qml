@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Caelestia.Config
 import qs.components
@@ -52,7 +53,7 @@ VerticalFadeFlickable {
                     Layout.fillWidth: true
                     Layout.leftMargin: Tokens.padding.large
                     Layout.topMargin: Tokens.spacing.small
-                    visible: entry.isCategoryStart && entry.modelData.group !== ""
+                    visible: entry.isCategoryStart && entry.modelData.group !== "" && !root.nState.navCollapsed
                     text: entry.modelData.group
                     color: Colours.palette.m3primary
                     font: Tokens.font.label.medium
@@ -85,6 +86,11 @@ VerticalFadeFlickable {
                     RadiusBehavior on bottomLeftRadius {}
                     RadiusBehavior on bottomRightRadius {}
 
+                    // Recolhido so mostra o icone: o nome vem no hover
+                    ToolTip.visible: root.nState.navCollapsed && stateLayer.containsMouse
+                    ToolTip.text: item.modelData.label
+                    ToolTip.delay: 300
+
                     StateLayer {
                         id: stateLayer
 
@@ -109,6 +115,8 @@ VerticalFadeFlickable {
                             Layout.topMargin: -1
                             Layout.bottomMargin: -1
                             implicitWidth: height
+                            // Sem os textos, o circulo precisa de altura propria
+                            implicitHeight: root.nState.navCollapsed ? 36 : 0
 
                             radius: Tokens.rounding.full
                             color: item.isCurrentPage ? Colours.palette.m3primary : Colours.palette.m3secondaryContainer
@@ -127,6 +135,7 @@ VerticalFadeFlickable {
 
                         ColumnLayout {
                             Layout.fillWidth: true
+                            visible: !root.nState.navCollapsed
                             spacing: 0
 
                             StyledText {

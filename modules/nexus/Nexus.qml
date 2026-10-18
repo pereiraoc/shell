@@ -97,7 +97,11 @@ Item {
         anchors.margins: Tokens.padding.large
 
         nState: nState
-        width: Math.min(Tokens.sizes.nexus.maxNavWidth, Math.round(root.width / 3))
+        width: nState.navCollapsed ? navPane.collapsedWidth : Math.min(Tokens.sizes.nexus.maxNavWidth, Math.round(root.width / 3))
+
+        Behavior on width {
+            Anim {}
+        }
     }
 
     Pages {

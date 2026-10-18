@@ -95,6 +95,16 @@ Scope {
         }
     }
 
+    // Super+/ (binds.lua: hl.dsp.global("caelestia:shortcuts")): sem processo
+    // IPC no meio, a pagina de atalhos abre na hora, com o menu recolhido.
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "shortcuts"
+        description: "Toggle the keyboard shortcuts page"
+        onPressed: WindowFactory.toggleAt("keyboard", 2, true)
+    }
+
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
@@ -142,17 +152,17 @@ Scope {
 
         // Pagina pelo id do PageRegistry (sub = subpagina, 0 = nenhuma)
         function openPage(page: string, sub: int): void {
-            WindowFactory.openAt(page, sub, "");
+            WindowFactory.openAt(page, sub, "", false);
         }
 
         // Botoes/DPI/energia de um mouse (modelo como no caelestia-peripherals)
         function openMouse(model: string): void {
-            WindowFactory.openAt("mouse", 1, model);
+            WindowFactory.openAt("mouse", 1, model, false);
         }
 
         // Pagina/subpagina pelo id do PageRegistry; se o Nexus ja esta nela, fecha
         function togglePage(page: string, sub: int): void {
-            WindowFactory.toggleAt(page, sub);
+            WindowFactory.toggleAt(page, sub, false);
         }
 
         target: "nexus"

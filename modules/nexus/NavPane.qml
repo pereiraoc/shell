@@ -13,48 +13,73 @@ ColumnLayout {
 
     required property NexusState nState
 
+    // Largura do menu recolhido: o circulo do icone (36) + margens do item
+    readonly property int collapsedWidth: 36 + Tokens.padding.large * 2
+
     spacing: Tokens.spacing.large
 
-    SearchBar {
-        id: searchField
+    // Recolhido: so a seta para reabrir, centrada
+    IconButton {
+        Layout.alignment: Qt.AlignHCenter
+        visible: root.nState.navCollapsed
+        type: IconButton.Text
+        icon: "chevron_right"
+        onClicked: root.nState.navCollapsed = false
+    }
 
+    RowLayout {
         Layout.fillWidth: true
+        visible: !root.nState.navCollapsed
+        spacing: Tokens.spacing.small
 
-        placeholderText: Tr.tr("Search settings")
-        font: Tokens.font.body.large
+        SearchBar {
+            id: searchField
 
-        bg.color: Colours.tPalette.m3surfaceContainerLowest
-        bg.border.color: Colours.palette.m3outlineVariant
-        searchIcon.fontStyle: Tokens.font.icon.medium
-        searchIcon.anchors.leftMargin: Tokens.padding.largeIncreased
-        clearIcon.font: Tokens.font.icon.medium
-        clearIcon.padding: Tokens.padding.extraSmall
+            Layout.fillWidth: true
 
-        Behavior on bg.border.color {
-            CAnim {}
-        }
+            placeholderText: Tr.tr("Search settings")
+            font: Tokens.font.body.large
 
-        Binding {
-            target: root.nState
-            property: "searchOpen"
-            value: searchField.text.trim().length > 0
-        }
+            bg.color: Colours.tPalette.m3surfaceContainerLowest
+            bg.border.color: Colours.palette.m3outlineVariant
+            searchIcon.fontStyle: Tokens.font.icon.medium
+            searchIcon.anchors.leftMargin: Tokens.padding.largeIncreased
+            clearIcon.font: Tokens.font.icon.medium
+            clearIcon.padding: Tokens.padding.extraSmall
 
-        Binding {
-            target: root.nState
-            property: "searchText"
-            value: searchField.text
-        }
-
-        // Enter abre o melhor resultado; Esc limpa a busca.
-        onAccepted: results.openFirst()
-        Keys.onEscapePressed: event => {
-            if (searchField.text.length > 0) {
-                searchField.text = "";
-                event.accepted = true;
-            } else {
-                event.accepted = false;
+            Behavior on bg.border.color {
+                CAnim {}
             }
+
+            Binding {
+                target: root.nState
+                property: "searchOpen"
+                value: searchField.text.trim().length > 0
+            }
+
+            Binding {
+                target: root.nState
+                property: "searchText"
+                value: searchField.text
+            }
+
+            // Enter abre o melhor resultado; Esc limpa a busca.
+            onAccepted: results.openFirst()
+            Keys.onEscapePressed: event => {
+                if (searchField.text.length > 0) {
+                    searchField.text = "";
+                    event.accepted = true;
+                } else {
+                    event.accepted = false;
+                }
+            }
+        }
+
+        // Recolhe o menu a so icones (Super+/ ja abre recolhido)
+        IconButton {
+            type: IconButton.Text
+            icon: "chevron_left"
+            onClicked: root.nState.navCollapsed = true
         }
     }
 
@@ -74,7 +99,7 @@ ColumnLayout {
         Layout.fillHeight: true
         Layout.topMargin: -topMargin
         Layout.bottomMargin: -bottomMargin
-        visible: root.nState.searchOpen
+        visible: root.nState.searchOpen && !root.nState.navCollapsed
         nState: root.nState
         query: searchField.text
         onPicked: searchField.text = ""
