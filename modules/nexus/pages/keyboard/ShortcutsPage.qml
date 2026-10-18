@@ -151,6 +151,7 @@ PageBase {
                             required property var modelData
 
                             readonly property bool hasMain: card.modelData.groups.some(g => g.main)
+                            readonly property bool single: card.modelData.groups.length === 1 && card.modelData.groups[0].title === card.modelData.name
 
                             width: parent.width
                             visible: root.showAll || card.hasMain
@@ -169,11 +170,25 @@ PageBase {
                                 anchors.margins: Tokens.padding.large
                                 spacing: Tokens.spacing.largeIncreased
 
-                                StyledText {
+                                // Cartao de um grupo so com o mesmo nome (Float, Capture): o
+                                // cabecalho do grupo some e o icone dele vem para o titulo.
+                                Row {
                                     width: parent.width
-                                    text: card.modelData.name
-                                    font: Tokens.font.title.small
-                                    color: Colours.palette.m3primary
+                                    spacing: Tokens.spacing.small
+
+                                    MaterialIcon {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: card.single
+                                        text: card.modelData.groups[0]?.icon || "keyboard"
+                                        color: Colours.palette.m3primary
+                                    }
+
+                                    StyledText {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: card.modelData.name
+                                        font: Tokens.font.title.small
+                                        color: Colours.palette.m3primary
+                                    }
                                 }
 
                                 Repeater {
@@ -204,7 +219,7 @@ PageBase {
 
                                             width: parent.width
                                             // Cartao com um grupo so e o mesmo nome (Float): nao repetir
-                                            visible: !(card.modelData.groups.length === 1 && grp.modelData.title === card.modelData.name)
+                                            visible: !card.single
                                             spacing: Tokens.spacing.small
 
                                             MaterialIcon {
@@ -231,8 +246,11 @@ PageBase {
 
                                                 required property var modelData
 
-                                                // nivel 2 ("pin" sob "toggle"): recuo a mais
-                                                x: Tokens.padding.largeIncreased + (item.modelData.level > 1 ? Tokens.padding.large : 0)
+                                                // nivel 2 ("pin" sob "toggle"): texto E keycaps recuam juntos;
+                                                // a seta fica na margem, alinhada com a variante de cima
+                                                readonly property int arrowSlot: Tokens.padding.largeIncreased
+
+                                                x: Tokens.padding.largeIncreased + (item.modelData.level > 1 ? arrowSlot : 0)
                                                 width: parent.width - x
                                                 visible: root.showAll || item.modelData.main
                                                 spacing: Tokens.spacing.extraSmall / 2
@@ -240,12 +258,14 @@ PageBase {
                                                 // Variante + nota "(all monitors)" ao lado, menor e mais apagada.
                                                 // Text puro (sem Behaviors do StyledText): sao dezenas por pagina.
                                                 Row {
+                                                    x: item.modelData.level > 1 ? -item.arrowSlot : 0
                                                     visible: item.modelData.variant !== ""
                                                     spacing: Tokens.spacing.extraSmall
 
-                                                    // nivel 2: "↳" deixa claro que depende da variante de cima
+                                                    // nivel 2: "↳" na margem, no nivel da variante de cima
                                                     Text {
                                                         anchors.baseline: note.baseline
+                                                        width: item.arrowSlot - parent.spacing
                                                         visible: item.modelData.level > 1
                                                         text: "↳"
                                                         color: Colours.palette.m3outline
