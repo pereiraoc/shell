@@ -32,6 +32,7 @@ QtObject {
         { page: "keyboard", sub: 0, title: qsTr("Keyboard lighting"), subtitle: qsTr("RGB effect, colours and speed — laptop keyboard and Azoth"), keywords: "rgb lighting backlight azoth keyboard light led colour color aura effect breathing wave pulse boot sleep" },
         { page: "keyboard", sub: 0, title: qsTr("Keyboard layout"), subtitle: qsTr("Language of the keyboard"), keywords: "keymap abnt br us international typing" },
         { page: "keyboard", sub: 0, title: qsTr("Key repeat"), subtitle: qsTr("Repeat rate and delay"), keywords: "typing hold delay rate keyboard" },
+        { page: "keyboard", sub: 2, title: qsTr("Keyboard shortcuts"), subtitle: qsTr("Every Hyprland and Caelestia key binding"), keywords: "shortcuts keybinds hotkeys atalhos teclas binds help cheat sheet super slash" },
         { page: "mouse", sub: 0, title: qsTr("Pointer speed"), subtitle: qsTr("Mouse and touchpad sensitivity"), keywords: "mouse sensitivity cursor fast slow dpi" },
         { page: "mouse", sub: 0, title: qsTr("Mouse acceleration"), subtitle: qsTr("Flat or adaptive"), keywords: "accel profile flat adaptive precision" },
         { page: "mouse", sub: 0, title: qsTr("Natural scrolling"), subtitle: qsTr("Mouse and touchpad scroll direction"), keywords: "touchpad reverse scroll direction wheel" },

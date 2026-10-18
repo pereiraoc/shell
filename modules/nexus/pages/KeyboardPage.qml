@@ -267,5 +267,20 @@ PageBase {
                 { id: "org.openrgb.OpenRGB", alt: ["openrgb"], text: qsTr("RGB lighting"), subtext: qsTr("Keyboard and peripheral lighting (OpenRGB)") }
             ]
         }
+
+        // ---------------------------------------------------------- Shortcuts
+        SectionHeader {
+            text: qsTr("Shortcuts")
+        }
+
+        RowButton {
+            first: true
+            last: true
+            icon: "keyboard_command_key"
+            text: qsTr("Keyboard shortcuts")
+            subtext: qsTr("Every Hyprland and Caelestia key binding — Super + /")
+            trailingIcon: "chevron_right"
+            onClicked: root.nState.openSubPage(2)
+        }
     }
 }

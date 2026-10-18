@@ -38,6 +38,21 @@ Singleton {
         }
     }
 
+    // Super+/: abre o Nexus nesta pagina/subpagina; se a janela ja esta
+    // exatamente nela, fecha (mesma tecla abre e fecha).
+    function toggleAt(page: string, sub: int): void {
+        const w = root.windows[0];
+        if (w) {
+            const stack = w.nState.subPageIdxStack;
+            const top = stack.length > 0 ? stack[stack.length - 1] : 0;
+            if (w.nState.currentPageIdx === PageRegistry.indexOf(page) && top === sub) {
+                root.toggle();
+                return;
+            }
+        }
+        root.openAt(page, sub, "");
+    }
+
     QtObject {
         id: dummy
     }

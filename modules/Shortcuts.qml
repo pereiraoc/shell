@@ -150,6 +150,11 @@ Scope {
             WindowFactory.openAt("mouse", 1, model);
         }
 
+        // Pagina/subpagina pelo id do PageRegistry; se o Nexus ja esta nela, fecha
+        function togglePage(page: string, sub: int): void {
+            WindowFactory.toggleAt(page, sub);
+        }
+
         target: "nexus"
     }
 
