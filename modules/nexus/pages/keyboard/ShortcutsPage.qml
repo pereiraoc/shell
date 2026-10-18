@@ -221,38 +221,4 @@ PageBase {
             wrapMode: Text.WordWrap
         }
     }
-
-    // Keycap: tampa com borda fina sobre uma base 2 px mais escura (relevo)
-    component KeyCap: Item {
-        id: cap
-
-        property alias text: capLabel.text
-
-        implicitWidth: Math.max(capLabel.implicitWidth + Tokens.padding.small * 2, implicitHeight)
-        implicitHeight: capLabel.implicitHeight + Tokens.padding.extraSmall * 2 + 2
-
-        StyledRect {
-            anchors.fill: parent
-            anchors.topMargin: 2
-            radius: Tokens.rounding.small
-            color: Colours.palette.m3outlineVariant
-        }
-
-        StyledRect {
-            anchors.fill: parent
-            anchors.bottomMargin: 2
-            radius: Tokens.rounding.small
-            color: Colours.tPalette.m3surfaceContainerHigh
-            border.width: 1
-            border.color: Colours.palette.m3outlineVariant
-
-            StyledText {
-                id: capLabel
-
-                anchors.centerIn: parent
-                font: Tokens.font.label.medium
-                color: Colours.palette.m3onSurface
-            }
-        }
-    }
 }
