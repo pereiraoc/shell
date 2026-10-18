@@ -118,21 +118,28 @@ PageBase {
             font: Tokens.font.body.medium
         }
 
-        // Colunas independentes: cada cartao encosta no de cima (sem buracos)
-        RowLayout {
+        // Colunas independentes: cada cartao encosta no de cima (sem buracos).
+        // Com 3 colunas, Navigate e Manipulate (combos longos como
+        // Super + Shift + F1/F2/F3) ficam mais largas que a 3a.
+        Row {
+            id: grid
+
+            readonly property var weights: root.columnsModel.length === 3 ? [1.15, 1.15, 0.7] : root.columnsModel.map(() => 1)
+            readonly property real unit: root.columnsModel.length > 0 ? (width - spacing * (root.columnsModel.length - 1)) / grid.weights.reduce((a, b) => a + b, 0) : 0
+
             Layout.fillWidth: true
             spacing: Tokens.spacing.medium
 
             Repeater {
                 model: root.columnsModel
 
-                ColumnLayout {
+                Column {
                     id: column
 
+                    required property int index
                     required property var modelData
 
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignTop
+                    width: Math.floor(grid.unit * grid.weights[column.index])
                     spacing: Tokens.spacing.medium
 
                     Repeater {
@@ -145,7 +152,7 @@ PageBase {
 
                             readonly property bool hasMain: card.modelData.groups.some(g => g.main)
 
-                            Layout.fillWidth: true
+                            width: parent.width
                             visible: root.showAll || card.hasMain
                             implicitHeight: col.implicitHeight + Tokens.padding.large * 2
                             radius: Tokens.rounding.large
@@ -212,7 +219,7 @@ PageBase {
 
                                                 required property var modelData
 
-                                                x: Tokens.padding.extraLarge
+                                                x: Tokens.padding.largeIncreased
                                                 width: parent.width - x
                                                 visible: root.showAll || item.modelData.main
                                                 spacing: Tokens.spacing.extraSmall / 2
