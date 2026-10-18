@@ -12,15 +12,15 @@ import qs.modules.nexus.common
 import "shortcuts.js" as Shortcuts
 
 // Devices > Keyboard > Shortcuts: todos os atalhos de teclado, lidos ao vivo
-// do Hyprland (`hyprctl binds -j`) e relidos a cada reload dele. A categoria
-// e o 1o campo do desc que o binds.lua poe; @main marca os principais
-// (Essentials, a vista que o Super+/ abre) e @icon da o simbolo da linha.
-// Cartoes por categoria repartidos em colunas (masonry); trocar Essentials/All
-// so muda visibilidade -- nada e recriado.
+// do Hyprland (`hyprctl binds -j`) e relidos a cada reload dele. Categoria =
+// 1o campo do desc do binds.lua; "Grupo › variante" na acao agrupa variantes
+// sob um titulo curto; @main marca os principais (Essentials, a vista que o
+// Super+/ abre) e @icon da o simbolo. Cartoes repartidos em colunas (masonry);
+// trocar Essentials/All so muda visibilidade -- nada e recriado.
 PageBase {
     id: root
 
-    // [{ name, rows: [{ action, icon, main, combos: [{ label, tokens, tap }] }] }] (shortcuts.js)
+    // [{ name, groups: [{ title, icon, main, items: [{ variant, main, combos: [{ label, prefix, alts, tap }] }] }] }]
     property var categories: []
     property bool failed
     // Essentials (so @main) a cada abertura; "All" e escolha do momento
@@ -131,7 +131,7 @@ PageBase {
 
                             required property var modelData
 
-                            readonly property bool hasMain: card.modelData.rows.some(r => r.main)
+                            readonly property bool hasMain: card.modelData.groups.some(g => g.main)
 
                             Layout.fillWidth: true
                             visible: root.showAll || card.hasMain
@@ -146,7 +146,7 @@ PageBase {
                                 anchors.right: parent.right
                                 anchors.top: parent.top
                                 anchors.margins: Tokens.padding.large
-                                spacing: Tokens.spacing.small
+                                spacing: Tokens.spacing.medium
 
                                 StyledText {
                                     Layout.fillWidth: true
@@ -156,15 +156,16 @@ PageBase {
                                 }
 
                                 Repeater {
-                                    model: card.modelData.rows
+                                    model: card.modelData.groups
 
+                                    // Grupo: icone + titulo curto; embaixo as variantes
                                     ColumnLayout {
-                                        id: row
+                                        id: grp
 
                                         required property var modelData
 
                                         Layout.fillWidth: true
-                                        visible: root.showAll || row.modelData.main
+                                        visible: root.showAll || grp.modelData.main
                                         spacing: Tokens.spacing.extraSmall
 
                                         RowLayout {
@@ -172,61 +173,105 @@ PageBase {
                                             spacing: Tokens.spacing.small
 
                                             MaterialIcon {
-                                                text: row.modelData.icon || "keyboard"
+                                                text: grp.modelData.icon || "keyboard"
                                                 color: Colours.palette.m3primary
                                             }
 
                                             StyledText {
                                                 Layout.fillWidth: true
-                                                text: row.modelData.action
+                                                text: grp.modelData.title
                                                 font: Tokens.font.body.medium
                                                 wrapMode: Text.WordWrap
                                             }
                                         }
 
-                                        // Uma combinacao por linha
                                         Repeater {
-                                            model: row.modelData.combos
+                                            model: grp.modelData.items
 
-                                            Row {
-                                                id: combo
+                                            ColumnLayout {
+                                                id: item
 
                                                 required property var modelData
 
+                                                Layout.fillWidth: true
+                                                Layout.leftMargin: Tokens.padding.extraLarge
+                                                visible: root.showAll || item.modelData.main
                                                 spacing: Tokens.spacing.extraSmall / 2
 
+                                                StyledText {
+                                                    Layout.fillWidth: true
+                                                    visible: item.modelData.variant !== ""
+                                                    text: item.modelData.variant
+                                                    color: Colours.palette.m3onSurfaceVariant
+                                                    font: Tokens.font.label.medium
+                                                    wrapMode: Text.WordWrap
+                                                }
+
+                                                // Uma combinacao por linha
                                                 Repeater {
-                                                    model: combo.modelData.tokens
+                                                    model: item.modelData.combos
 
                                                     Row {
-                                                        id: tok
+                                                        id: combo
 
-                                                        required property int index
-                                                        required property string modelData
+                                                        required property var modelData
 
                                                         spacing: Tokens.spacing.extraSmall / 2
 
+                                                        Repeater {
+                                                            model: combo.modelData.prefix
+
+                                                            Row {
+                                                                id: tok
+
+                                                                required property int index
+                                                                required property string modelData
+
+                                                                spacing: Tokens.spacing.extraSmall / 2
+
+                                                                StyledText {
+                                                                    anchors.verticalCenter: parent.verticalCenter
+                                                                    visible: tok.index > 0
+                                                                    text: "+"
+                                                                    color: Colours.palette.m3outline
+                                                                    font: Tokens.font.label.small
+                                                                }
+
+                                                                KeyCap {
+                                                                    text: tok.modelData
+                                                                    kind: Shortcuts.modKind(tok.modelData)
+                                                                }
+                                                            }
+                                                        }
+
                                                         StyledText {
                                                             anchors.verticalCenter: parent.verticalCenter
-                                                            visible: tok.index > 0
+                                                            visible: combo.modelData.prefix.length > 0
                                                             text: "+"
                                                             color: Colours.palette.m3outline
                                                             font: Tokens.font.label.small
                                                         }
 
                                                         KeyCap {
-                                                            text: tok.modelData
-                                                            kind: Shortcuts.modKind(tok.modelData)
+                                                            visible: combo.modelData.alts.length === 1
+                                                            text: combo.modelData.alts[0]
+                                                            kind: Shortcuts.modKind(combo.modelData.alts[0])
+                                                        }
+
+                                                        KeyAlternatives {
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            visible: combo.modelData.alts.length > 1
+                                                            alts: combo.modelData.alts
+                                                        }
+
+                                                        StyledText {
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            visible: combo.modelData.tap
+                                                            text: Tr.tr("tap")
+                                                            color: Colours.palette.m3outline
+                                                            font: Tokens.font.label.small
                                                         }
                                                     }
-                                                }
-
-                                                StyledText {
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    visible: combo.modelData.tap
-                                                    text: Tr.tr("tap")
-                                                    color: Colours.palette.m3outline
-                                                    font: Tokens.font.label.small
                                                 }
                                             }
                                         }
