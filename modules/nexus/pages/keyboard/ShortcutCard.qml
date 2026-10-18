@@ -28,6 +28,18 @@ StyledRect {
         let n = 0;
         return root.category.groups.map(g => root.showAll || g.main ? n++ : -1);
     }
+    // Linha leve acima do grupo: entre grupos visiveis, menos quando o grupo
+    // divide a @row com o anterior (Lock, Log out, Suspend, Power menu)
+    readonly property var dividers: {
+        let prevRow = -1;
+        return root.category.groups.map(g => {
+            if (!(root.showAll || g.main))
+                return false;
+            const show = prevRow >= 0 && !(g.row > 0 && g.row === prevRow);
+            prevRow = g.row;
+            return show;
+        });
+    }
     // Grupos visiveis com linha e altura natural, para o alignRows da pagina.
     // Le implicitHeight (nao height): a altura esticada nao entra, sem laco.
     readonly property var rowSpec: {
@@ -90,7 +102,7 @@ StyledRect {
                 showAll: root.showAll
                 capHeight: root.capHeight
                 showHeader: !root.single
-                divider: index > 0
+                divider: root.dividers[grp.index]
             }
         }
     }
