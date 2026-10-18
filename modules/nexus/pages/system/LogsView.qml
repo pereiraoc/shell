@@ -88,7 +88,7 @@ ColumnLayout {
         stdout: StdioCollector {
             onStreamFinished: {
                 const out = [];
-                for (const line of text.split("\\n")) {
+                for (const line of text.split("\n")) {
                     if (!line.trim())
                         continue;
                     try {
@@ -150,7 +150,7 @@ ColumnLayout {
     TextFieldRow {
         last: true
         label: Tr.tr("Search")
-        placeholderText: Tr.tr("Text, or a unit like NetworkManager.service")
+        placeholderText: Tr.tr("Text or unit name")
         value: root.query
         onValueEdited: v => {
             root.query = v;
