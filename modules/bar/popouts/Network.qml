@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Caelestia.Config
@@ -166,19 +167,41 @@ ColumnLayout {
         }
     }
 
-    // Wireless section
-    StyledText {
+    // Wireless section; em modo aviao (rfkill) o titulo ganha um aviao
+    // discreto, o botao fica inerte e a lista apagada -- sem texto a mais
+    RowLayout {
         visible: root.showWireless
         Layout.preferredHeight: visible ? implicitHeight : 0
         Layout.topMargin: visible ? Tokens.padding.medium : 0
         Layout.rightMargin: Tokens.padding.extraSmall
-        text: Tr.tr("Wireless")
-        font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
+        spacing: Tokens.spacing.small
+
+        StyledText {
+            Layout.fillWidth: true
+            text: Tr.tr("Wireless")
+            font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
+        }
+
+        MaterialIcon {
+            visible: Rfkill.wifiBlocked
+            text: "airplanemode_active"
+            color: Colours.palette.m3onSurfaceVariant
+            fontStyle: Tokens.font.icon.small
+            ToolTip.visible: airplaneHover.hovered
+            ToolTip.text: Tr.tr("Airplane mode")
+            ToolTip.delay: 300
+
+            HoverHandler {
+                id: airplaneHover
+            }
+        }
     }
 
     Toggle {
         visible: root.showWireless
         Layout.preferredHeight: visible ? implicitHeight : 0
+        toggle.enabled: !Rfkill.wifiBlocked
+        opacity: Rfkill.wifiBlocked ? 0.45 : 1
         label: Tr.trCtx("Enabled", "toggle label")
         checked: Nmcli.wifiEnabled
         toggle.onToggled: Nmcli.enableWifi(checked)
@@ -210,6 +233,8 @@ ColumnLayout {
             required property Nmcli.AccessPoint modelData
             readonly property bool isConnecting: root.connectingToSsid === modelData.ssid
             readonly property bool loading: networkItem.isConnecting
+            // Depois da animacao de entrada; a partir dai o modo aviao apaga a linha
+            property bool appeared
 
             visible: root.showWireless
             Layout.preferredHeight: visible ? implicitHeight : 0
@@ -223,6 +248,14 @@ ColumnLayout {
             Component.onCompleted: {
                 opacity = 1;
                 scale = 1;
+                appeared = true;
+            }
+
+            Binding {
+                target: networkItem
+                property: "opacity"
+                value: Rfkill.wifiBlocked ? 0.45 : 1
+                when: networkItem.appeared
             }
 
             Behavior on opacity {

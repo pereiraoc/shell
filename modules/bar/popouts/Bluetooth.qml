@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
@@ -19,14 +20,38 @@ ColumnLayout {
     width: 300
     spacing: Tokens.spacing.small
 
-    StyledText {
+    // Titulo; em modo aviao, um aviao discreto ao lado (o nome vem no hover)
+    RowLayout {
         Layout.topMargin: Tokens.padding.medium
         Layout.rightMargin: Tokens.padding.extraSmall
-        text: Tr.tr("Bluetooth")
-        font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
+        spacing: Tokens.spacing.small
+
+        StyledText {
+            Layout.fillWidth: true
+            text: Tr.tr("Bluetooth")
+            font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
+        }
+
+        // Aviao pequeno e apagado: so diz "modo aviao" no hover
+        MaterialIcon {
+            visible: Rfkill.bluetoothBlocked
+            text: "airplanemode_active"
+            color: Colours.palette.m3onSurfaceVariant
+            fontStyle: Tokens.font.icon.small
+            ToolTip.visible: airplaneHover.hovered
+            ToolTip.text: Tr.tr("Airplane mode")
+            ToolTip.delay: 300
+
+            HoverHandler {
+                id: airplaneHover
+            }
+        }
     }
 
     Toggle {
+        // Bloqueado pelo rfkill: o botao nao faria nada
+        toggle.enabled: !Rfkill.bluetoothBlocked
+        opacity: Rfkill.bluetoothBlocked ? 0.45 : 1
         label: Tr.trCtx("Enabled", "toggle label")
         checked: Bluetooth.defaultAdapter?.enabled ?? false // qmllint disable unresolved-type
         toggle.onToggled: {
