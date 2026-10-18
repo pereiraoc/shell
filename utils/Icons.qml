@@ -213,6 +213,10 @@ Singleton {
         const app = (n.appName ?? "").toLowerCase();
         const text = `${summary} ${n.body ?? ""}`.toLowerCase();
 
+        // Glifo pedido explicitamente pelas nossas ferramentas
+        // (`notify-send -i material:<simbolo>`): nao adivinhar pelo texto
+        if (iconName.startsWith("material:"))
+            return iconName.slice(9);
         // App antes do texto: o titulo da tarefa do agente tem palavra de tudo
         if (app === "cursor")
             return /^approve/i.test(summary) ? "approval" : /^done/i.test(summary) ? "task_alt" : "code";

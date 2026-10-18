@@ -8,7 +8,8 @@ import Caelestia.I18n
 // 18/10/2026): o perfil de energia muda por Fn+F5 (o kernel 7.x cicla sozinho e
 // nem entrega a tecla), pelo asusd ao trocar de tomada ou pela barra -- e o
 // usuario so descobria depois. A primeira leitura nao avisa; so as mudancas.
-// Notificacao pelo notify-send, com id fixo (-r) para substituir a anterior.
+// Notificacao pelo notify-send, com id fixo (-r) para substituir a anterior e
+// icone `material:<simbolo>` (glifo explicito; utils/Icons.getNotifGlyph).
 Scope {
     id: root
 
@@ -28,11 +29,11 @@ Scope {
     function profileIcon(p: int): string {
         switch (p) {
         case PowerProfile.PowerSaver:
-            return "energy_savings_leaf";
+            return "material:energy_savings_leaf";
         case PowerProfile.Performance:
-            return "speed";
+            return "material:speed";
         default:
-            return "balance";
+            return "material:balance";
         }
     }
 
