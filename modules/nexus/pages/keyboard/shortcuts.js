@@ -233,10 +233,12 @@ function distribute(cats, n) {
 // Alinha as divisorias entre cartoes vizinhos. `columns` = por cartao, os
 // grupos visiveis em ordem: [{ row, height }] (row do binds.lua, 0 = logo
 // apos o anterior; height = altura natural). Cada grupo ocupa da sua linha
-// ate a do proximo grupo do mesmo cartao (o ultimo, uma linha); a fronteira
-// de cada linha e a mais baixa que todos os grupos que terminam nela exigem.
-// Devolve, por cartao, as alturas esticadas (>= natural). `spacing` = vao
-// entre grupos no cartao, igual em todos.
+// ate a do proximo grupo do mesmo cartao (o ultimo, uma linha); grupos
+// seguidos com a mesma linha dividem o trecho (Lock, Log out, Suspend, Power
+// menu na linha 2) e a sobra vai ao ultimo deles. A fronteira de cada linha e
+// a mais baixa que todos os trechos que terminam nela exigem. Devolve, por
+// cartao, as alturas esticadas (>= natural). `spacing` = vao entre grupos no
+// cartao, igual em todos.
 function alignRows(columns, spacing) {
     const spans = [];
     let last = 1;
@@ -244,8 +246,12 @@ function alignRows(columns, spacing) {
         let prev = 0;
         const col = [];
         for (const g of groups) {
+            if (col.length > 0 && g.row > 0 && g.row === prev) {
+                col[col.length - 1].heights.push(g.height);
+                continue;
+            }
             const start = Math.max(prev + 1, g.row || 0);
-            col.push({ start: start, end: start + 1, height: g.height });
+            col.push({ start: start, end: start + 1, heights: [g.height] });
             if (col.length > 1)
                 col[col.length - 2].end = start;
             prev = start;
@@ -254,16 +260,20 @@ function alignRows(columns, spacing) {
         if (col.length > 0)
             last = Math.max(last, col[col.length - 1].end);
     }
+    const natural = s => s.heights.reduce((a, b) => a + b, 0) + spacing * (s.heights.length - 1);
     const bounds = [0, 0];
     for (let k = 2; k <= last; k++) {
         let y = bounds[k - 1];
         for (const col of spans)
             for (const s of col)
                 if (s.end === k)
-                    y = Math.max(y, bounds[s.start] + s.height + spacing);
+                    y = Math.max(y, bounds[s.start] + natural(s) + spacing);
         bounds.push(y);
     }
-    return spans.map(col => col.map(s => bounds[s.end] - bounds[s.start] - spacing));
+    return spans.map(col => col.reduce((out, s) => {
+        const total = bounds[s.end] - bounds[s.start] - spacing;
+        return out.concat(s.heights.slice(0, -1), [total - (natural(s) - s.heights[s.heights.length - 1])]);
+    }, []));
 }
 
 function parse(jsonText) {

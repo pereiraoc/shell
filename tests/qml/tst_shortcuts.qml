@@ -139,6 +139,9 @@ TestCase {
         compare(S.alignRows([[{ row: 0, height: 10 }, { row: 0, height: 10 }], [{ row: 0, height: 25 }]], 5), [[25, 10], [25]]);
         compare(S.alignRows([[{ row: 1, height: 10 }], [{ row: 1, height: 10 }, { row: 2, height: 50 }]], 5), [[10], [10, 50]]);
         compare(S.alignRows([[], []], 5), [[], []]);
+        // grupos seguidos na mesma linha dividem o trecho e a sobra vai ao ultimo:
+        // Lock/Log out (10 + 5 de vao + 10) contra um grupo de 60 -> 10 + 5 + 45
+        compare(S.alignRows([[{ row: 1, height: 10 }, { row: 2, height: 60 }], [{ row: 1, height: 10 }, { row: 2, height: 10 }, { row: 2, height: 10 }]], 5), [[10, 60], [10, 10, 45]]);
     }
 
     function test_distribute_balancesByItems() {
