@@ -12,15 +12,23 @@ import "shortcuts.js" as Shortcuts
 
 // Devices > Keyboard > Shortcuts: todos os atalhos de teclado, lidos ao vivo
 // do Hyprland (`hyprctl binds -j`) e relidos a cada reload dele. A categoria
-// e o prefixo "Cat · " que o binds.lua poe em cada desc; teclas da mesma
-// acao viram chips na mesma linha. Cartoes por categoria em ate 3 colunas.
+// e o 1o campo do desc que o binds.lua poe; @main marca os principais
+// (Essentials, a vista que o Super+/ abre) e @icon da o simbolo da linha.
+// Teclas da mesma acao viram keycaps na mesma linha; cartoes por categoria
+// em ate 3 colunas.
 PageBase {
     id: root
 
-    // [{ name, rows: [{ action, combos: [string] }] }] (shortcuts.js)
+    // [{ name, rows: [{ action, icon, main, combos: [{ label, tokens, tap }] }] }] (shortcuts.js)
     property var categories: []
     property bool failed
+    // Essentials (so @main) a cada abertura; "All" e escolha do momento
+    property bool showAll
 
+    readonly property var shown: root.showAll ? root.categories : root.categories.map(c => ({
+                name: c.name,
+                rows: c.rows.filter(r => r.main)
+            })).filter(c => c.rows.length > 0)
     readonly property int columns: root.cappedWidth >= 760 ? 3 : root.cappedWidth >= 500 ? 2 : 1
 
     function reload(): void {
@@ -64,6 +72,19 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.medium
 
+        ChipSelectRow {
+            first: true
+            last: true
+            label: Tr.tr("Show")
+            subtext: root.showAll ? Tr.tr("Every key binding") : Tr.tr("The essentials — what Super + / opens")
+            options: [
+                { value: "main", label: Tr.tr("Essentials"), icon: "star" },
+                { value: "all", label: Tr.tr("All"), icon: "list" }
+            ]
+            current: root.showAll ? "all" : "main"
+            onPicked: v => root.showAll = v === "all"
+        }
+
         StyledText {
             Layout.fillWidth: true
             visible: root.failed
@@ -79,7 +100,7 @@ PageBase {
             rowSpacing: Tokens.spacing.medium
 
             Repeater {
-                model: root.categories
+                model: root.shown
 
                 StyledRect {
                     id: card
@@ -99,7 +120,7 @@ PageBase {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.margins: Tokens.padding.large
-                        spacing: Tokens.spacing.small
+                        spacing: Tokens.spacing.medium
 
                         StyledText {
                             Layout.fillWidth: true
@@ -119,24 +140,69 @@ PageBase {
                                 Layout.fillWidth: true
                                 spacing: Tokens.spacing.extraSmall
 
-                                StyledText {
+                                RowLayout {
                                     Layout.fillWidth: true
-                                    text: row.modelData.action
-                                    font: Tokens.font.body.medium
-                                    wrapMode: Text.WordWrap
+                                    spacing: Tokens.spacing.small
+
+                                    MaterialIcon {
+                                        text: row.modelData.icon || "keyboard"
+                                        color: Colours.palette.m3primary
+                                    }
+
+                                    StyledText {
+                                        Layout.fillWidth: true
+                                        text: row.modelData.action
+                                        font: Tokens.font.body.medium
+                                        wrapMode: Text.WordWrap
+                                    }
                                 }
 
                                 Flow {
                                     Layout.fillWidth: true
-                                    spacing: Tokens.spacing.extraSmall
+                                    spacing: Tokens.spacing.medium
 
                                     Repeater {
                                         model: row.modelData.combos
 
-                                        KeyChip {
-                                            required property string modelData
+                                        Row {
+                                            id: combo
 
-                                            text: modelData
+                                            required property var modelData
+
+                                            spacing: Tokens.spacing.extraSmall / 2
+
+                                            Repeater {
+                                                model: combo.modelData.tokens
+
+                                                Row {
+                                                    id: tok
+
+                                                    required property int index
+                                                    required property string modelData
+
+                                                    spacing: Tokens.spacing.extraSmall / 2
+
+                                                    StyledText {
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        visible: tok.index > 0
+                                                        text: "+"
+                                                        color: Colours.palette.m3outline
+                                                        font: Tokens.font.label.small
+                                                    }
+
+                                                    KeyCap {
+                                                        text: tok.modelData
+                                                    }
+                                                }
+                                            }
+
+                                            StyledText {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                visible: combo.modelData.tap
+                                                text: Tr.tr("tap")
+                                                color: Colours.palette.m3outline
+                                                font: Tokens.font.label.small
+                                            }
                                         }
                                     }
                                 }
@@ -156,25 +222,37 @@ PageBase {
         }
     }
 
-    // Tecla no estilo kbd: fundo um tom acima do cartao, borda fina
-    component KeyChip: StyledRect {
-        id: chip
+    // Keycap: tampa com borda fina sobre uma base 2 px mais escura (relevo)
+    component KeyCap: Item {
+        id: cap
 
-        property alias text: label.text
+        property alias text: capLabel.text
 
-        implicitWidth: label.implicitWidth + Tokens.padding.small * 2
-        implicitHeight: label.implicitHeight + Tokens.padding.extraSmall * 2
-        radius: Tokens.rounding.small
-        color: Colours.tPalette.m3surfaceContainerHigh
-        border.width: 1
-        border.color: Colours.palette.m3outlineVariant
+        implicitWidth: Math.max(capLabel.implicitWidth + Tokens.padding.small * 2, implicitHeight)
+        implicitHeight: capLabel.implicitHeight + Tokens.padding.extraSmall * 2 + 2
 
-        StyledText {
-            id: label
+        StyledRect {
+            anchors.fill: parent
+            anchors.topMargin: 2
+            radius: Tokens.rounding.small
+            color: Colours.palette.m3outlineVariant
+        }
 
-            anchors.centerIn: parent
-            font: Tokens.font.label.medium
-            color: Colours.palette.m3onSurface
+        StyledRect {
+            anchors.fill: parent
+            anchors.bottomMargin: 2
+            radius: Tokens.rounding.small
+            color: Colours.tPalette.m3surfaceContainerHigh
+            border.width: 1
+            border.color: Colours.palette.m3outlineVariant
+
+            StyledText {
+                id: capLabel
+
+                anchors.centerIn: parent
+                font: Tokens.font.label.medium
+                color: Colours.palette.m3onSurface
+            }
         }
     }
 }
