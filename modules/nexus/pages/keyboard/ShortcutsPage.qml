@@ -229,7 +229,8 @@ PageBase {
 
                                                 required property var modelData
 
-                                                x: Tokens.padding.largeIncreased
+                                                // nivel 2 ("pin" sob "toggle"): recuo a mais
+                                                x: Tokens.padding.largeIncreased + (item.modelData.level > 1 ? Tokens.padding.large : 0)
                                                 width: parent.width - x
                                                 visible: root.showAll || item.modelData.main
                                                 spacing: Tokens.spacing.extraSmall / 2

@@ -16,8 +16,8 @@ Scope {
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "nexus"
-        description: "Open nexus"
-        onPressed: WindowFactory.create()
+        description: "Toggle nexus"
+        onPressed: WindowFactory.toggle()
     }
 
     // qmllint disable unresolved-type

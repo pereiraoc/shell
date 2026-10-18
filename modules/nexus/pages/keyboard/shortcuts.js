@@ -111,7 +111,12 @@ function split(description) {
         : { cat: parts[0], action: parts[1], tags: parts.slice(2).join(" ") };
     const g = d.action.indexOf(GROUP_SEP);
     d.title = g < 0 ? d.action : d.action.slice(0, g);
+    // variante completa ("toggle › pin") e o que se mostra ("pin", nivel 2,
+    // recuado sob "toggle": so faz sentido com a de cima ativa)
     d.variant = g < 0 ? "" : d.action.slice(g + GROUP_SEP.length);
+    const g2 = d.variant.indexOf(GROUP_SEP);
+    d.level = g2 < 0 ? 1 : 2;
+    d.label = g2 < 0 ? d.variant : d.variant.slice(g2 + GROUP_SEP.length);
     return d;
 }
 
@@ -161,7 +166,7 @@ function group(binds) {
         }
         let item = grp.byVariant[d.variant];
         if (!item) {
-            item = { variant: d.variant, icon: "", main: false, raw: [], combos: [] };
+            item = { variant: d.label, level: d.level, icon: "", main: false, raw: [], combos: [] };
             grp.byVariant[d.variant] = item;
             grp.items.push(item);
         }
@@ -185,7 +190,7 @@ function group(binds) {
             main: g.main,
             items: g.items.map(i => {
                 const v = splitNote(i.variant);
-                return { variant: v.text, note: v.note, icon: i.icon, main: i.main, combos: mergeCombos(i.raw) };
+                return { variant: v.text, note: v.note, level: i.level, icon: i.icon, main: i.main, combos: mergeCombos(i.raw) };
             })
         }))
     }));
