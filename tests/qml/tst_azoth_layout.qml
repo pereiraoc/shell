@@ -47,7 +47,11 @@ TestCase {
         verify(ks.filter(k => k.id).every(k => k.fn !== "" && k.icon !== ""));
         // segunda funcao impressa, conferida no teclado
         const legends = ks.filter(k => k.legend).map(k => `${k.label || "win"}=${k.legend}`).sort().join(" ");
-        compare(legends, "1=I 2=II 3=III 4=IV 5=V 6=DEFAULT ALT=MACRO DEL=SCRLK ESC=RESET INS=PAUSE PGDN=END PGUP=HOME win=LOCK ←=MODE< →=MODE>");
+        compare(legends, "1=I 2=II 3=III 4=IV 5=V 6=DEFAULT ALT=MACRO CTRL=MENU DEL=SCRLK ESC=RESET F10=VOL− F11=VOL+ F12=STEALTH F5=▶⏸ F6=■ F7=|◀◀ F8=▶▶| F9=MUTE INS=PAUSE P=PRTSC PGDN=END PGUP=HOME win=LOCK ←=MODE< →=MODE>");
+        // o que manda tecla ao computador (midia, PrtSc, menu) x o que fica no firmware
+        compare(ks.filter(k => k.host).map(k => k.id).sort().join(","), "f10,f11,f12,f5,f6,f7,f8,f9,p,rctrl");
+        verify(!ks.find(k => k.id === "k1").host && !ks.find(k => k.id === "esc").host);
+        compare(A.comboLabel("p"), "Fn + P · PRTSC");
         // so o OLED e o knob sao clicaveis sem legenda impressa
         compare(ks.filter(k => k.id && !k.legend).map(k => k.kind).sort().join(","), "knob,oled");
         compare(A.comboLabel("lalt"), "Fn + ALT · MACRO");

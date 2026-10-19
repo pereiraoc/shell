@@ -138,7 +138,7 @@ ColumnLayout {
 
             StyledText {
                 Layout.fillWidth: true
-                text: Tr.tr("Handled by the keyboard firmware — nothing reaches the computer")
+                text: root.keyInfo?.host ? Tr.tr("Sent to the computer as a normal key — works in any app") : Tr.tr("Handled by the keyboard firmware — nothing reaches the computer")
                 color: Colours.palette.m3outline
                 font: Tokens.font.label.small
                 wrapMode: Text.WordWrap

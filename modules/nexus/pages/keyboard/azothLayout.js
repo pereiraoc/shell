@@ -7,14 +7,25 @@
 // PgUp, PgDn; seta para cima sob a Shift direita e as outras tres na fila de
 // baixo, com a seta direita fechando a coluna. As teclas com segunda funcao
 // impressa (camada Fn: RESET, I..V, DEFAULT, LOCK, MACRO, PAUSE, SCRLK, HOME,
-// END, MODE< e MODE>, conferidas no teclado) tem `id`, `legend` (o impresso)
-// e `fn` (o que faz); o OLED e o knob sao elementos clicaveis proprios. Sem Qt:
+// END, MODE< e MODE>, conferidas no teclado; midia F5..F12, PRTSC no P e MENU
+// no Ctrl direito, do QSG) tem `id`, `legend` (o impresso) e `fn` (o que faz); o OLED e o knob sao elementos clicaveis proprios. Sem Qt:
 // testavel com qmltestrunner.
 
 var FN = {
     // legend = o que esta impresso na tecla como segunda funcao (camada Fn),
-    // fn = o que faz; icon so para o cartao da tecla
+    // fn = o que faz; icon so para o cartao da tecla; host = a tecla manda um
+    // codigo ao computador (midia, PrtSc, menu), em vez de ficar no firmware
     esc: { legend: "RESET", fn: "Factory reset: hold Fn + Esc until the LEDs blink green", icon: "restart_alt" },
+    f5: { legend: "▶⏸", fn: "Play / pause", icon: "play_pause", host: true },
+    f6: { legend: "■", fn: "Stop", icon: "stop", host: true },
+    f7: { legend: "|◀◀", fn: "Previous track", icon: "skip_previous", host: true },
+    f8: { legend: "▶▶|", fn: "Next track", icon: "skip_next", host: true },
+    f9: { legend: "MUTE", fn: "Mute", icon: "volume_off", host: true },
+    f10: { legend: "VOL−", fn: "Volume down", icon: "volume_down", host: true },
+    f11: { legend: "VOL+", fn: "Volume up", icon: "volume_up", host: true },
+    f12: { legend: "STEALTH", fn: "Stealth: mutes the microphone and the speakers at once", icon: "headset_off", host: true },
+    p: { legend: "PRTSC", fn: "Print screen", icon: "screenshot_region", host: true },
+    rctrl: { legend: "MENU", fn: "Menu (context menu, like right-clicking)", icon: "menu", host: true },
     k1: { legend: "I", fn: "Profile 1", icon: "looks_one" }, k2: { legend: "II", fn: "Profile 2", icon: "looks_two" }, k3: { legend: "III", fn: "Profile 3", icon: "looks_3" },
     k4: { legend: "IV", fn: "Profile 4", icon: "looks_4" }, k5: { legend: "V", fn: "Profile 5", icon: "looks_5" }, k6: { legend: "DEFAULT", fn: "Default profile", icon: "looks_6" },
     win: { legend: "LOCK", fn: "Locks the Windows key (game mode); press again to unlock", icon: "lock" },
@@ -33,8 +44,8 @@ var ROWS = [
     { y: 0, h: 1, keys: [
         { id: "esc", label: "ESC", w: 1 }, { gap: 0.1 },
         { label: "F1", w: 1 }, { label: "F2", w: 1 }, { label: "F3", w: 1 }, { label: "F4", w: 1 }, { gap: 0.1 },
-        { label: "F5", w: 1 }, { label: "F6", w: 1 }, { label: "F7", w: 1 }, { label: "F8", w: 1 }, { gap: 0.1 },
-        { label: "F9", w: 1 }, { label: "F10", w: 1 }, { label: "F11", w: 1 }, { label: "F12", w: 1 }, { gap: 0.2 },
+        { id: "f5", label: "F5", w: 1 }, { id: "f6", label: "F6", w: 1 }, { id: "f7", label: "F7", w: 1 }, { id: "f8", label: "F8", w: 1 }, { gap: 0.1 },
+        { id: "f9", label: "F9", w: 1 }, { id: "f10", label: "F10", w: 1 }, { id: "f11", label: "F11", w: 1 }, { id: "f12", label: "F12", w: 1 }, { gap: 0.2 },
         { id: "oled", label: "OLED", w: 1.7, kind: "oled" }, { gap: 0.1 }, { id: "knob", label: "", w: 0.7, kind: "knob" }
     ] },
     { y: 1.1, h: 1, keys: [
@@ -45,7 +56,7 @@ var ROWS = [
     ] },
     { y: 2.1, h: 1, keys: [
         { label: "TAB", glyph: "⇤⇥", w: 1.5 }, { label: "Q", w: 1 }, { label: "W", w: 1 }, { label: "E", w: 1 }, { label: "R", w: 1 }, { label: "T", w: 1 },
-        { label: "Y", w: 1 }, { label: "U", w: 1 }, { label: "I", w: 1 }, { label: "O", w: 1 }, { label: "P", w: 1 }, { label: "[", top: "{", w: 1 },
+        { label: "Y", w: 1 }, { label: "U", w: 1 }, { label: "I", w: 1 }, { label: "O", w: 1 }, { id: "p", label: "P", w: 1 }, { label: "[", top: "{", w: 1 },
         { label: "]", top: "}", w: 1 }, { label: "\\", top: "|", w: 1.5 }, { id: "del", label: "DEL", w: 1 }
     ] },
     { y: 3.1, h: 1, keys: [
@@ -60,7 +71,7 @@ var ROWS = [
     ] },
     { y: 5.1, h: 1, keys: [
         { label: "CTRL", w: 1.25 }, { id: "win", label: "", micon: "window", w: 1.25 }, { id: "lalt", label: "ALT", w: 1.25 }, { label: "", bar: true, w: 6.25 },
-        { label: "ALT", w: 1 }, { label: "FN", w: 1 }, { label: "CTRL", w: 1 }, { id: "left", label: "←", w: 1 }, { label: "↓", w: 1 }, { id: "right", label: "→", w: 1 }
+        { label: "ALT", w: 1 }, { label: "FN", w: 1 }, { id: "rctrl", label: "CTRL", w: 1 }, { id: "left", label: "←", w: 1 }, { label: "↓", w: 1 }, { id: "right", label: "→", w: 1 }
     ] }
 ];
 
@@ -69,11 +80,11 @@ var SPECIAL = Object.keys(FN);
 function entry(k, label, x, y, w, h) {
     const id = k.id || "";
     const fn = id ? FN[id] : null;
-    return { id: id, label: label, icon: fn ? fn.icon : "", legend: fn ? fn.legend : "", fn: fn ? fn.fn : "", kind: k.kind || "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, corner: "tr", x: x, y: y, w: w, h: h };
+    return { id: id, label: label, icon: fn ? fn.icon : "", legend: fn ? fn.legend : "", fn: fn ? fn.fn : "", host: !!(fn && fn.host), kind: k.kind || "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, corner: "tr", x: x, y: y, w: w, h: h };
 }
 
 // Teclas achatadas, com posicao absoluta em u:
-// [{ id, label, icon, legend, fn, kind, top, glyph, micon, bar, corner, x, y, w, h }]
+// [{ id, label, icon, legend, fn, host, kind, top, glyph, micon, bar, corner, x, y, w, h }]
 function keys() {
     const out = [];
     for (const row of ROWS) {
