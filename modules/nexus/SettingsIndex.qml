@@ -101,7 +101,7 @@ QtObject {
         { page: "region", sub: 0, tab: "time", title: qsTr("Time zone"), subtitle: qsTr("Clock region"), keywords: "timezone clock time zone city" },
         { page: "region", sub: 0, tab: "time", title: qsTr("Set time automatically"), subtitle: qsTr("Network time (NTP)"), keywords: "ntp sync time clock automatic" },
         { page: "region", sub: 0, tab: "language", title: qsTr("Language"), subtitle: qsTr("Shell language, system locale"), keywords: "language locale translation" },
-        { page: "region", sub: 0, tab: "region", title: qsTr("Weather location"), subtitle: qsTr("Location for the weather widget"), keywords: "weather city location forecast" },
+        { page: "region", sub: 0, tab: "region", title: qsTr("Weather places"), subtitle: qsTr("Several places for the weather widget, switched in the dashboard"), keywords: "weather city location places forecast automatic" },
         { page: "region", sub: 0, tab: "region", title: qsTr("Units"), subtitle: qsTr("Temperature units, clock format"), keywords: "celsius fahrenheit 24h 12h units clock format" },
 
         // Personalization
@@ -112,6 +112,8 @@ QtObject {
         { page: "panels", sub: 2, title: qsTr("Taskbar"), subtitle: qsTr("Bar components, clock, tray"), keywords: "bar taskbar panel tray clock workspaces" },
         { page: "panels", sub: 1, title: qsTr("Dashboard"), subtitle: qsTr("Tabs, performance widgets"), keywords: "dashboard widgets" },
         { page: "panels", sub: 8, title: qsTr("Tray icons"), subtitle: qsTr("Show or hide app icons in the bar (Spotify, Discord…)"), keywords: "tray icons systray hide show spotify discord steam bar" },
+        { page: "panels", sub: 11, title: qsTr("Shortcuts"), subtitle: qsTr("Your commands and Obsidian vaults on the bar"), keywords: "shortcuts bar obsidian vault command widget launch" },
+        { page: "panels", sub: 12, title: qsTr("Games"), subtitle: qsTr("Steam games to launch from the bar"), keywords: "games steam bar widget favourite launch" },
         { page: "panels", sub: 3, title: qsTr("Launcher"), subtitle: qsTr("App launcher options"), keywords: "launcher search apps menu" },
         { page: "windows", sub: 0, title: qsTr("Gaps"), subtitle: qsTr("Space between windows"), keywords: "gaps windows tiling spacing border" },
         { page: "apps", sub: 0, title: qsTr("Default applications"), subtitle: qsTr("Terminal, file manager, media"), keywords: "default terminal browser file manager" },

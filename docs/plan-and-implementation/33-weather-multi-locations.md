@@ -1,7 +1,7 @@
 # 🌤️ Weather - Múltiplas Localizações (Dashboard)
 
 **ID**: 33 (V3-09)  
-**Status**: ⏱️ Planejado  
+**Status**: ✅ Implementado (2026-10-19) — `services/Weather.qml` lê `~/.config/caelestia/weather.json`; setas em `dash/SmallWeather.qml` e `WeatherTab.qml`; editor em `LanguageAndRegion.qml` › Weather. O texto abaixo é o plano original.  
 **Complexidade**: 🟡 Média  
 **Tempo Estimado**: 6-8h
 

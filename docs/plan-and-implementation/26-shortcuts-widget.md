@@ -1,7 +1,7 @@
 # 🔗 Shortcuts Widget - Atalhos Configuráveis
 
 **ID**: 26  
-**Status**: ⏱️ Planejado  
+**Status**: ✅ Implementado (2026-10-19) — `modules/bar/components/Shortcuts.qml` + `modules/nexus/pages/panels/taskbar/BarShortcuts.qml`; lista em `~/.config/caelestia/shortcuts.json` (FileView), não em shell.json. O texto abaixo é o plano original.  
 **Complexidade**: 🟡 Média  
 **Tempo Estimado**: 6-8h
 

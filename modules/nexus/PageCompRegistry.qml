@@ -242,6 +242,12 @@ QtObject {
             Component {
                 BarClock {}
             }
+            Component {
+                BarShortcuts {}
+            }
+            Component {
+                BarGames {}
+            }
         }
     }
 

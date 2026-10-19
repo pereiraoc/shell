@@ -1,7 +1,7 @@
 # 🎮 Games Widget - Jogos Steam Favoritos
 
 **ID**: 27  
-**Status**: ⏱️ Planejado  
+**Status**: ✅ Implementado (2026-10-19) — `caelestia-games` (setup) + `modules/bar/components/Games.qml` + `BarGames.qml`; favoritos em `~/.config/caelestia/games.json`, ícones locais (hicolor/librarycache). O texto abaixo é o plano original.  
 **Complexidade**: 🟡 Média  
 **Tempo Estimado**: 8-10h
 

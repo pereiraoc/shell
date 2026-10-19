@@ -40,6 +40,8 @@ GridLayout {
 
         SmallWeather {
             id: weather
+
+            screenState: root.screenState
         }
     }
 

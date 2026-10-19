@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.utils
 
@@ -30,10 +31,33 @@ Item {
             Column {
                 spacing: Tokens.spacing.extraSmall
 
-                StyledText {
-                    text: Weather.city || Tr.tr("Loading...")
-                    font: Tokens.font.body.builders.large.size(28).weight(Font.DemiBold).build()
-                    color: Colours.palette.m3onSurface
+                Row {
+                    spacing: Tokens.spacing.small
+
+                    IconButton {
+                        visible: Weather.multi
+                        anchors.verticalCenter: parent.verticalCenter
+                        type: IconButton.Text
+                        isRound: true
+                        icon: "chevron_left"
+                        onClicked: Weather.prev()
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Weather.placeName || Tr.tr("Loading...")
+                        font: Tokens.font.body.builders.large.size(28).weight(Font.DemiBold).build()
+                        color: Colours.palette.m3onSurface
+                    }
+
+                    IconButton {
+                        visible: Weather.multi
+                        anchors.verticalCenter: parent.verticalCenter
+                        type: IconButton.Text
+                        isRound: true
+                        icon: "chevron_right"
+                        onClicked: Weather.next()
+                    }
                 }
 
                 StyledText {

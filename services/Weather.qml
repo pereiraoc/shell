@@ -33,6 +33,55 @@ Singleton {
 
     readonly property var cachedCities: new Map()
 
+    // V3-09: varios locais (~/.config/caelestia/weather.json, editado em
+    // Nexus > Language & region > Weather) + o automatico (rede) por ultimo.
+    // `index` e qual esta na tela; o dashboard volta ao primeiro ao abrir.
+    property var configured: []
+    property bool autoEnabled: true
+    property int index
+    readonly property var locations: {
+        const list = root.configured.filter(l => l && l.enabled !== false && l.coords);
+        if (root.autoEnabled || list.length === 0)
+            list.push({ name: "", coords: "auto", auto: true });
+        return list;
+    }
+    readonly property var current: root.locations[Math.min(root.index, root.locations.length - 1)] ?? null
+    readonly property bool multi: root.locations.length > 1
+    readonly property string placeName: root.current && !root.current.auto && root.current.name ? root.current.name : root.city
+
+    function next(): void {
+        root.index = (root.index + 1) % root.locations.length;
+        root.reload();
+    }
+
+    function prev(): void {
+        root.index = (root.index - 1 + root.locations.length) % root.locations.length;
+        root.reload();
+    }
+
+    function reset(): void {
+        root.index = 0;
+        root.reload();
+    }
+
+    function parseConfig(text: string): void {
+        // Arquivo apagado ou sendo escrito: sem lista, sem aviso
+        if (!text.trim()) {
+            root.configured = [];
+            root.autoEnabled = true;
+            return;
+        }
+        try {
+            const d = JSON.parse(text);
+            root.configured = Array.isArray(d.locations) ? d.locations : [];
+            root.autoEnabled = d.auto !== false;
+        } catch (error) {
+            console.warn(lc, `Unable to parse weather.json: ${error}`);
+            root.configured = [];
+            root.autoEnabled = true;
+        }
+    }
+
     function formatTemp(temp: var, compact = false): string {
         const unit = GlobalConfig.services.weatherUnits;
         const value = temp !== undefined ? Math.round(Units.toTemperature(temp, unit)) : "--";
@@ -40,6 +89,16 @@ Singleton {
     }
 
     function reload(): void {
+        const cur = root.current;
+        if (cur && !cur.auto) {
+            loc = cur.coords;
+            if (cur.name)
+                city = cur.name;
+            else
+                fetchCityFromCoords(cur.coords);
+            return;
+        }
+
         const configLocation = GlobalConfig.services.weatherLocation;
 
         if (configLocation) {
@@ -58,7 +117,7 @@ Singleton {
 
                 // Protect against stale responses overwriting the manually-set location,
                 // in case the config was updated while this request was in-flight.
-                if (GlobalConfig.services.weatherLocation)
+                if (GlobalConfig.services.weatherLocation || (root.current && !root.current.auto))
                     return;
 
                 let response;
@@ -333,6 +392,11 @@ Singleton {
     }
 
     onLocChanged: fetchWeatherData()
+    onLocationsChanged: {
+        if (index >= locations.length)
+            index = 0;
+        reload();
+    }
     onCitiesLoadedChanged: {
         if (!citiesLoaded || !pendingCoords)
             return;
@@ -390,6 +454,18 @@ Singleton {
 
     ElapsedTimer {
         id: timer
+    }
+
+    FileView {
+        path: `${Paths.config}/weather.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.parseConfig(text())
+        onLoadFailed: {
+            root.configured = [];
+            root.autoEnabled = true;
+        }
     }
 
     FileView {

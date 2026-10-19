@@ -1,16 +1,26 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
+import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.controls
 import qs.components.misc
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
     id: root
+
+    // Locais do tempo (V3-09)
+    property var weatherLocations: []
+    property bool weatherAuto: true
+    property var placeResults: []
+    property bool searching
+    property string searchError
 
     // Temperature units (there must be one for each value of the TemperatureUnit enum)
     readonly property list<MenuItem> tempItems: [
@@ -62,6 +72,58 @@ PageBase {
 
     readonly property var region: regionBridge.info
 
+    function saveWeather(list: var, auto: bool): void {
+        root.weatherLocations = list;
+        root.weatherAuto = auto;
+        weatherFile.setText(JSON.stringify({ locations: list, auto: auto }, null, 4) + "\n");
+    }
+
+    function parseWeather(text: string): void {
+        try {
+            const d = JSON.parse(text);
+            root.weatherLocations = Array.isArray(d.locations) ? d.locations : [];
+            root.weatherAuto = d.auto !== false;
+        } catch (e) {
+            root.weatherLocations = [];
+            root.weatherAuto = true;
+        }
+    }
+
+    function searchPlace(query: string): void {
+        const q = query.trim();
+        root.placeResults = [];
+        root.searchError = "";
+        if (!q)
+            return;
+        root.searching = true;
+        const lang = Qt.locale().name.split("_")[0] || "en";
+        Requests.get(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${lang}&format=json`, text => {
+            root.searching = false;
+            try {
+                const results = JSON.parse(text).results ?? [];
+                root.placeResults = results.map(x => ({
+                    name: x.name,
+                    label: x.admin1 ? `${x.name}, ${x.admin1}` : x.name,
+                    detail: `${x.country ?? ""} · ${Number(x.latitude).toFixed(3)}, ${Number(x.longitude).toFixed(3)}`,
+                    coords: `${x.latitude},${x.longitude}`
+                }));
+                if (root.placeResults.length === 0)
+                    root.searchError = Tr.tr("No place found");
+            } catch (e) {
+                root.searchError = Tr.tr("Search failed");
+            }
+        }, error => {
+            root.searching = false;
+            root.searchError = Tr.tr("Search failed: %1").arg(error);
+        });
+    }
+
+    function addPlace(p: var): void {
+        root.saveWeather([...root.weatherLocations, { name: p.name, coords: p.coords, enabled: true }], root.weatherAuto);
+        root.placeResults = [];
+        placeSearch.clear();
+    }
+
     title: qsTr("Language & region")
     description: qsTr("Time zone, language, weather and units")
     tabs: [
@@ -72,6 +134,24 @@ PageBase {
 
     // Fuso, NTP, locale e keymap pelo caelestia-region (timedatectl/localectl;
     // mudar fuso/NTP pede senha pelo polkit do proprio systemd).
+    // Locais do tempo (PageBase so aceita Item como filho direto; o ultimo
+    // Item e o conteudo, por isso antes do layout)
+    Item {
+        FileView {
+            id: weatherFile
+
+            path: `${Paths.config}/weather.json`
+            watchChanges: true
+            printErrors: false
+            onFileChanged: reload()
+            onLoaded: root.parseWeather(text())
+            onLoadFailed: {
+                root.weatherLocations = [];
+                root.weatherAuto = true;
+            }
+        }
+    }
+
     ToolBridge {
         id: regionBridge
 
@@ -140,43 +220,66 @@ PageBase {
                 text: Tr.tr("Weather")
             }
 
-            // Placeholder until the map-based location picker lands
-            ConnectedRect {
-                Layout.fillWidth: true
-                first: true
-                last: true
-                implicitHeight: comingSoon.implicitHeight + Tokens.padding.extraLarge * 2
-
-                ColumnLayout {
-                    id: comingSoon
-
-                    anchors.centerIn: parent
-                    width: parent.width - Tokens.padding.largeIncreased * 2
-                    spacing: Tokens.padding.extraSmall
-
-                    MaterialIcon {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "map"
-                        color: Colours.palette.m3outlineVariant
-                        fontStyle: Tokens.font.icon.extraLarge
-                    }
-
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Tr.tr("Location picker coming soon")
-                        color: Colours.palette.m3outlineVariant
-                        font: Tokens.font.title.small
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.WordWrap
-                        text: Tr.tr("Choose your weather location on a map in a future update")
-                        color: Colours.palette.m3outlineVariant
-                        font: Tokens.font.body.small
-                    }
+            // Locais (V3-09): lista em ~/.config/caelestia/weather.json; o
+            // servico Weather observa o arquivo e o dashboard troca com setas
+            ListEditor {
+                function labelFor(item: var): string {
+                    return item.name || item.coords;
                 }
+
+                function toggledFor(item: var): bool {
+                    return item.enabled !== false;
+                }
+
+                z: 1
+                first: true
+                visible: root.weatherLocations.length > 0
+                values: root.weatherLocations
+                onItemMoved: (from, to) => {
+                    const l = [...root.weatherLocations];
+                    const [m] = l.splice(from, 1);
+                    l.splice(to, 0, m);
+                    root.saveWeather(l, root.weatherAuto);
+                }
+                onItemRemoved: index => {
+                    const l = [...root.weatherLocations];
+                    l.splice(index, 1);
+                    root.saveWeather(l, root.weatherAuto);
+                }
+                onItemToggled: (index, checked) => root.saveWeather(root.weatherLocations.map((x, i) => i === index ? Object.assign({}, x, { enabled: checked }) : x), root.weatherAuto)
+            }
+
+            TextFieldRow {
+                id: placeSearch
+
+                first: root.weatherLocations.length === 0
+                label: Tr.tr("Add a place")
+                subtext: root.searching ? Tr.tr("Searching…") : (root.searchError || Tr.tr("Type a city, press Enter, then pick a match"))
+                placeholderText: Tr.tr("City")
+                maximumLength: 80
+                onEditingFinished: v => root.searchPlace(v)
+            }
+
+            Repeater {
+                model: root.placeResults
+
+                RowButton {
+                    required property var modelData
+
+                    icon: "add_location"
+                    text: modelData.label
+                    subtext: modelData.detail
+                    trailingIcon: "add"
+                    onClicked: root.addPlace(modelData)
+                }
+            }
+
+            ToggleRow {
+                last: true
+                text: Tr.tr("Automatic location")
+                subtext: Tr.tr("Where the network says you are; always the last entry")
+                checked: root.weatherAuto
+                onToggled: root.saveWeather(root.weatherLocations, checked)
             }
 
             // Units
