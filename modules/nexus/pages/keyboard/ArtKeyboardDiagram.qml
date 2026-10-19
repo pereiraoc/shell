@@ -36,6 +36,13 @@ Item {
     property real glowAlpha: 0.5
     // Quanto da cor da luz vai para a serigrafia/contorno aceso (0..1)
     property real inkMix: 0.85
+    // Keycap solido: o corpo da tecla (laterais inclinadas) cobre a luz de
+    // tras, que so aparece no vao ENTRE as teclas, por baixo delas; as
+    // laterais ganham so um tom (bevelGlow) e o topo fica escuro
+    property bool solidCaps
+    property real bevelGlow: 0.1
+    // Contorno e linhas do relevo (fora do topo) com solidCaps: so um tom da luz
+    property real bevelInk: 0.22
     readonly property bool lit: !!root.lighting && !root.lighting.off
     readonly property bool animated: root.lit && root.lighting.mode !== "Static"
     readonly property var litColors: root.lit ? Lit.colors(root.lighting) : []
@@ -144,12 +151,24 @@ Item {
                 readonly property bool active: key.special && key.modelData.id === root.selected
                 readonly property var glow: root.lit && root.lightable(key.modelData) ? Lit.sample(root.lighting, root.litColors, (key.modelData.x + key.modelData.w / 2) / root.art.W, (key.modelData.y + key.modelData.h / 2) / root.art.H, key.index, root.phase) : null
                 // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
+                // Contorno/relevo com keycap solido: a luz chega fraca na lateral
+                readonly property color bevelInkNow: key.glow ? Lit.mix(root.ink, key.glow.c, root.bevelInk * key.glow.k) : key.inkNow
                 readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + root.inkMix * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
 
                 x: key.modelData.x
                 y: key.modelData.y
                 width: key.modelData.w
                 height: key.modelData.h
+
+                // Corpo do keycap (laterais): cobre a celula de luz de tras
+                Rectangle {
+                    visible: root.solidCaps && root.lightable(key.modelData)
+                    width: key.width
+                    height: key.height
+                    radius: Math.min(width, height) * 0.09
+                    antialiasing: true
+                    color: key.glow ? Lit.mix(Colours.palette.m3surfaceContainerLowest, key.glow.c, root.bevelGlow * key.glow.k) : Colours.palette.m3surfaceContainerLowest
+                }
 
                 // Topo do keycap: opaco (a luz nao atravessa o plastico), com o
                 // destaque das teclas clicaveis / da escolhida; visor, knob e
@@ -168,16 +187,44 @@ Item {
                     border.color: key.active ? Colours.palette.m3tertiary : Qt.alpha(root.ink, 0.55)
                 }
 
+                // Parte acesa (`d`). Com solidCaps: inteira no tom da lateral e,
+                // por cima, recortada ao topo na cor cheia -- a legenda acende,
+                // contorno e relevo quase nao
                 Shape {
                     preferredRendererType: Shape.CurveRenderer
 
                     ShapePath {
-                        fillColor: key.inkNow
+                        fillColor: root.solidCaps ? key.bevelInkNow : key.inkNow
                         strokeWidth: -1
                         fillRule: ShapePath.OddEvenFill
 
                         PathSvg {
                             path: key.modelData.d
+                        }
+                    }
+                }
+
+                Item {
+                    visible: root.solidCaps && !!key.glow
+                    x: key.modelData.f[0]
+                    y: key.modelData.f[1]
+                    width: key.modelData.f[2]
+                    height: key.modelData.f[3]
+                    clip: true
+
+                    Shape {
+                        x: -key.modelData.f[0]
+                        y: -key.modelData.f[1]
+                        preferredRendererType: Shape.CurveRenderer
+
+                        ShapePath {
+                            fillColor: key.inkNow
+                            strokeWidth: -1
+                            fillRule: ShapePath.OddEvenFill
+
+                            PathSvg {
+                                path: key.modelData.d
+                            }
                         }
                     }
                 }
