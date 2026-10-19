@@ -45,8 +45,11 @@ ConnectedRect {
     ColumnLayout {
         id: layout
 
+        // Centrado: a altura extra da primeira/ultima linha do grupo (capPad do
+        // ConnectedRect) fica dividida em cima e embaixo, como nas outras linhas
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
         spacing: 0
 
         Item {

@@ -11,12 +11,13 @@ import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
-
+import qs.modules.nexus.pages.bluetooth
 
 // Mouses (Nexus > Mouse), em abas: General (o que vale para todos -- velocidade,
 // aceleracao, rolagem -- caelestia-input), Touchpad, uma aba por mouse com
-// driver (Razer: bateria, DPI, polling; botoes/estagios/energia em
-// MouseSettings), os mouses ja vistos mas desligados, e Advanced (apps).
+// driver (Razer: bateria, DPI, polling e, embutida, a MouseSettingsView --
+// silhueta com os botoes, perfis, estagios, energia), os mouses ja vistos mas
+// desligados, e Advanced (apps).
 PageBase {
     id: root
 
@@ -184,6 +185,12 @@ PageBase {
         TabPane {
             active: root.tab === "touchpad"
 
+            TouchpadDiagram {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.small
+                Layout.bottomMargin: Tokens.spacing.large
+            }
+
             ToggleRow {
                 first: true
                 text: qsTr("Tap to click")
@@ -237,9 +244,7 @@ PageBase {
                 // que vai sumir guarda o ultimo item ate ser destruida.
                 property var modelData: root.mice[index] ?? ({})
                 readonly property var liveItem: root.mice[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
-
                 readonly property var battery: mouse.index === 0 ? root.mouseBattery : null
                 readonly property var stages: {
                     const st = [...(mouse.modelData.dpi_stages ?? [])];
@@ -247,9 +252,9 @@ PageBase {
                         st.push(mouse.modelData.dpi);
                     return st.sort((a, b) => a - b);
                 }
-                readonly property int remapped: (mouse.modelData.buttons ?? []).filter(b => b.action !== "default").length
 
                 active: root.tab === root.tabId(mouse.modelData)
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
 
                 SubsectionHeader {
                     icon: "mouse"
@@ -291,6 +296,7 @@ PageBase {
                 }
 
                 ChipSelectRow {
+                    last: true
                     visible: mouse.modelData.poll_rate != null && (mouse.modelData.poll_choices ?? []).length > 0
                     label: qsTr("Polling rate")
                     subtext: qsTr("Higher is smoother and more responsive, and uses more battery")
@@ -301,20 +307,22 @@ PageBase {
                     onPicked: v => root.periphRun(`poll-${mouse.modelData.id}-${v}`)
                 }
 
-                RowButton {
-                    last: true
-                    icon: "settings_input_component"
-                    text: qsTr("Buttons, DPI stages and power")
-                    subtext: [(mouse.modelData.buttons ?? []).length > 0 ? (mouse.remapped > 0 ? qsTr("%n button(s) remapped", "", mouse.remapped) : qsTr("%n button(s), all default", "", mouse.modelData.buttons.length)) : "", mouse.modelData.dpi_stages?.length ? qsTr("%n DPI stage(s)", "", mouse.modelData.dpi_stages.length) : ""].filter(x => x).join(" · ")
-                    trailingIcon: "chevron_right"
-                    onClicked: {
-                        root.nState.selectedMouse = mouse.modelData.model;
-                        root.nState.openSubPage(1);
-                    }
-                }
-
                 ActionErrorRow {
                     bridge: periphBridge
+                }
+
+                // Silhueta com os botoes, perfis, estagios de DPI e energia: so
+                // nasce quando a aba abre; depois fica viva
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Tokens.spacing.medium
+                    active: mouse.opened
+                    visible: active
+                    sourceComponent: MouseSettingsView {
+                        model: mouse.modelData.model ?? ""
+                        bridge: periphBridge
+                        standalone: false
+                    }
                 }
             }
         }
@@ -349,6 +357,15 @@ PageBase {
                     icon: "link_off"
                     label: qsTr("Turn it on to change its settings")
                     subtext: qsTr("Wireless: plug in its receiver or switch it to 2.4 GHz. Over Bluetooth only the battery shows up.")
+                }
+
+                // Silhueta apagada: o mouse existe, so nao esta ligado
+                MouseDiagram {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Tokens.spacing.medium
+                    model: offline.modelData.model ?? ""
+                    buttons: []
+                    opacity: 0.45
                 }
             }
         }

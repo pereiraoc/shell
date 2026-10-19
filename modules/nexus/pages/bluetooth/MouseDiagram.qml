@@ -61,6 +61,23 @@ Item {
                     { id: "side-12", rx: 314.6, ry: 223.5, rw: 21.0, rh: 15.0, ra: -13.6, path: "M321.8 215.2 L311.4 216.4 L306.1 217.5 L303.5 218.9 L303.1 221.2 L304.2 223.9 L304.5 228.8 L305.2 231.2 L306.1 232.2 L307.8 232.4 L314.9 230.1 L316.5 228.6 L319.2 228.1 L321.8 226.2 L322.6 223.5 L323.1 220.0 L323.0 217.5 Z" }
                 ]
             }
+            ,
+            // Razer Atheris: desenho do guia (vista de cima, vetorizado de
+            // images/Atheris-00000097-en.pdf); so o que o mouse reporta ao
+            // Linux e clicavel: roda (middle) e os dois botoes laterais
+            // (forward em cima, back embaixo). O botao de DPI abaixo da roda
+            // troca o estagio dentro do mouse e nao chega ao sistema.
+            "razer-atheris": {
+                source: "assets/mice/razer-atheris.svg",
+                w: 215,
+                h: 304,
+                shownW: 260,
+                spots: [
+                    { id: "middle", path: "M102.0 45.0 L117.0 45.0 A8 8 0 0 1 125.0 53.0 L125.0 91.0 A8 8 0 0 1 117.0 99.0 L102.0 99.0 A8 8 0 0 1 94.0 91.0 L94.0 53.0 A8 8 0 0 1 102.0 45.0 Z" },
+                    { id: "forward", path: "M22.0 106.0 L29.0 106.0 A4 4 0 0 1 33.0 110.0 L33.0 125.0 A4 4 0 0 1 29.0 129.0 L22.0 129.0 A4 4 0 0 1 18.0 125.0 L18.0 110.0 A4 4 0 0 1 22.0 106.0 Z" },
+                    { id: "back", path: "M22.0 131.0 L29.0 131.0 A4 4 0 0 1 33.0 135.0 L33.0 150.0 A4 4 0 0 1 29.0 154.0 L22.0 154.0 A4 4 0 0 1 18.0 150.0 L18.0 135.0 A4 4 0 0 1 22.0 131.0 Z" }
+                ]
+            }
         })
 
     readonly property var diagram: root.diagrams[root.model] ?? null
@@ -69,7 +86,9 @@ Item {
     readonly property var spots: root.available ? root.diagram.spots.filter(s => root.buttons.some(b => b.id === s.id && !b.locked)) : []
     readonly property real k: root.available ? art.width / root.diagram.w : 1
 
-    implicitWidth: 460
+    // Largura em que o desenho fica no tamanho "real" dos outros (um mouse
+    // alto como o Atheris pede menos que o Naga, que e quadrado)
+    implicitWidth: root.diagram?.shownW ?? 460
     implicitHeight: root.available ? Math.min(root.width, root.implicitWidth) * root.diagram.h / root.diagram.w : 0
     visible: root.available
 
