@@ -153,7 +153,9 @@ Item {
                 // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
                 // Contorno/relevo com keycap solido: a luz chega fraca na lateral
                 readonly property color bevelInkNow: key.glow ? Lit.mix(root.ink, key.glow.c, root.bevelInk * key.glow.k) : key.inkNow
-                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + root.inkMix * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
+                // Escolhida: a legenda (e o logo do ROG no Esc) seguem na cor da luz;
+                // sem luz, tertiary. A selecao e a moldura, nao um topo amarelo
+                readonly property color inkNow: key.active && !key.glow ? Colours.palette.m3tertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + root.inkMix * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
 
                 x: key.modelData.x
                 y: key.modelData.y
@@ -182,7 +184,7 @@ Item {
                     antialiasing: true
                     // O visor fica por cima da arte: a tela e escura, so a moldura aparece
                     z: key.modelData.id === "oled" ? 1 : 0
-                    color: key.modelData.d === "" ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : "transparent") : key.plain ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : Colours.palette.m3surface) : key.active ? Colours.palette.m3tertiary : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
+                    color: key.modelData.d === "" ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : "transparent") : key.plain ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : Colours.palette.m3surface) : key.active ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.3)) : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
                     border.width: key.modelData.d === "" ? 2 : 0
                     border.color: key.active ? Colours.palette.m3tertiary : Qt.alpha(root.ink, 0.55)
                 }
@@ -243,8 +245,8 @@ Item {
                     radius: Math.min(width, height) * 0.06
                     antialiasing: true
                     color: "transparent"
-                    border.width: lw
-                    border.color: key.active ? Colours.palette.m3onTertiary : root.ink
+                    border.width: key.active ? lw * 1.6 : lw
+                    border.color: key.active ? Colours.palette.m3tertiary : root.ink
                 }
 
                 // Legendas que nao acendem (Shift e frontais)
@@ -253,7 +255,7 @@ Item {
                     preferredRendererType: Shape.CurveRenderer
 
                     ShapePath {
-                        fillColor: key.active ? Colours.palette.m3onTertiary : root.ink
+                        fillColor: root.ink
                         strokeWidth: -1
                         fillRule: ShapePath.OddEvenFill
 
