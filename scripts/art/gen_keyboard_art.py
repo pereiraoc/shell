@@ -33,19 +33,22 @@ def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=
         x, y, bw_, bh = cs[i]["box"]
         inner = [c for c in groups[i] if c is not cs[i]]
         # topo do keycap = maior contorno de dentro cujo pai e a propria tecla
-        # topo = maior contorno de dentro que ocupa mais da metade da tecla
-        tops = [c for c in inner if c["box"][2] > bw_ * 0.5 and c["box"][3] > bh * 0.5]
+        # topo = contorno(s) de dentro que ocupam mais da metade da largura
+        # (duas metades, como PgUp/PgDn empilhados, viram a uniao)
+        tops = [c for c in inner if c["box"][2] > bw_ * 0.5 and c["box"][3] > bh * 0.35]
         tops.sort(key=lambda c: -c["box"][2] * c["box"][3])
         parts = groups[i]
         outline_only = not tops
         if outline_only:
-            # sem o topo separado no desenho: fica so a serigrafia, e o QML
-            # desenha o keycap como contorno (o = true); topo = caixa recuada
+            # o contorno da tecla e um anel grosso do chassis (teclas "em
+            # destaque" no desenho): o que sobra e a serigrafia, e o topo e a
+            # propria caixa (o = true: o QML nao desenha borda propria)
             parts = [c for c in parts if c is not cs[i]]
-            ins = min(bw_, bh) * 0.1
-            f = (x + ins, y + ins, bw_ - 2 * ins, bh - 2 * ins)
+            f = (x, y, bw_, bh)
         else:
-            f = tops[0]["box"]
+            x0 = min(c["box"][0] for c in tops); y0 = min(c["box"][1] for c in tops)
+            x1 = max(c["box"][0] + c["box"][2] for c in tops); y1 = max(c["box"][1] + c["box"][3] for c in tops)
+            f = (x0, y0, x1 - x0, y1 - y0)
         k = {"x": round(x, 1), "y": round(y, 1), "w": round(bw_, 1), "h": round(bh, 1),
              "f": [round(f[0] - x, 1), round(f[1] - y, 1), round(f[2], 1), round(f[3], 1)],
              "d": path([c["pts"] for c in parts], x, y)}
@@ -120,9 +123,9 @@ AZ = [
 ]
 knob = {"id": "knob", "x": 1820.0, "y": 60.0, "w": 34.0, "h": 72.0, "f": [0, 0, 34, 72], "d": ""}
 emit(az, AZ, 34, f"{F}/azothArt.js", "ROG Azoth Keyboard Silhouette (mono).png (caelestia-assets)", [knob] if not any(k["w"] < 60 and k["x"] > 1790 for k in az["keys"]) else [])
-g = keys2(f"{A}/ROG G16 Keyboard Silhouette.png", 11, 60, 20, 400)
+g = keys2(f"{A}/ROG G16 Keyboard Silhouette (no speaker or power).png", 11, 60, 20, 400, edge=0)
 G = [
-    ["m1", "m2", "m3", "m4", "power"],
+    ["m1", "m2", "m3", "m4"],
     ["esc", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "delete"],
     ["grave", "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k0", "minus", "equal", "bksp"],
     ["tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "lbr", "rbr", "bslash"],
@@ -130,4 +133,4 @@ G = [
     ["lshift", "z", "x", "c", "v", "b", "n", "m", "comma", "period", "slash", "rshift"],
     ["lctrl", "fn", "win", "lalt", "space", "ralt", "rctrl", "home", "pgupdn", "end"],
 ]
-emit(g, G, 15, f"{F}/g16Art.js", "ROG G16 Keyboard Silhouette.png (caelestia-assets)")
+emit(g, G, 15, f"{F}/g16Art.js", "ROG G16 Keyboard Silhouette (no speaker or power).png (caelestia-assets)")
