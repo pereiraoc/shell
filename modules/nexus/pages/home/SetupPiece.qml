@@ -10,7 +10,8 @@ import qs.services
 // sai `moved(key, xCm, yCm)`; fora da edicao, clique = `clicked`. Passar o
 // mouse mostra o nome (`label`) num balao -- nada escrito antes disso -- e
 // as pecas pequenas (fones, mouses) crescem um pouco para dar para ver o que
-// sao. O conteudo (silhueta) vai dentro.
+// sao. Na edicao o nome fica sempre visivel (senao nao se sabe o que se esta
+// movendo). O conteudo (silhueta) vai dentro.
 Item {
     id: root
 
@@ -82,12 +83,12 @@ Item {
         border.color: root.held ? Colours.palette.m3tertiary : Qt.alpha(Colours.palette.m3outline, 0.7)
     }
 
-    // Balao com o nome, so no hover
+    // Balao com o nome: no hover, ou sempre enquanto se edita
     StyledRect {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.top
         anchors.bottomMargin: 6
-        visible: root.hovered && root.label !== ""
+        visible: (root.hovered || root.editing) && root.label !== ""
         implicitWidth: tip.implicitWidth + Tokens.padding.normal * 2
         implicitHeight: tip.implicitHeight + Tokens.padding.small * 2
         radius: Tokens.rounding.small

@@ -10,9 +10,11 @@ import qs.services
 import qs.utils
 
 // O setup visto de frente, no traco dos outros diagramas, com cada peca onde
-// o usuario a deixou: monitores (silhueta do LG), notebook (G16 aberto),
-// mousepad, Azoth (a propria arte), mouses (silhuetas), fones (estojos e o
-// headphone no suporte) e controles. Tamanhos reais em cm (1 cm = width/190):
+// o usuario a deixou: monitores (silhueta do LG com o pe, numa mesinha da
+// largura dele e da altura do touchpad, com os estojos dos fones ao lado do
+// pe), notebook (G16 aberto), mousepad de 90 x 50, Azoth, mouses, headphone
+// no suporte e controles. Silhuetas em assets/devices com o traco normalizado
+// para o tamanho em que aparecem (scripts/art/trace.py, `stroke`). Tamanhos reais em cm (1 cm = width/190):
 //   LG 25" 58 x 24 cm de tela (EDID), ~59 cm com a moldura; G16 35,5 x 24,3;
 //   Azoth 32,6 x 13,6; Naga 12 x 7,5; Atheris 10 x 6,3; WH-1000XM5 21,7 de
 //   largura; WF-1000XM5 (estojo) 6,5 x 4; FreeClip 2 (estojo) 5 x 5; controle
@@ -41,6 +43,7 @@ Item {
 
     readonly property real cm: root.width / 190
     readonly property real deskY: 50
+    readonly property real shelfH: 8.3
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
     readonly property real dpr: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
@@ -51,6 +54,10 @@ Item {
     // Padrao: o notebook fica do lado em que esta no arranjo (a direita do LG, hoje)
     readonly property bool laptopRight: !root.laptop || root.externals.length === 0 || root.posX(root.laptop) >= Math.max(...root.externals.map(m => root.posX(m)))
     readonly property real zoneX: root.laptopRight ? 0 : 40
+    // Onde o LG esta (salvo ou padrao): a mesinha e os estojos acompanham
+    readonly property var lgMon: root.externals.find(m => /LG ULTRAWIDE/i.test(m.description ?? "")) ?? root.externals[0] ?? null
+    readonly property real lgX: root.lgMon ? (root.layout[`monitor:${root.lgMon.name}`]?.x ?? root.zoneX + 30) : root.zoneX + 30
+    readonly property real lgBottom: root.lgMon ? (root.layout[`monitor:${root.lgMon.name}`]?.y ?? root.deskY - root.shelfH - 59 * 754 / 1285) + 59 * 754 / 1285 : root.deskY - root.shelfH
 
     signal open(page: string, tab: string)
 
@@ -70,7 +77,7 @@ Item {
         layoutFile.setText("{}\n");
     }
 
-    implicitHeight: 80 * root.cm
+    implicitHeight: 104 * root.cm
 
     FileView {
         id: layoutFile
@@ -112,9 +119,9 @@ Item {
 
             key: `monitor:${ext.mon.name}`
             defX: root.zoneX + 30 + ext.index * 62
-            defY: root.deskY - (ext.lg ? 59 * 584 / 1285 : 33)
+            defY: root.deskY - root.shelfH - (ext.lg ? 59 * 754 / 1285 : 33)
             wCm: 59
-            hCm: ext.lg ? 59 * 584 / 1285 : 33
+            hCm: ext.lg ? 59 * 754 / 1285 : 33
             layout: root.layout
             cm: root.cm
             editing: root.editing
@@ -127,7 +134,7 @@ Item {
 
                 anchors.fill: parent
                 visible: ext.lg
-                source: Quickshell.shellPath("assets/devices/lg-25-ultrawide.svg")
+                source: Quickshell.shellPath("assets/devices/lg-25-ultrawide-stand.svg")
                 fillMode: Image.PreserveAspectFit
                 sourceSize.width: lgArt.width * root.dpr
                 smooth: true
@@ -142,6 +149,7 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
+                anchors.bottomMargin: parent.height * 0.2
                 visible: !ext.lg
                 radius: 2 * root.cm
                 color: "transparent"
@@ -188,16 +196,49 @@ Item {
         }
     }
 
+    // ------------------------------------------------------------- mesinha
+    // Apoio horizontal do monitor: a largura do LG e a altura do touchpad do
+    // G16 (8,3 cm); o pe fica em cima e os estojos dos fones ao lado dele
+    SetupPiece {
+        key: "shelf"
+        defX: root.lgX
+        defY: root.lgBottom
+        wCm: 59
+        hCm: root.shelfH
+        layout: root.layout
+        cm: root.cm
+        editing: root.editing
+        label: qsTr("Monitor riser")
+        onMoved: (k, x, y) => root.place(k, x, y)
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 0.6 * root.cm
+            color: "transparent"
+            border.width: 1
+            border.color: root.ink
+        }
+
+        Rectangle {
+            x: 0
+            y: 1.2 * root.cm
+            width: parent.width
+            height: 1
+            color: Qt.alpha(root.ink, 0.5)
+        }
+    }
+
     // ------------------------------------------------------------- mousepad
     SetupPiece {
         key: "mousepad"
         defX: root.zoneX + 22
         defY: root.deskY + 2
-        wCm: 80
-        hCm: 22
+        wCm: 90
+        hCm: 50
         layout: root.layout
         cm: root.cm
         editing: root.editing
+        label: qsTr("Mousepad · 90 × 50 cm")
         onMoved: (k, x, y) => root.place(k, x, y)
 
         Rectangle {
@@ -265,7 +306,7 @@ Item {
             id: kbdArt
 
             anchors.fill: parent
-            source: Quickshell.shellPath("assets/devices/rog-azoth.svg")
+            source: Quickshell.shellPath("assets/devices/rog-azoth-home.svg")
             fillMode: Image.PreserveAspectFit
             sourceSize.width: kbdArt.width * root.dpr
             smooth: true
@@ -304,12 +345,13 @@ Item {
             onClicked: root.open("mouse", mouse.dev.model ?? "")
             onMoved: (k, x, y) => root.place(k, x, y)
 
-            // Naga: a silhueta sem o painel lateral (…-body.svg); os outros, a do mouse
+            // Silhuetas do Home (<modelo>-home.svg): Naga sem o painel lateral, traco
+            // normalizado para o tamanho em que aparecem
             Image {
                 id: art
 
                 anchors.fill: parent
-                source: Quickshell.shellPath(`assets/mice/${mouse.dev.model}${mouse.naga ? "-body" : ""}.svg`)
+                source: Quickshell.shellPath(`assets/devices/${mouse.dev.model}-home.svg`)
                 fillMode: Image.PreserveAspectFit
                 sourceSize.width: art.width * root.dpr
                 smooth: true
@@ -342,14 +384,14 @@ Item {
             readonly property real standH: 28
 
             key: `headphones:${hp.dev.model}`
-            defX: hp.big ? root.zoneX + 126 : root.zoneX + 106 + hp.budIndex * 8
-            defY: hp.big ? root.deskY - hp.standH : root.deskY + 3
+            defX: hp.big ? root.zoneX + 126 : root.lgX + (hp.budIndex === 0 ? 8 : 44)
+            defY: hp.big ? root.deskY - hp.standH : root.lgBottom - hp.hCm + 0.5
             wCm: hp.big ? 21.7 : hp.dev.model === "WF-1000XM5" ? 6.5 : 5
             hCm: hp.big ? hp.standH : hp.dev.model === "WF-1000XM5" ? 6.5 * 308 / 331 : 5
             layout: root.layout
             cm: root.cm
             editing: root.editing
-            label: hp.dev.name ?? hp.dev.model ?? ""
+            label: [hp.dev.name, hp.dev.model].filter(x => x).join(" · ")
             visible: hp.file !== "" && (hp.online || root.showOffline)
             online: !!hp.dev.connected
             showOffline: root.showOffline

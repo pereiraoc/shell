@@ -38,8 +38,29 @@ def path(pts_list, ox=0, oy=0):
 def svg(w, h, d):
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}"><path fill="#000" fill-rule="evenodd" d="{d}"/></svg>'
 
-def whole(src, out, K=3, crop=(0, 0, 0, 0), edge=2):
+def line_width(bw, K):
+    """Largura media do traco (px da imagem): 4 x distancia media ao fundo."""
+    d = cv2.distanceTransform(bw, cv2.DIST_L2, 3)
+    ink = bw > 0
+    return float(d[ink].mean() * 4 / K) if ink.any() else 0.0
+
+def normalize_stroke(bw, K, target):
+    """Engrossa/afina o traco ate ~`target` px da imagem (na mascara em K x)."""
+    cur = line_width(bw, K)
+    delta = int(round((target - cur) * K))
+    if abs(delta) < 2:
+        return bw, cur
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (abs(delta) + 1, abs(delta) + 1))
+    return (cv2.dilate(bw, k) if delta > 0 else cv2.erode(bw, k)), cur
+
+def whole(src, out, K=3, crop=(0, 0, 0, 0), edge=2, stroke=None):
+    """stroke = largura alvo do traco em px da imagem: cada silhueta e exibida
+    num tamanho diferente, e igualar o traco NA TELA pede larguras diferentes
+    na fonte (stroke = tela_px * fonte_px_por_cm / tela_px_por_cm)."""
     bw, w, h, K = load(src, K, crop, edge)
+    if stroke:
+        bw, cur = normalize_stroke(bw, K, stroke)
+        print(f"  traco {cur:.1f} -> {stroke} px")
     cs = [c for c in contours(bw, K) if c]
     open(out, "w").write(svg(w, h, path([c["pts"] for c in cs])))
     print(out, w, h, "contornos", len(cs))
