@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Caelestia.Config
 import qs.components
 import qs.components.misc
@@ -223,6 +224,30 @@ PageBase {
                 onSelected: node => Audio.setAudioSource(node)
             }
 
+            // Processamento do mic (caelestia-audio-profile): a fonte padrao e a
+            // filtrada (cancelamento de eco + supressao de ruido); apps que
+            // escolhem o mic cru pelo nome ficam de fora -- e a lista de Apps avisa
+            SectionHeader {
+                text: qsTr("Microphone processing")
+            }
+
+            InfoRow {
+                first: true
+                icon: "noise_control_off"
+                label: qsTr("Default input")
+                subtext: qsTr("What apps get when they pick “Default”: the laptop microphone through echo cancelling%1").arg(AudioProfile.status.suppress ? qsTr(" and noise suppression") : "")
+                value: AudioProfile.status.default_source_description ?? ""
+            }
+
+            ToggleRow {
+                last: true
+                text: qsTr("Noise suppression")
+                subtext: qsTr("Cuts fans, keyboard and room noise from the filtered microphone")
+                checked: !!AudioProfile.status.suppress
+                disabled: AudioProfile.busy
+                onToggled: AudioProfile.exec(["suppress", checked ? "on" : "off"])
+            }
+
             // Ganho de hardware do mic interno: o PipeWire usa soft-mixer e nao
             // toca no ALSA, entao quem fixa o ganho e o caelestia-mic-gain.
             SectionHeader {
@@ -310,23 +335,34 @@ PageBase {
                 subtext: qsTr("Equalizer and noise presets need it")
             }
 
-            InfoRow {
+            // Servico: sobe sem janela e fica pendurado no PipeWire
+            ToggleRow {
                 first: true
-                last: true
-                visible: root.effects.available === true && !root.effects.running
-                icon: "graphic_eq"
-                label: qsTr("EasyEffects is not running")
-                subtext: qsTr("Open it from the Advanced tab to use equalizer and noise presets")
+                visible: root.effects.available === true
+                text: qsTr("EasyEffects running")
+                subtext: root.effects.running ? qsTr("Equalizer and noise presets apply to the sound; turn off to go back to direct output") : qsTr("Starts it in the background (no window) so presets and bypass work")
+                checked: root.effects.running === true
+                disabled: soundBridge.busyAction !== ""
+                onToggled: soundBridge.run({ id: checked ? "ee-start" : "ee-stop" })
             }
 
             ToggleRow {
-                first: true
-                last: (root.effects.output_presets ?? []).length === 0 && (root.effects.input_presets ?? []).length === 0
                 visible: root.effects.running === true
                 text: qsTr("Effects enabled")
                 subtext: qsTr("Turn off to hear the sound without any processing")
                 checked: root.effects.bypass === false
                 onToggled: soundBridge.run({ id: checked ? "ee-bypass-off" : "ee-bypass-on" })
+            }
+
+            // Sem presets ainda: so o app cria (equalizador, compressor, RNNoise)
+            RowButton {
+                last: (root.effects.output_presets ?? []).length === 0 && (root.effects.input_presets ?? []).length === 0
+                visible: root.effects.available === true
+                icon: "equalizer"
+                text: (root.effects.output_presets ?? []).length === 0 && (root.effects.input_presets ?? []).length === 0 ? qsTr("No presets yet — create them in EasyEffects") : qsTr("Edit presets in EasyEffects")
+                subtext: qsTr("Save a preset there and it shows up here to pick from")
+                trailingIcon: "open_in_new"
+                onClicked: DesktopEntries.byId("com.github.wwmm.easyeffects")?.execute()
             }
 
             ExpandSelectRow {
