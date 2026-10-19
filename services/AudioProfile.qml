@@ -23,6 +23,11 @@ Singleton {
     readonly property var outputs: root.status.outputs ?? []
     readonly property string preset: root.status.custom_spec?.preset ?? ""
     readonly property bool customEffective: root.status.custom_effective ?? false
+    // Regras automaticas (audio-rules.json; motor em modules/AudioRules.qml)
+    readonly property bool rulesEnabled: root.status.rules?.enabled ?? false
+    readonly property var rules: root.status.rules?.rules ?? []
+    // Fixado a mao (mode/scene sem --auto): as regras ficam em pausa ate o unpin
+    readonly property bool manual: root.status.manual ?? false
 
     // Verdadeiro do disparo de uma acao ate o estado ja refletir o resultado.
     // As acoes levam de 1,5 a 3 s -- o CLI reaplica o estado inteiro, e trocar
@@ -81,6 +86,18 @@ Singleton {
 
     function setPreset(id: string): void {
         root.exec(["custom", "preset", id]);
+    }
+
+    function setRules(on: bool): void {
+        root.exec(["rules", on ? "on" : "off"]);
+    }
+
+    function setRule(index: int, on: bool): void {
+        root.exec(["rules", "set", String(index), on ? "on" : "off"]);
+    }
+
+    function unpin(): void {
+        root.exec(["unpin"]);
     }
 
     Component.onCompleted: {

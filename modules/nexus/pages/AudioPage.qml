@@ -24,6 +24,13 @@ PageBase {
     readonly property var mic: micBridge.info
     readonly property var headphones: hpBridge.info.headphones ?? []
 
+
+    // "cs2 in focus → Spatial", "Microphone in use → Headset"
+    function ruleText(r: var): string {
+        const effect = [r.mode === "headset" ? qsTr("Headset") : r.mode === "headphone" ? qsTr("Headphones") : "", r.scene === "custom" ? qsTr("Spatial") : r.scene === "normal" ? qsTr("Normal scene") : ""].filter(x => x).join(" · ");
+        const when = r.match === "mic-open" ? qsTr("Microphone in use") : qsTr("%1 in focus").arg(r.value ?? "");
+        return `${when} → ${effect || qsTr("nothing")}`;
+    }
     function hpText(h: var): string {
         if (!h.connected)
             return qsTr("Not connected");
@@ -116,6 +123,53 @@ PageBase {
                 Layout.fillWidth: true
                 // Aqui ha espaco para explicar; no popout da barra, nao.
                 showDescription: true
+            }
+
+            // Regras automaticas: o motor (modules/AudioRules.qml) chama
+            // `caelestia-audio-profile auto` a cada janela em foco / mic aberto
+            SectionHeader {
+                text: qsTr("Automatic")
+            }
+
+            ToggleRow {
+                first: true
+                last: !AudioProfile.rulesEnabled
+                text: qsTr("Follow the app in focus and the microphone")
+                subtext: AudioProfile.rulesEnabled ? qsTr("The rules below apply by themselves, with a notification. Picking a mode or scene by hand pauses them until you release.") : qsTr("Off: mode and scene only change when you pick them")
+                checked: AudioProfile.rulesEnabled
+                disabled: AudioProfile.busy
+                onToggled: AudioProfile.setRules(checked)
+            }
+
+            RowButton {
+                visible: AudioProfile.rulesEnabled && AudioProfile.manual
+                icon: "lock_open"
+                iconLabel.color: Colours.palette.m3tertiary
+                text: qsTr("Paused: set by hand")
+                subtext: qsTr("Tap to let the rules take over again")
+                disabled: AudioProfile.busy
+                onClicked: AudioProfile.unpin()
+            }
+
+            Repeater {
+                model: AudioProfile.rulesEnabled ? AudioProfile.rules.length : 0
+
+                ToggleRow {
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: AudioProfile.rules[index] ?? ({})
+                    readonly property var liveItem: AudioProfile.rules[index]
+                    required property int index
+
+                    last: index === AudioProfile.rules.length - 1
+                    text: root.ruleText(modelData)
+                    subtext: modelData.match === "mic-open" ? qsTr("Any app capturing the microphone") : qsTr("Window class “%1” in focus").arg(modelData.value ?? "")
+                    checked: modelData.enabled !== false
+                    disabled: AudioProfile.busy
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    onToggled: AudioProfile.setRule(index, checked)
+                }
             }
 
             // Fones com controle proprio (Sony, Huawei): modos na subpagina

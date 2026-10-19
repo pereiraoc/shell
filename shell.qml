@@ -44,6 +44,8 @@ ShellRoot {
     Farewell {}
     Shortcuts {}
     StateNotifier {}
+    // Regras automaticas de audio (janela em foco + mic): modules/AudioRules.qml
+    AudioRules {}
     BatteryMonitor {}
     IdleMonitors {
         lock: lock
