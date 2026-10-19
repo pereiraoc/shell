@@ -49,7 +49,8 @@ ConnectedRect {
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: Tokens.padding.largeIncreased
         anchors.rightMargin: Tokens.padding.largeIncreased
-        columns: 2
+        // rotulo | valor atual | chips (compacto); largo: chips na 2a linha
+        columns: 3
         columnSpacing: Tokens.spacing.medium
         rowSpacing: Tokens.spacing.small
         opacity: root.disabled ? 0.5 : 1
@@ -94,8 +95,8 @@ ConnectedRect {
             id: pill
 
             Layout.row: root.compact ? 0 : 1
-            Layout.column: root.compact ? 1 : 0
-            Layout.columnSpan: root.compact ? 1 : 2
+            Layout.column: root.compact ? 2 : 0
+            Layout.columnSpan: root.compact ? 1 : 3
             Layout.fillWidth: !root.compact
             Layout.preferredWidth: root.compact ? root.chipsNaturalWidth : -1
             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
