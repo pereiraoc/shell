@@ -117,6 +117,8 @@ QtObject {
         { page: "apps", sub: 0, title: qsTr("Default applications"), subtitle: qsTr("Terminal, file manager, media"), keywords: "default terminal browser file manager" },
         { page: "apps", sub: 1, title: qsTr("All apps"), subtitle: qsTr("Favourites, hidden apps"), keywords: "apps favourite hide" },
         { page: "shell", sub: 1, title: qsTr("Notifications"), subtitle: qsTr("Toasts, notification behaviour"), keywords: "notifications toast popup do not disturb" },
+        { page: "notifications", sub: 0, tab: "history", title: qsTr("Notification history"), subtitle: qsTr("Everything that was shown, searchable"), keywords: "notifications history log past search" },
+        { page: "notifications", sub: 0, tab: "apps", title: qsTr("Block notifications from an app"), subtitle: qsTr("Per-app block and icon"), keywords: "notifications block mute app icon silence" },
         { page: "shell", sub: 0, title: qsTr("Volume & brightness steps"), subtitle: qsTr("Step size for keys"), keywords: "volume step brightness step keys" },
 
         // About

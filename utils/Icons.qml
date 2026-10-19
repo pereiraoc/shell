@@ -207,6 +207,9 @@ Singleton {
     function getNotifGlyph(n: var): string {
         if (!n)
             return "chat";
+        // Glifo escolhido para o app no Nexus > Notifications (notifs-rules.json)
+        if (n.iconOverride)
+            return n.iconOverride;
         const summary = n.summary ?? "";
         const urgency = n.urgency ?? NotificationUrgency.Normal;
         const iconName = (n.image ?? "").startsWith("image://icon/") ? n.image.slice(13) : (n.appIcon ?? "");

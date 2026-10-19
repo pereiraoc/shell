@@ -52,6 +52,8 @@ QtObject {
     property bool resident
     property bool hasActionIcons
     property list<var> actions
+    // Glifo Material escolhido para este app no Nexus > Notifications (V3-10); "" = o de sempre
+    readonly property string iconOverride: Notifs.iconOverrides[appName] ?? ""
 
     readonly property bool hasFullscreen: {
         const monitor = Hypr.focusedMonitor;

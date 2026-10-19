@@ -75,11 +75,18 @@ PageBase {
 
         NavRow {
             first: true
-            last: true
             icon: "notifications"
             text: Tr.tr("Notifications")
             subtext: Tr.tr("Notifications, toasts, timeouts")
             onClicked: root.nState.openSubPage(1)
+        }
+
+        NavRow {
+            last: true
+            icon: "history"
+            text: Tr.tr("History and blocked apps")
+            subtext: Tr.tr("Everything that was shown; block or re-icon an app")
+            onClicked: root.nState.openPage("notifications", 0, "history")
         }
 
         // Polling

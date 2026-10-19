@@ -281,6 +281,14 @@ QtObject {
         }
     }
 
+    readonly property Component notificationsComp: Component {
+        StackPage {
+            Component {
+                NotificationHistoryPage {}
+            }
+        }
+    }
+
     readonly property Component aboutComp: Component {
         StackPage {
             Component {

@@ -21,6 +21,44 @@ Singleton {
     property alias dnd: props.dnd
 
     property bool loaded
+    // Regras por app (~/.config/caelestia/notifs-rules.json, escritas pelo
+    // caelestia-notifs): apps bloqueados nem viram NotifData -- vao direto ao
+    // historico, marcados -- e `icons` e o glifo Material que substitui o icone
+    // de um app (Icons.getNotifGlyph). V3-10.
+    property var blockedApps: []
+    property var iconOverrides: ({})
+    readonly property string historyCli: `${Quickshell.env("HOME")}/.local/bin/caelestia-notifs`
+    // Fila de gravacao no historico (um processo por vez, na ordem)
+    property var recordQueue: []
+
+    function isBlocked(app: string): bool {
+        return root.blockedApps.includes(app ?? "");
+    }
+
+    // Historico em SQLite (caelestia-notifs add): nao e a lista viva da barra
+    function record(notif: var, blocked: bool): void {
+        const payload = {
+            time: new Date().toISOString(),
+            appName: notif.appName ?? "",
+            summary: notif.summary ?? "",
+            body: notif.body ?? "",
+            appIcon: notif.appIcon ?? "",
+            image: notif.image ?? "",
+            urgency: notif.urgency ?? 1,
+            blocked: blocked
+        };
+        root.recordQueue = [...root.recordQueue, JSON.stringify(payload)];
+        root.pumpRecord();
+    }
+
+    function pumpRecord(): void {
+        if (recorder.running || root.recordQueue.length === 0)
+            return;
+        const next = root.recordQueue[0];
+        root.recordQueue = root.recordQueue.slice(1);
+        recorder.command = [root.historyCli, "add", next];
+        recorder.running = true;
+    }
 
     function hasFullscreen(): bool {
         for (const monitor of Hypr.monitors.values) {
@@ -93,6 +131,13 @@ Singleton {
         persistenceSupported: true
 
         onNotification: notif => {
+            // App bloqueado: nao entra na lista nem aparece; fica so no
+            // historico, marcado, para dar para rever e desbloquear
+            if (root.isBlocked(notif.appName)) {
+                root.record(notif, true);
+                notif.dismiss();
+                return;
+            }
             notif.tracked = true;
 
             const comp = notifComp.createObject(root, {
@@ -100,6 +145,36 @@ Singleton {
                 notification: notif
             });
             root.list = [comp, ...root.list];
+            root.record(notif, false);
+        }
+    }
+
+    Process {
+        id: recorder
+
+        onExited: root.pumpRecord()
+    }
+
+    FileView {
+        id: rulesFile
+
+        path: `${Paths.config}/notifs-rules.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                const d = JSON.parse(text());
+                root.blockedApps = Array.isArray(d?.blocked) ? d.blocked : [];
+                root.iconOverrides = d?.icons && typeof d.icons === "object" ? d.icons : {};
+            } catch (e) {
+                root.blockedApps = [];
+                root.iconOverrides = {};
+            }
+        }
+        onLoadFailed: {
+            root.blockedApps = [];
+            root.iconOverrides = {};
         }
     }
 

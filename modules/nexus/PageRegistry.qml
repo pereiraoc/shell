@@ -146,6 +146,13 @@ QtObject {
             group: qsTr("Personalization")
         },
         {
+            id: "notifications",
+            label: qsTr("Notifications"),
+            icon: "notifications",
+            description: qsTr("History, blocked apps, icons"),
+            group: qsTr("Personalization")
+        },
+        {
             id: "shell",
             label: qsTr("Shell behaviour"),
             icon: "tune",
