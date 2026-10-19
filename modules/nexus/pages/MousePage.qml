@@ -246,12 +246,6 @@ PageBase {
                 readonly property var liveItem: root.mice[index]
                 required property int index
                 readonly property var battery: mouse.index === 0 ? root.mouseBattery : null
-                readonly property var stages: {
-                    const st = [...(mouse.modelData.dpi_stages ?? [])];
-                    if (mouse.modelData.dpi && !st.includes(mouse.modelData.dpi))
-                        st.push(mouse.modelData.dpi);
-                    return st.sort((a, b) => a - b);
-                }
 
                 active: root.tab === root.tabId(mouse.modelData)
                 onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
@@ -265,6 +259,7 @@ PageBase {
 
                 MeterRow {
                     first: true
+                    last: !mouse.modelData.asleep
                     visible: !!mouse.battery
                     icon: "battery_full"
                     label: qsTr("Battery")
@@ -277,34 +272,11 @@ PageBase {
 
                 InfoRow {
                     first: !mouse.battery
+                    last: true
                     visible: !!mouse.modelData.asleep
                     icon: "bedtime"
                     label: qsTr("The mouse is asleep")
                     subtext: qsTr("Move it to wake it up — its settings can only change while it is awake")
-                }
-
-                ChipSelectRow {
-                    first: !mouse.battery && !mouse.modelData.asleep
-                    visible: mouse.stages.length > 0
-                    label: qsTr("Sensitivity (DPI)")
-                    subtext: qsTr("Set in the mouse itself — the same in every app and game. The DPI button on the mouse cycles these stages.")
-                    options: mouse.stages.map(d => ({ value: String(d), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
-                    current: String(mouse.modelData.dpi ?? "")
-                    disabled: !!mouse.modelData.asleep
-                    busy: periphBridge.busyAction.startsWith(`dpi-${mouse.modelData.id}-`)
-                    onPicked: v => root.periphRun(`dpi-${mouse.modelData.id}-${v}`)
-                }
-
-                ChipSelectRow {
-                    last: true
-                    visible: mouse.modelData.poll_rate != null && (mouse.modelData.poll_choices ?? []).length > 0
-                    label: qsTr("Polling rate")
-                    subtext: qsTr("Higher is smoother and more responsive, and uses more battery")
-                    options: (mouse.modelData.poll_choices ?? []).map(h => ({ value: String(h), label: `${h} Hz` }))
-                    current: String(mouse.modelData.poll_rate ?? "")
-                    disabled: !!mouse.modelData.asleep
-                    busy: periphBridge.busyAction.startsWith(`poll-${mouse.modelData.id}-`)
-                    onPicked: v => root.periphRun(`poll-${mouse.modelData.id}-${v}`)
                 }
 
                 ActionErrorRow {

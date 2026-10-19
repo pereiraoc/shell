@@ -122,6 +122,16 @@ PageBase {
             onOpen: (page, tab) => root.nState.openPage(page, 0, tab)
         }
 
+        // Nome do aparelho sob o mouse (linha propria, sempre reservada)
+        StyledText {
+            Layout.fillWidth: true
+            text: setup.hoverLabel
+            color: Colours.palette.m3onSurface
+            font: Tokens.font.title.small
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small

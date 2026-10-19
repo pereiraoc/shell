@@ -42,6 +42,9 @@ Item {
     readonly property bool customized: Object.keys(root.layout).length > 0
     // Nome da peca sob o mouse (a pagina mostra na legenda)
     property string hoverLabel
+    // So aparece (e so anima) depois do layout salvo carregar e do encaixe:
+    // senao a pagina abria no mundo inteiro e "dava zoom" ate o conteudo
+    property bool ready
 
     // Mundo em cm: 190 de largura; a linha da mesa (deskY) e a borda de tras
     // do tampo -- monitor, suporte do fone e notebook apoiam nela, e o
@@ -116,6 +119,7 @@ Item {
     }
 
     implicitHeight: root.editing ? root.worldH * root.cm : (root.fit.height + root.pad * 2) * root.cm
+    opacity: root.ready ? 1 : 0
 
     onLayoutChanged: Qt.callLater(root.refit)
     onShowOfflineChanged: Qt.callLater(root.refit)
@@ -126,6 +130,10 @@ Item {
     onHeadphonesChanged: Qt.callLater(root.refit)
     onControllersChanged: Qt.callLater(root.refit)
     Component.onCompleted: Qt.callLater(root.refit)
+
+    Behavior on opacity {
+        Anim {}
+    }
 
     FileView {
         id: layoutFile
@@ -141,8 +149,14 @@ Item {
             } catch (e) {
                 root.layout = {};
             }
+            root.refit();
+            root.ready = true;
         }
-        onLoadFailed: root.layout = {}
+        onLoadFailed: {
+            root.layout = {};
+            root.refit();
+            root.ready = true;
+        }
     }
 
     // Linha da mesa (borda de tras do tampo)
@@ -174,6 +188,7 @@ Item {
             cm: root.cm
             ox: root.ox
             oy: root.oy
+            animate: root.ready
             deskCm: root.deskY
             editing: root.editing
             onHover: (l, on) => root.setHover(l, on)
@@ -224,6 +239,7 @@ Item {
         cm: root.cm
         ox: root.ox
         oy: root.oy
+        animate: root.ready
         deskCm: root.deskY
         editing: root.editing
         onHover: (l, on) => root.setHover(l, on)
@@ -271,10 +287,12 @@ Item {
         cm: root.cm
         ox: root.ox
         oy: root.oy
+        animate: root.ready
         deskCm: root.deskY
         editing: root.editing
         onHover: (l, on) => root.setHover(l, on)
         label: qsTr("Monitor riser")
+        device: false
         onMoved: (k, x, y) => root.place(k, x, y)
 
         Rectangle {
@@ -305,10 +323,12 @@ Item {
         cm: root.cm
         ox: root.ox
         oy: root.oy
+        animate: root.ready
         deskCm: root.deskY
         editing: root.editing
         onHover: (l, on) => root.setHover(l, on)
         label: qsTr("Mousepad · 90 × 25 cm")
+        device: false
         onMoved: (k, x, y) => root.place(k, x, y)
 
         Rectangle {
@@ -339,6 +359,7 @@ Item {
             cm: root.cm
             ox: root.ox
             oy: root.oy
+            animate: root.ready
             deskCm: root.deskY
             editing: root.editing
             onHover: (l, on) => root.setHover(l, on)
@@ -370,6 +391,7 @@ Item {
         cm: root.cm
         ox: root.ox
         oy: root.oy
+        animate: root.ready
         deskCm: root.deskY
         editing: root.editing
         onHover: (l, on) => root.setHover(l, on)
@@ -418,6 +440,7 @@ Item {
             cm: root.cm
             ox: root.ox
             oy: root.oy
+            animate: root.ready
             deskCm: root.deskY
             editing: root.editing
             onHover: (l, on) => root.setHover(l, on)
@@ -474,6 +497,7 @@ Item {
             cm: root.cm
             ox: root.ox
             oy: root.oy
+            animate: root.ready
             deskCm: root.deskY
             editing: root.editing
             onHover: (l, on) => root.setHover(l, on)

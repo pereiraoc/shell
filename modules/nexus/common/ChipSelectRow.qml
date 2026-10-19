@@ -7,9 +7,10 @@ import qs.components
 import qs.components.controls
 import qs.services
 
-// Linha com seletor segmentado (2 a 5 opcoes curtas): rotulo + estado atual em
-// cima, pilula com indicador deslizante embaixo -- mesmo visual do seletor de
-// cena de audio. Para listas longas use SelectRow.
+// Linha com seletor segmentado (2 a 5 opcoes curtas): rotulo a esquerda e a
+// pilula de chips a direita, na mesma linha, quando os chips cabem em metade
+// da largura; senao rotulo + valor atual em cima e a pilula na largura toda
+// embaixo. Para listas longas use SelectRow.
 //
 //     ChipSelectRow {
 //         label: qsTr("Charge limit")
@@ -30,13 +31,17 @@ ConnectedRect {
     property bool disabled
 
     readonly property var currentOption: root.options.find(o => o.value === root.current) ?? null
+    // Compacto: chips que cabem em metade da linha ficam a direita do rotulo,
+    // na mesma linha (como um valor); senao a pilula toma a largura embaixo
+    readonly property real chipsNaturalWidth: chips.implicitWidth + Tokens.padding.small * 2
+    readonly property bool compact: root.width > 0 && root.chipsNaturalWidth <= root.width * 0.5
 
     signal picked(value: string)
 
     Layout.fillWidth: true
     implicitHeight: layout.implicitHeight + Tokens.padding.medium * 2
 
-    ColumnLayout {
+    GridLayout {
         id: layout
 
         anchors.left: parent.left
@@ -44,12 +49,16 @@ ConnectedRect {
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: Tokens.padding.largeIncreased
         anchors.rightMargin: Tokens.padding.largeIncreased
-        spacing: Tokens.spacing.small
+        columns: 2
+        columnSpacing: Tokens.spacing.medium
+        rowSpacing: Tokens.spacing.small
         opacity: root.disabled ? 0.5 : 1
 
-        RowLayout {
+        ColumnLayout {
+            Layout.row: 0
+            Layout.column: 0
             Layout.fillWidth: true
-            spacing: Tokens.spacing.medium
+            spacing: 0
 
             StyledText {
                 Layout.fillWidth: true
@@ -59,27 +68,37 @@ ConnectedRect {
             }
 
             StyledText {
-                // Valor atual fora dos presets (ex.: repeticao 25/600 do hyprland.conf).
-                text: root.busy ? qsTr("Applying…") : (root.currentOption?.label ?? (root.current !== "" ? qsTr("Custom") : ""))
-                color: Colours.palette.m3primary
-                font: Tokens.font.label.medium
+                Layout.fillWidth: true
+                Layout.preferredWidth: 0
+                visible: text !== ""
+                text: root.subtext
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
             }
         }
 
         StyledText {
-            Layout.fillWidth: true
-            Layout.preferredWidth: 0
-            visible: text !== ""
-            text: root.subtext
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
+            Layout.row: 0
+            Layout.column: 1
+            Layout.alignment: Qt.AlignRight | Qt.AlignTop
+            // Valor atual (modo largo) ou um valor fora dos presets (ex.:
+            // repeticao 25/600 do hyprland.conf) em qualquer modo
+            visible: !root.compact || (!root.currentOption && root.current !== "")
+            text: root.busy ? qsTr("Applying…") : (root.currentOption?.label ?? (root.current !== "" ? qsTr("Custom") : ""))
+            color: Colours.palette.m3primary
+            font: Tokens.font.label.medium
         }
 
         StyledRect {
             id: pill
 
-            Layout.fillWidth: true
+            Layout.row: root.compact ? 0 : 1
+            Layout.column: root.compact ? 1 : 0
+            Layout.columnSpan: root.compact ? 1 : 2
+            Layout.fillWidth: !root.compact
+            Layout.preferredWidth: root.compact ? root.chipsNaturalWidth : -1
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             implicitHeight: chips.implicitHeight + Tokens.padding.small * 2
             color: Colours.tPalette.m3surfaceContainerHigh
             radius: Tokens.rounding.full
@@ -119,7 +138,7 @@ ConnectedRect {
                         readonly property bool isCurrent: root.current === modelData.value
                         readonly property color fg: isCurrent ? Colours.palette.m3onPrimary : Colours.palette.m3onSurfaceVariant
 
-                        Layout.fillWidth: true
+                        Layout.fillWidth: !root.compact
                         implicitWidth: chipRow.implicitWidth + Tokens.padding.medium * 2
                         implicitHeight: chipRow.implicitHeight + Tokens.padding.small * 2
                         radius: Tokens.rounding.full

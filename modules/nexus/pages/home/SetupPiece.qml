@@ -27,16 +27,21 @@ Item {
     required property real cm
     property real ox: 0
     property real oy: 0
+    // Anima mudancas de posicao (desligado enquanto o diagrama ainda monta)
+    property bool animate: true
     // Linha da mesa (cm): soltar a peca com a base a ate 2 cm dela encosta nela
     property real deskCm: 1e9
     property string label
+    // Aparelho (entra na legenda do hover e cresce no hover); mesa, mesinha e
+    // mousepad nao sao
+    property bool device: true
     property bool editing
     property bool online: true
     property bool showOffline
 
     readonly property real xCm: root.layout[root.key]?.x ?? root.defX
     readonly property real yCm: root.layout[root.key]?.y ?? root.defY
-    readonly property bool hovered: hit.containsMouse && !root.editing
+    readonly property bool hovered: root.device && hit.containsMouse && !root.editing
     property bool held
 
     default property alias content: inner.data
@@ -59,13 +64,13 @@ Item {
     onHoveredChanged: root.hover(root.label, root.hovered)
 
     Behavior on x {
-        enabled: !root.held
+        enabled: root.animate && !root.held
 
         Anim {}
     }
 
     Behavior on y {
-        enabled: !root.held
+        enabled: root.animate && !root.held
 
         Anim {}
     }

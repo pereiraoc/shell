@@ -27,6 +27,13 @@ ColumnLayout {
     readonly property var mouse: (root.bridge.info.mice ?? []).find(m => m.model === root.model) ?? null
     readonly property bool asleep: !!root.mouse?.asleep
     readonly property var buttons: root.mouse?.buttons ?? []
+    // Estagios do perfil (+ o DPI atual se estiver fora deles), para os chips
+    readonly property var stageList: {
+        const st = [...(root.mouse?.dpi_stages ?? [])];
+        if (root.mouse?.dpi && !st.includes(root.mouse.dpi))
+            st.push(root.mouse.dpi);
+        return st.sort((a, b) => a - b);
+    }
     readonly property var sideButtons: root.buttons.filter(b => b.group === "side")
     readonly property var otherButtons: root.buttons.filter(b => b.group !== "side" && !b.locked)
     property string selected
@@ -411,15 +418,47 @@ ColumnLayout {
             onRemove: n => root.run(`prof-${root.mouse.model}-del-${n}`)
         }
 
+        // ------------------------------------------------------ Silhueta
+        // Mesmo bloco dos teclados: a silhueta, a dica/estado embaixo e o
+        // cartao do botao escolhido. Mouses sem desenho em assets/mice ficam
+        // com as grades de botoes na secao Buttons.
+        MouseDiagram {
+            id: diagram
+
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.medium
+            Layout.bottomMargin: Tokens.spacing.small
+            model: root.mouse?.model ?? ""
+            buttons: root.buttons
+            selected: root.selButton?.id ?? ""
+            labeler: b => root.spotLabel(b)
+            onPicked: id => root.toggle(id)
+        }
+
+        // Botao sob o mouse (ou o escolhido): nome e o que faz agora
+        StyledText {
+            readonly property var shown: root.buttons.find(b => b.id === diagram.hovered) ?? root.selButton
+
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.small
+            // Sempre ocupa o lugar (nada pula ao passar de um botao a outro)
+            visible: diagram.available
+            horizontalAlignment: Text.AlignHCenter
+            text: shown ? `${root.buttonName(shown)} · ${root.nowText(shown)}${shown.locked ? " · " + qsTr("locked") : ""}` : qsTr("Tap a button to see what it does and change it")
+            color: diagram.hovered ? Colours.palette.m3onSurface : Colours.palette.m3outline
+            font: Tokens.font.label.small
+            elide: Text.ElideRight
+        }
+
         // ------------------------------------------------------- Botoes
         SectionHeader {
-            visible: root.buttons.length > 0
+            visible: root.buttons.length > 0 && !diagram.available
             text: qsTr("Buttons")
         }
 
         ConnectedRect {
             Layout.fillWidth: true
-            visible: root.buttons.length > 0
+            visible: root.buttons.length > 0 && !diagram.available
             first: true
             implicitHeight: btnCol.implicitHeight + Tokens.padding.large * 2
 
@@ -435,37 +474,10 @@ ColumnLayout {
 
                 StyledText {
                     Layout.fillWidth: true
-                    text: diagram.available ? qsTr("Click a button on the mouse, then pick what it does. Highlighted buttons are remapped. Remaps apply right away and only to this mouse; holding Ctrl, Alt or Super keeps the original key.") : qsTr("Pick a button, then what it does. Remaps apply right away and only to this mouse; holding Ctrl, Alt or Super keeps the original key.")
+                    text: qsTr("Pick a button, then what it does")
                     color: Colours.palette.m3outline
                     font: Tokens.font.label.small
                     wrapMode: Text.WordWrap
-                }
-
-                // Silhueta clicavel (mouses com desenho em assets/mice); os
-                // outros ficam com as grades de botoes abaixo
-                MouseDiagram {
-                    id: diagram
-
-                    Layout.fillWidth: true
-                    model: root.mouse?.model ?? ""
-                    buttons: root.buttons
-                    selected: root.selButton?.id ?? ""
-                    labeler: b => root.spotLabel(b)
-                    onPicked: id => root.toggle(id)
-                }
-
-                // Botao sob o mouse (ou o escolhido): nome e o que faz agora
-                StyledText {
-                    readonly property var shown: root.buttons.find(b => b.id === diagram.hovered) ?? root.selButton
-
-                    Layout.fillWidth: true
-                    // Sempre ocupa o lugar (nada pula ao passar de um botao a outro)
-                    visible: diagram.available
-                    horizontalAlignment: Text.AlignHCenter
-                    text: shown ? `${root.buttonName(shown)} · ${root.nowText(shown)}${shown.locked ? " · " + qsTr("locked") : ""}` : qsTr("Point at a button to see what it does, click it to change it")
-                    color: diagram.hovered ? Colours.palette.m3onSurface : Colours.palette.m3outline
-                    font: Tokens.font.label.medium
-                    elide: Text.ElideRight
                 }
 
                 // Grade lateral, na mesma disposicao do mouse (3 x 4)
@@ -543,6 +555,7 @@ ColumnLayout {
         ConnectedRect {
             Layout.fillWidth: true
             visible: !!root.selButton
+            first: diagram.available
             implicitHeight: pickCol.implicitHeight + Tokens.padding.large * 2
 
             ColumnLayout {
@@ -740,19 +753,34 @@ ColumnLayout {
         }
 
         RowButton {
+            first: !root.selButton && diagram.available
             last: true
             visible: root.buttons.length > 0
             icon: "restart_alt"
             text: qsTr("Reset all buttons")
-            subtext: qsTr("Every button goes back to what the mouse does by itself")
+            subtext: qsTr("Back to what the mouse does by itself. Remaps apply at once, only here; Ctrl, Alt or Super held keeps the original key.")
             disabled: !root.buttons.some(b => b.action !== "default")
             onClicked: root.run(`btn-${root.mouse.model}-reset`)
         }
 
-        // ------------------------------------------------- Estagios de DPI
+        // ------------------------------------------------- Sensibilidade
+        // DPI em uso, os estagios do perfil e a taxa de polling, juntos
         SectionHeader {
-            visible: !!root.mouse?.can_set_stages && root.stages.length > 0
-            text: qsTr("DPI stages")
+            visible: root.stageList.length > 0 || root.mouse?.poll_rate != null
+            text: qsTr("Sensitivity")
+        }
+
+        ChipSelectRow {
+            first: true
+            last: !(root.mouse?.can_set_stages && root.stages.length > 0) && !(root.mouse?.poll_rate != null && (root.mouse?.poll_choices ?? []).length > 0)
+            visible: root.stageList.length > 0
+            label: qsTr("DPI")
+            subtext: qsTr("Set in the mouse itself — the same in every app and game. The DPI button on the mouse cycles these stages.")
+            options: root.stageList.map(d => ({ value: String(d), label: d >= 1000 ? `${d / 1000}k` : String(d) }))
+            current: String(root.mouse?.dpi ?? "")
+            disabled: root.asleep
+            busy: root.bridge.busyAction.startsWith(`dpi-${root.mouse?.id}-`)
+            onPicked: v => root.run(`dpi-${root.mouse.id}-${v}`)
         }
 
         // Uma barra so: pontos arrastaveis (reordenam ao soltar), clique no
@@ -761,8 +789,8 @@ ColumnLayout {
         ConnectedRect {
             Layout.fillWidth: true
             visible: !!root.mouse?.can_set_stages && root.stages.length > 0
-            first: true
-            last: true
+            first: root.stageList.length === 0
+            last: !(root.mouse?.poll_rate != null && (root.mouse?.poll_choices ?? []).length > 0)
             implicitHeight: dpiCol.implicitHeight + Tokens.padding.large * 2
 
             ColumnLayout {
@@ -812,6 +840,19 @@ ColumnLayout {
                     }
                 }
             }
+        }
+
+        ChipSelectRow {
+            first: root.stageList.length === 0 && !(root.mouse?.can_set_stages && root.stages.length > 0)
+            last: true
+            visible: root.mouse?.poll_rate != null && (root.mouse?.poll_choices ?? []).length > 0
+            label: qsTr("Polling rate")
+            subtext: qsTr("Higher is smoother and more responsive, and uses more battery")
+            options: (root.mouse?.poll_choices ?? []).map(h => ({ value: String(h), label: `${h} Hz` }))
+            current: String(root.mouse?.poll_rate ?? "")
+            disabled: root.asleep
+            busy: root.bridge.busyAction.startsWith(`poll-${root.mouse?.id}-`)
+            onPicked: v => root.run(`poll-${root.mouse.id}-${v}`)
         }
 
         // ------------------------------------------------------- Energia
