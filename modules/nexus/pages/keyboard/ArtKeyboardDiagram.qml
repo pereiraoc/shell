@@ -26,6 +26,10 @@ Item {
     required property var special
     property string selected
     property var lighting: null
+    // Luz atras das teclas: quanto a celula ultrapassa o keycap (fracao da
+    // altura) e quanto ela acende -- o teclado do notebook e mais leve
+    property real glowPad: 0.07
+    property real glowAlpha: 0.5
     readonly property bool lit: !!root.lighting && !root.lighting.off
     readonly property bool animated: root.lit && root.lighting.mode !== "Static"
     readonly property var litColors: root.lit ? Lit.colors(root.lighting) : []
@@ -75,7 +79,7 @@ Item {
 
                 required property var modelData
                 required property int index
-                readonly property real pad: cell.modelData.h * 0.07
+                readonly property real pad: cell.modelData.h * root.glowPad
                 readonly property var glow: root.lit && root.lightable(cell.modelData) ? Lit.sample(root.lighting, root.litColors, (cell.modelData.x + cell.modelData.w / 2) / root.art.W, (cell.modelData.y + cell.modelData.h / 2) / root.art.H, cell.index, root.phase) : null
 
                 x: cell.modelData.x - cell.pad
@@ -83,7 +87,8 @@ Item {
                 width: cell.modelData.w + cell.pad * 2
                 height: cell.modelData.h + cell.pad * 2
                 radius: cell.pad * 1.5
-                color: cell.glow ? Qt.alpha(cell.glow.c, 0.06 + 0.5 * cell.glow.k) : "transparent"
+                antialiasing: true
+                color: cell.glow ? Qt.alpha(cell.glow.c, 0.06 + root.glowAlpha * cell.glow.k) : "transparent"
             }
         }
 
@@ -133,7 +138,7 @@ Item {
                 readonly property bool active: key.special && key.modelData.id === root.selected
                 readonly property var glow: root.lit && root.lightable(key.modelData) ? Lit.sample(root.lighting, root.litColors, (key.modelData.x + key.modelData.w / 2) / root.art.W, (key.modelData.y + key.modelData.h / 2) / root.art.H, key.index, root.phase) : null
                 // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
-                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(root.ink, key.glow.c, 0.25 + 0.75 * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
+                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + 0.85 * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
 
                 x: key.modelData.x
                 y: key.modelData.y
@@ -149,7 +154,12 @@ Item {
                     width: key.modelData.f[2]
                     height: key.modelData.f[3]
                     radius: Math.min(width, height) * 0.08
-                    color: key.plain ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : Colours.palette.m3surface) : key.active ? Colours.palette.m3tertiary : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
+                    antialiasing: true
+                    // O visor fica por cima da arte: a tela e escura, so a moldura aparece
+                    z: key.modelData.id === "oled" ? 1 : 0
+                    color: key.modelData.d === "" ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : "transparent") : key.plain ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : Colours.palette.m3surface) : key.active ? Colours.palette.m3tertiary : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
+                    border.width: key.modelData.d === "" ? 2 : 0
+                    border.color: key.active ? Colours.palette.m3tertiary : Qt.alpha(root.ink, 0.55)
                 }
 
                 Shape {

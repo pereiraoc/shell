@@ -9,8 +9,7 @@ import qs.services
 // padrao), em cm; com `editing` arrasta-se (encaixa em 0,5 cm) e ao soltar
 // sai `moved(key, xCm, yCm)`; fora da edicao, clique = `clicked`. Passar o
 // mouse avisa o diagrama (`hover`), que mostra o nome na legenda embaixo --
-// nada escrito na peca antes disso -- e as pecas pequenas (fones, mouses)
-// crescem um pouco para dar para ver o que sao. Na edicao o nome fica
+// nada escrito na peca antes disso. Na edicao o nome fica
 // escrito na propria peca (senao nao se sabe o que se esta movendo). `ox`/`oy`
 // deslocam o mundo (cm) quando o diagrama encaixa o conteudo na largura.
 Item {
@@ -56,10 +55,7 @@ Item {
     y: (root.yCm + root.oy) * root.cm
     width: root.wCm * root.cm
     height: root.hCm * root.cm
-    z: root.held ? 3 : root.hovered ? 2 : 0
-    // Pecas pequenas crescem no hover: um estojo de 5 cm nao se le em 20 px
-    scale: root.hovered && root.wCm < 15 ? 1.6 : 1
-    transformOrigin: Item.Center
+    z: root.held ? 3 : 0
 
     onHoveredChanged: root.hover(root.label, root.hovered)
 
@@ -72,10 +68,6 @@ Item {
     Behavior on y {
         enabled: root.animate && !root.held
 
-        Anim {}
-    }
-
-    Behavior on scale {
         Anim {}
     }
 

@@ -5,8 +5,24 @@ import json, sys, cv2, numpy as np
 sys.path.insert(0, ".")
 from trace import load, contours, path
 
+def rrect_pts(x, y, w, h, r, n=6):
+    """Retangulo arredondado como poligono (cantos com n passos)."""
+    import math
+    pts = []
+    for cx, cy, a0 in ((x + w - r, y + r, -90), (x + w - r, y + h - r, 0), (x + r, y + h - r, 90), (x + r, y + r, 180)):
+        for k in range(n + 1):
+            a = math.radians(a0 + 90 * k / n)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+def ring_pts(x, y, w, h, lw, r):
+    """Anel (contorno) de espessura lw: dois poligonos, evenodd."""
+    return [rrect_pts(x, y, w, h, r), rrect_pts(x + lw, y + lw, w - 2 * lw, h - 2 * lw, max(1, r - lw))]
+
 def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=2):
+    from trace import line_width
     bw, w, h, K = load(src, K, crop, edge)
+    line_w = max(1.5, line_width(bw, K))
     cs = contours(bw, K)
     def is_key(i):
         c = cs[i]
@@ -40,11 +56,15 @@ def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=
         parts = groups[i]
         outline_only = not tops
         if outline_only:
-            # o contorno da tecla e um anel grosso do chassis (teclas "em
-            # destaque" no desenho): o que sobra e a serigrafia, e o topo e a
-            # propria caixa (o = true: o QML nao desenha borda propria)
+            # o contorno da tecla e um anel grosso de destaque do desenho (vai
+            # para fora com o chassis): fica a serigrafia e um anel sintetico
+            # da mesma espessura das outras teclas, para nao destoar
             parts = [c for c in parts if c is not cs[i]]
-            f = (x, y, bw_, bh)
+            ring = ring_pts(x, y, bw_, bh, line_w, min(bw_, bh) * 0.12)
+            parts = [{"pts": p} for p in ring] + parts
+            ins = min(bw_, bh) * 0.1
+            f = (x + ins, y + ins, bw_ - 2 * ins, bh - 2 * ins)
+            outline_only = False
         else:
             x0 = min(c["box"][0] for c in tops); y0 = min(c["box"][1] for c in tops)
             x1 = max(c["box"][0] + c["box"][2] for c in tops); y1 = max(c["box"][1] + c["box"][3] for c in tops)
@@ -55,6 +75,13 @@ def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=
         if outline_only:
             k["o"] = True
         ks.append(k)
+    # aneis de destaque do desenho em volta de teclas (o \ e o Enter do G16)
+    # nao sao chassis: fora
+    def frames_key(c):
+        x0, y0, w0, h0 = c["box"]
+        return any(x0 - 14 <= k["x"] and y0 - 14 <= k["y"] and k["x"] + k["w"] <= x0 + w0 + 14 and k["y"] + k["h"] <= y0 + h0 + 14
+                   and w0 < 3.2 * k["w"] and h0 < 3.2 * k["h"] for k in ks)
+    rest = [c for c in rest if not frames_key(c)]
     # chassis tambem como caixas (contornos sem tecla), para quem prefere
     # contornos finos em vez da arte (o QSG do Azoth tem bordas grossas)
     rects = []
