@@ -3,18 +3,24 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Widgets
 import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
 import qs.components.filedialog
+import qs.utils
 
 Item {
     id: root
 
     required property ScreenState screenState
     required property FileDialog facePicker
+
+    // Aba Launch: ~/.config/caelestia/shortcuts.json e games.json (caelestia-games)
+    property list<var> shortcuts: []
+    property list<var> games: []
 
     readonly property var dashboardTabs: {
         const allTabs = [
@@ -41,6 +47,14 @@ Item {
                 iconName: "cloud",
                 text: Tr.tr("Weather"),
                 enabled: Config.dashboard.showWeather
+            },
+            {
+                // Atalhos e jogos (V3-02/03); sempre presente: inserir aba depois do
+                // load desalinhava a barra de abas
+                component: launchComponent,
+                iconName: "rocket_launch",
+                text: Tr.tr("Launch"),
+                enabled: true
             }
         ];
         return allTabs.filter(tab => tab.enabled);
@@ -182,6 +196,16 @@ Item {
                 WeatherTab {}
             }
 
+            Component {
+                id: launchComponent
+
+                LaunchTab {
+                    screenState: root.screenState
+                    shortcuts: root.shortcuts
+                    games: root.games
+                }
+            }
+
             Behavior on contentX {
                 Anim {}
             }
@@ -194,5 +218,35 @@ Item {
 
     Behavior on implicitHeight {
         Anim {}
+    }
+
+    FileView {
+        path: `${Paths.config}/shortcuts.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.shortcuts = (JSON.parse(text()).shortcuts ?? []).filter(x => x && x.command && x.enabled !== false);
+            } catch (e) {
+                root.shortcuts = [];
+            }
+        }
+        onLoadFailed: root.shortcuts = []
+    }
+
+    FileView {
+        path: `${Paths.config}/games.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.games = (JSON.parse(text()).favourites ?? []).filter(x => x && x.appid);
+            } catch (e) {
+                root.games = [];
+            }
+        }
+        onLoadFailed: root.games = []
     }
 }

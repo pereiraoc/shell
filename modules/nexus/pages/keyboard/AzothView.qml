@@ -73,6 +73,10 @@ ColumnLayout {
 
     // Silhueta: previa da luz + teclas da camada Fn
     ArtKeyboardDiagram {
+        // Previa sutil (usuario 19/10: "muito grande"): halo fino e fraco, serigrafia so tingida
+        glowPad: 0.03
+        glowAlpha: 0.2
+        inkMix: 0.5
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small

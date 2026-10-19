@@ -100,24 +100,6 @@ GridLayout {
         }
     }
 
-    // Atalhos e jogos (V3-02/03): faixa embaixo de tudo, some quando vazia
-    Rect {
-        Layout.row: 2
-        Layout.columnSpan: 6
-        Layout.fillWidth: true
-        Layout.preferredHeight: quickLaunch.implicitHeight
-        visible: !quickLaunch.empty
-
-        radius: Tokens.rounding.extraLarge
-
-        QuickLaunch {
-            id: quickLaunch
-
-            anchors.fill: parent
-            screenState: root.screenState
-        }
-    }
-
     component Rect: StyledRect {
         color: Colours.tPalette.m3surfaceContainer
     }

@@ -34,6 +34,8 @@ Item {
     // altura) e quanto ela acende -- o teclado do notebook e mais leve
     property real glowPad: 0.07
     property real glowAlpha: 0.5
+    // Quanto da cor da luz vai para a serigrafia/contorno aceso (0..1)
+    property real inkMix: 0.85
     readonly property bool lit: !!root.lighting && !root.lighting.off
     readonly property bool animated: root.lit && root.lighting.mode !== "Static"
     readonly property var litColors: root.lit ? Lit.colors(root.lighting) : []
@@ -142,7 +144,7 @@ Item {
                 readonly property bool active: key.special && key.modelData.id === root.selected
                 readonly property var glow: root.lit && root.lightable(key.modelData) ? Lit.sample(root.lighting, root.litColors, (key.modelData.x + key.modelData.w / 2) / root.art.W, (key.modelData.y + key.modelData.h / 2) / root.art.H, key.index, root.phase) : null
                 // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
-                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + 0.85 * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
+                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + root.inkMix * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
 
                 x: key.modelData.x
                 y: key.modelData.y
