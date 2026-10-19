@@ -24,7 +24,7 @@ var FN = {
     f10: { legend: "VOL−", fn: "Volume down", icon: "volume_down", host: true },
     f11: { legend: "VOL+", fn: "Volume up", icon: "volume_up", host: true },
     f12: { legend: "STEALTH", fn: "Stealth: mutes the microphone and the speakers at once", icon: "headset_off", host: true },
-    p: { legend: "PRTSC", fn: "Print screen", icon: "screenshot_region", host: true },
+    p: { legend: "PRTSC", fn: "Print screen: captures a region to the clipboard (same as Super + Shift + S)", icon: "screenshot_region", host: true },
     rctrl: { legend: "MENU", fn: "Menu (context menu, like right-clicking)", icon: "menu", host: true },
     k1: { legend: "I", fn: "Profile 1", icon: "looks_one" }, k2: { legend: "II", fn: "Profile 2", icon: "looks_two" }, k3: { legend: "III", fn: "Profile 3", icon: "looks_3" },
     k4: { legend: "IV", fn: "Profile 4", icon: "looks_4" }, k5: { legend: "V", fn: "Profile 5", icon: "looks_5" }, k6: { legend: "DEFAULT", fn: "Default profile", icon: "looks_6" },
