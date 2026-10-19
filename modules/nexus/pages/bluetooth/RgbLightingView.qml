@@ -24,6 +24,8 @@ ColumnLayout {
     required property string deviceId
     // ToolBridge do caelestia-peripherals de quem embute (um so por pagina)
     required property var bridge
+    // Dentro da aba do teclado a silhueta ja mostra a previa: sem a barra de cor
+    property bool embedded
 
     readonly property var dev: (root.bridge.info.rgb ?? []).find(d => d.id === root.deviceId) ?? null
     readonly property var caps: root.dev?.caps ?? ({})
@@ -267,6 +269,7 @@ ColumnLayout {
 
                 Rectangle {
                     Layout.fillWidth: true
+                    visible: !root.embedded
                     implicitHeight: Tokens.padding.large * 1.6
                     radius: Tokens.rounding.small
                     opacity: root.off ? 0.15 : 0.35 + 0.65 * root.brightness / 100

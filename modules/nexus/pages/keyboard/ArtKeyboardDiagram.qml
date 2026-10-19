@@ -1,0 +1,157 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Shapes
+import Caelestia.Config
+import qs.services
+import "keyLighting.js" as Lit
+
+// Diagrama de um teclado a partir do desenho do fabricante (azothArt.js /
+// g16Art.js, gerados do QSG / da silhueta): o chassis e cada keycap sao a
+// arte original, vetorizada, pintada na cor do tema. A luz (`lighting`, o
+// rascunho da RgbLightingView) aparece como num teclado de verdade: no vao
+// entre os keycaps e no bisel de cada um (a celula atras da tecla acende) e
+// na serigrafia (a arte do keycap toma a cor da luz); o topo do keycap fica
+// opaco. Teclas em `special` sao clicaveis (`picked`); a escolhida ganha o
+// topo em tertiary.
+Item {
+    id: root
+
+    // Biblioteca da arte: { W, H, CHASSIS, KEYS: [{ id, x, y, w, h, f, d }] }
+    required property var art
+    // ids clicaveis
+    required property var special
+    property string selected
+    property var lighting: null
+    readonly property bool lit: !!root.lighting && !root.lighting.off
+    readonly property bool animated: root.lit && root.lighting.mode !== "Static"
+    readonly property var litColors: root.lit ? Lit.colors(root.lighting) : []
+    // 0..1 = uma volta do efeito; a velocidade do aparelho encurta a volta
+    property real phase: 0
+    readonly property real k: root.width > 0 ? root.width / root.art.W : 0
+    readonly property color ink: Colours.palette.m3onSurfaceVariant
+    // Topo do keycap: um tom acima do fundo da pagina, para ler como peca
+    readonly property color face: Colours.palette.m3surfaceContainerLow
+
+    signal picked(id: string)
+
+    // Visor e knob nao acendem; teclas sem o topo separado no desenho
+    // (contorno colado no vizinho) ganham um contorno simples
+    function lightable(key: var): bool {
+        return key.d !== "" && key.id !== "oled" && key.id !== "knob";
+    }
+
+    function hasFace(key: var): bool {
+        return key.f[0] > 0 || key.f[1] > 0;
+    }
+
+    implicitHeight: root.art.H * root.k
+
+    NumberAnimation on phase {
+        from: 0
+        to: 1
+        loops: Animation.Infinite
+        duration: Math.round(8000 * 50 / Math.max(10, root.lighting?.speed ?? 50))
+        running: root.animated && root.visible
+    }
+
+    // Tudo desenhado nas unidades da arte e escalado de uma vez
+    Item {
+        width: root.art.W
+        height: root.art.H
+        scale: root.k
+        transformOrigin: Item.TopLeft
+
+        // Luz atras de cada tecla: a celula um pouco maior que o keycap, para
+        // o vao entre teclas acender
+        Repeater {
+            model: root.art.KEYS
+
+            Rectangle {
+                id: cell
+
+                required property var modelData
+                required property int index
+                readonly property real pad: cell.modelData.h * 0.07
+                readonly property var glow: root.lit && root.lightable(cell.modelData) ? Lit.sample(root.lighting, root.litColors, (cell.modelData.x + cell.modelData.w / 2) / root.art.W, (cell.modelData.y + cell.modelData.h / 2) / root.art.H, cell.index, root.phase) : null
+
+                x: cell.modelData.x - cell.pad
+                y: cell.modelData.y - cell.pad
+                width: cell.modelData.w + cell.pad * 2
+                height: cell.modelData.h + cell.pad * 2
+                radius: cell.pad * 1.5
+                color: cell.glow ? Qt.alpha(cell.glow.c, 0.06 + 0.5 * cell.glow.k) : "transparent"
+            }
+        }
+
+        Shape {
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                fillColor: root.ink
+                strokeWidth: -1
+                fillRule: ShapePath.OddEvenFill
+
+                PathSvg {
+                    path: root.art.CHASSIS
+                }
+            }
+        }
+
+        Repeater {
+            model: root.art.KEYS
+
+            Item {
+                id: key
+
+                required property var modelData
+                required property int index
+                readonly property bool special: root.special.includes(key.modelData.id)
+                readonly property bool active: key.special && key.modelData.id === root.selected
+                readonly property var glow: root.lit && root.lightable(key.modelData) ? Lit.sample(root.lighting, root.litColors, (key.modelData.x + key.modelData.w / 2) / root.art.W, (key.modelData.y + key.modelData.h / 2) / root.art.H, key.index, root.phase) : null
+                // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
+                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(root.ink, key.glow.c, 0.25 + 0.75 * key.glow.k) : key.special ? Colours.palette.m3tertiary : root.ink
+
+                x: key.modelData.x
+                y: key.modelData.y
+                width: key.modelData.w
+                height: key.modelData.h
+
+                // Topo do keycap: opaco (a luz nao atravessa o plastico), com o
+                // destaque das teclas clicaveis / da escolhida
+                Rectangle {
+                    x: key.modelData.f[0]
+                    y: key.modelData.f[1]
+                    width: key.modelData.f[2]
+                    height: key.modelData.f[3]
+                    radius: Math.min(width, height) * 0.08
+                    color: key.modelData.id === "oled" ? Colours.palette.m3surfaceContainerHighest : key.active ? Colours.palette.m3tertiary : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
+                    border.width: root.hasFace(key.modelData) ? 0 : 2
+                    border.color: key.inkNow
+                }
+
+                Shape {
+                    visible: root.hasFace(key.modelData)
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        fillColor: key.inkNow
+                        strokeWidth: -1
+                        fillRule: ShapePath.OddEvenFill
+
+                        PathSvg {
+                            path: key.modelData.d
+                        }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: key.special
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.picked(key.modelData.id)
+                }
+            }
+        }
+    }
+}

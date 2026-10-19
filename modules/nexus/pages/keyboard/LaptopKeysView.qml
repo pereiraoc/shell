@@ -10,6 +10,7 @@ import qs.services
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.bluetooth
 import "laptopLayout.js" as Lk
+import "g16Art.js" as G16Art
 
 // Aba Laptop de Keyboard, de cima para baixo: o que o teclado controla agora
 // (touchpad, monitores), a silhueta do GU603 com a previa da luz e as teclas
@@ -86,12 +87,12 @@ ColumnLayout {
     }
 
     // Silhueta: previa da luz + teclas especiais
-    KeyboardDiagram {
+    ArtKeyboardDiagram {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small
-        keys: Lk.keys()
-        size: Lk.size()
+        art: ({ W: G16Art.W, H: G16Art.H, CHASSIS: G16Art.CHASSIS, KEYS: G16Art.KEYS })
+        special: Lk.SPECIAL
         selected: root.selected
         lighting: root.laptopRgb ? lights.preview : null
         onPicked: id => root.selected = root.selected === id ? "" : id
@@ -209,6 +210,7 @@ ColumnLayout {
         id: lights
 
         visible: !!root.laptopRgb
+        embedded: true
         deviceId: root.laptopRgb?.id ?? ""
         bridge: root.peripherals
     }

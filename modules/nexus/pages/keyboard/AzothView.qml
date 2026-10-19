@@ -9,6 +9,7 @@ import qs.services
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.bluetooth
 import "azothLayout.js" as Az
+import "azothArt.js" as AzArt
 
 // Aba do ROG Azoth em Keyboard, de cima para baixo: bateria e como esta ligado,
 // a silhueta (75 %, OLED + knob no canto) com a previa da luz e as teclas da
@@ -71,12 +72,12 @@ ColumnLayout {
     }
 
     // Silhueta: previa da luz + teclas da camada Fn
-    KeyboardDiagram {
+    ArtKeyboardDiagram {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small
-        keys: Az.keys()
-        size: Az.size()
+        art: ({ W: AzArt.W, H: AzArt.H, CHASSIS: AzArt.CHASSIS, KEYS: AzArt.KEYS })
+        special: Az.SPECIAL
         selected: root.selected
         lighting: lights.preview
         onPicked: id => root.selected = root.selected === id ? "" : id
@@ -153,6 +154,7 @@ ColumnLayout {
     RgbLightingView {
         id: lights
 
+        embedded: true
         deviceId: root.device.id
         bridge: root.bridge
     }

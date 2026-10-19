@@ -6,13 +6,16 @@ import Caelestia.Config
 import qs.components
 import qs.components.effects
 import qs.services
-import qs.modules.nexus.pages.display
 
 // O setup visto de frente, no traco dos outros diagramas: os monitores
-// externos atras (na ordem do arranjo do Hyprland), a mesa, e sobre ela --
-// da esquerda para a direita -- os controles, o notebook aberto no suporte,
-// o mousepad grande com o Azoth e os mouses, os fones nas caixinhas e o
-// headphone no suporte. Tamanhos proporcionais (cm reais, 1 cm = width/190).
+// externos atras (silhueta do LG com o pe), a mesa, e sobre ela os controles,
+// o mousepad com o Azoth e os mouses, as caixinhas dos fones, o headphone no
+// suporte e o notebook aberto (silhueta do G16), do lado em que ele esta no
+// arranjo do Hyprland. Tamanhos reais em cm (1 cm = width/190):
+//   LG 25" ultrawide 58 x 24 cm de tela (EDID), ~59 cm com a moldura;
+//   G16 35,5 x 24,3 cm (tela 35 x 22); Azoth 32,6 x 13,6; Naga 12 x 7,5;
+//   Atheris 10 x 6,3; WH-1000XM5 21,7 cm de largura; WF-1000XM5 (estojo)
+//   6,5 x 4; FreeClip 2 (estojo) 5 x 5; controle Xbox 15,3 x 10,2.
 // Cada aparelho e clicavel (`open(page, tab)`); o que esta desligado so
 // aparece com `showOffline`, apagado.
 Item {
@@ -31,46 +34,92 @@ Item {
     property bool showOffline
 
     readonly property real cm: root.width / 190
-    readonly property real deskY: 42 * root.cm
+    readonly property real deskY: 50 * root.cm
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
+    readonly property real dpr: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
 
-    // Monitores externos, da esquerda para a direita como no Hyprland
-    readonly property var externals: root.monitors.filter(m => !m.internal && m.enabled).sort((a, b) => Number(a.position.split("x")[0]) - Number(b.position.split("x")[0]))
+    // Monitores externos ligados, da esquerda para a direita como no Hyprland
+    readonly property var externals: root.monitors.filter(m => !m.internal && m.enabled).sort((a, b) => root.posX(a) - root.posX(b))
+    readonly property var laptop: root.monitors.find(m => m.internal) ?? null
+    // O notebook fica do lado em que esta no arranjo (a direita do LG, hoje)
+    readonly property bool laptopRight: !root.laptop || root.externals.length === 0 || root.posX(root.laptop) >= Math.max(...root.externals.map(m => root.posX(m)))
+    // Faixa da mesa que sobra para o resto (controles, mousepad, fones)
+    readonly property real zoneX: root.laptopRight ? 0 : 40 * root.cm
+    readonly property real zoneW: 150 * root.cm
 
     signal open(page: string, tab: string)
+
+    function posX(m: var): real {
+        return Number((m.position ?? "0x0").split("x")[0]);
+    }
 
     function visibleFor(on: bool): bool {
         return on || root.showOffline;
     }
 
-    implicitHeight: 92 * root.cm
+    implicitHeight: 76 * root.cm
 
     // ------------------------------------------------------------ monitores
-    Row {
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: 2 * root.cm
-        spacing: 6 * root.cm
+    // LG com o pe apoiado na mesa, centrado sobre o mousepad
+    Repeater {
+        model: root.externals.length
 
-        Repeater {
-            model: root.externals.length
+        Item {
+            id: ext
 
-            MonitorOutline {
-                required property int index
-                // 2560 px logicos ~ 80 cm (34" ultrawide); outros tamanhos na proporcao
-                readonly property real pxCm: 80 / 2560
+            required property int index
+            readonly property var mon: root.externals[index] ?? ({})
+            readonly property bool lg: /LG ULTRAWIDE/i.test(ext.mon.description ?? "")
+            readonly property real wCm: ext.lg ? 59 : 59
+            readonly property real hCm: ext.lg ? 59 * 754 / 1285 : 59 * 0.56
 
-                mon: root.externals[index] ?? ({})
-                label: (mon.description ?? mon.name ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
-                sublabel: ""
-                width: Number((mon.logical ?? "2560x1080").split("x")[0]) * pxCm * root.cm
-                height: Number((mon.logical ?? "2560x1080").split("x")[1]) * pxCm * root.cm
+            x: root.zoneX + (30 + ext.index * 62) * root.cm
+            y: root.deskY - ext.hCm * root.cm + 1
+            width: ext.wCm * root.cm
+            height: ext.hCm * root.cm
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.open("display", parent.mon.name)
+            Image {
+                id: lgArt
+
+                anchors.fill: parent
+                visible: ext.lg
+                source: Quickshell.shellPath("assets/devices/lg-25-ultrawide-stand.svg")
+                fillMode: Image.PreserveAspectFit
+                sourceSize.width: lgArt.width * root.dpr
+                smooth: true
+                asynchronous: true
+
+                layer.enabled: true
+                layer.effect: Colouriser {
+                    colorizationColor: root.ink
+                    brightness: 1
                 }
+            }
+
+            // monitor sem silhueta propria: so o contorno
+            Rectangle {
+                anchors.fill: parent
+                anchors.bottomMargin: parent.height * 0.2
+                visible: !ext.lg
+                radius: 2 * root.cm
+                color: "transparent"
+                border.width: 1
+                border.color: root.ink
+            }
+
+            StyledText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: parent.height * 0.36
+                text: (ext.mon.description ?? ext.mon.name ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
+                color: root.ink
+                font: Tokens.font.label.medium
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.open("display", ext.mon.name)
             }
         }
     }
@@ -84,12 +133,12 @@ Item {
         color: root.ink
     }
 
-    // Mousepad grande (90 x 40 cm), visto de cima inclinado: um retangulo baixo
+    // Mousepad grande (80 x 30 cm) visto de cima, inclinado
     Rectangle {
-        x: 58 * root.cm
-        y: root.deskY + 4 * root.cm
-        width: 90 * root.cm
-        height: 20 * root.cm
+        x: root.zoneX + 22 * root.cm
+        y: root.deskY + 2 * root.cm
+        width: 80 * root.cm
+        height: 22 * root.cm
         radius: 2 * root.cm
         color: "transparent"
         border.width: 1
@@ -108,10 +157,10 @@ Item {
 
             visible: root.visibleFor(!!pad.dev.connected)
             opacity: pad.dev.connected ? 1 : 0.4
-            x: (2 + pad.index * 17) * root.cm
-            y: root.deskY + 8 * root.cm
-            width: 15 * root.cm
-            height: 10 * root.cm
+            x: root.zoneX + (2 + pad.index * 17) * root.cm
+            y: root.deskY + 6 * root.cm
+            width: 15.3 * root.cm
+            height: 10.2 * root.cm
 
             MaterialIcon {
                 anchors.centerIn: parent
@@ -129,91 +178,55 @@ Item {
     }
 
     // ----------------------------------------------------------- notebook
-    // Aberto a ~150 graus num suporte de 45 graus: a tela quase de frente, a
-    // base inclinada por baixo, o suporte em cunha
+    // Silhueta do G16 aberto (35,5 cm de largura), apoiado na mesa
     Item {
-        id: laptop
+        id: lap
 
-        readonly property var mon: root.monitors.find(m => m.internal) ?? null
+        readonly property real wCm: 35.5
+        readonly property real hCm: 35.5 * 1243 / 918
 
-        x: 20 * root.cm
-        y: root.deskY - 26 * root.cm
-        width: 35 * root.cm
-        height: 36 * root.cm
+        visible: !!root.laptop
+        opacity: root.laptop?.enabled ? 1 : 0.4
+        x: root.laptopRight ? root.width - (lap.wCm + 2) * root.cm : 2 * root.cm
+        y: root.deskY - lap.hCm * root.cm + 1
+        width: lap.wCm * root.cm
+        height: lap.hCm * root.cm
 
-        // suporte (cunha)
-        Canvas {
+        Image {
+            id: lapArt
+
             anchors.fill: parent
-            onPaint: {
-                const c = getContext("2d");
-                c.clearRect(0, 0, width, height);
-                c.strokeStyle = root.faint;
-                c.lineWidth = 1;
-                // cunha do suporte (45 graus), apoiada na mesa
-                c.beginPath();
-                c.moveTo(width * 0.22, height);
-                c.lineTo(width * 0.82, height);
-                c.lineTo(width * 0.82, height * 0.8);
-                c.closePath();
-                c.stroke();
-                // base do notebook deitada na cunha (vista de frente, inclinada)
-                c.strokeStyle = root.ink;
-                c.beginPath();
-                c.moveTo(width * 0.04, height * 0.8);
-                c.lineTo(width * 0.96, height * 0.8);
-                c.lineTo(width * 0.99, height * 0.66);
-                c.lineTo(width * 0.01, height * 0.66);
-                c.closePath();
-                c.stroke();
-            }
+            source: Quickshell.shellPath("assets/devices/rog-g16-open.svg")
+            fillMode: Image.PreserveAspectFit
+            sourceSize.width: lapArt.width * root.dpr
+            smooth: true
+            asynchronous: true
 
-            Connections {
-                function onInkChanged(): void {
-                    requestPaint();
-                }
-
-                target: root
+            layer.enabled: true
+            layer.effect: Colouriser {
+                colorizationColor: root.ink
+                brightness: 1
             }
         }
 
-        // tela (16", 34.5 x 21.5 cm) um pouco inclinada para tras
-        MonitorOutline {
-            x: 0
-            y: 0
-            width: parent.width
-            height: 21.5 * root.cm
-            mon: laptop.mon ?? ({ internal: true })
-            label: qsTr("Laptop")
-            sublabel: ""
-            dim: !laptop.mon?.enabled
-            transform: Rotation {
-                origin.x: laptop.width / 2
-                origin.y: 21.5 * root.cm
-                axis.x: 1
-                axis.y: 0
-                axis.z: 0
-                angle: -20
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.open("display", laptop.mon?.name ?? "")
-            }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.open("display", root.laptop?.name ?? "")
         }
     }
 
     // --------------------------------------------------------------- teclado
-    // Azoth (32.5 x 13.5 cm) no mousepad: contorno com a grade de teclas
+    // Azoth (32,6 x 13,6 cm) no mousepad: contorno com a grade de teclas
     Item {
         id: kbd
 
         visible: !!root.keyboard && root.visibleFor(!!root.keyboard.online)
         opacity: root.keyboard?.online ? 1 : 0.4
-        x: 64 * root.cm
-        y: root.deskY + 7 * root.cm
-        width: 32.5 * root.cm
-        height: 13.5 * root.cm
+        x: root.zoneX + 27 * root.cm
+        y: root.deskY + 6 * root.cm
+        width: 32.6 * root.cm
+        height: 13.6 * root.cm
 
         Rectangle {
             anchors.fill: parent
@@ -223,7 +236,6 @@ Item {
             border.color: root.ink
         }
 
-        // fileiras de teclas sugeridas
         Column {
             anchors.fill: parent
             anchors.margins: 1.2 * root.cm
@@ -272,7 +284,8 @@ Item {
     }
 
     // ---------------------------------------------------------------- mouses
-    // Naga (12 x 7.5 cm) e Atheris (10 x 6.3 cm), a direita do teclado
+    // Naga (12 x 7,5 cm, so o corpo: o painel lateral do desenho fica de
+    // fora) e Atheris (10 x 7,1 cm), a direita do teclado
     Repeater {
         model: root.mice.length
 
@@ -282,30 +295,41 @@ Item {
             required property int index
             readonly property var dev: root.mice[index] ?? ({})
             readonly property bool naga: (mouse.dev.model ?? "").includes("naga")
-            readonly property real wCm: mouse.naga ? 7.5 : 6.3
             readonly property real hCm: mouse.naga ? 12 : 10
+            readonly property real wCm: mouse.naga ? 7.5 : 7.1
 
             visible: root.visibleFor(!!mouse.dev.online)
             opacity: mouse.dev.online ? 1 : 0.4
-            x: (100 + mouse.index * 10) * root.cm
+            x: root.zoneX + (63 + mouse.index * 10) * root.cm
             y: root.deskY + 5 * root.cm
             width: mouse.wCm * root.cm
             height: mouse.hCm * root.cm
 
-            Image {
-                id: art
-
+            // Naga: o desenho tem o corpo (225 de 356 de largura) e, a direita, o
+            // painel lateral com os 12 botoes; aqui so o corpo (recorte)
+            Item {
                 anchors.fill: parent
-                source: Quickshell.shellPath(`assets/mice/${mouse.dev.model}.svg`)
-                fillMode: Image.PreserveAspectFit
-                sourceSize.width: art.width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
-                smooth: true
-                asynchronous: true
+                clip: true
 
-                layer.enabled: true
-                layer.effect: Colouriser {
-                    colorizationColor: root.ink
-                    brightness: 1
+                Image {
+                    id: art
+
+                    x: 0
+                    y: 0
+                    width: mouse.naga ? parent.width * 356 / 225 : parent.width
+                    height: parent.height
+                    source: Quickshell.shellPath(`assets/mice/${mouse.dev.model}.svg`)
+                    fillMode: Image.PreserveAspectFit
+                    horizontalAlignment: Image.AlignLeft
+                    sourceSize.width: art.width * root.dpr
+                    smooth: true
+                    asynchronous: true
+
+                    layer.enabled: true
+                    layer.effect: Colouriser {
+                        colorizationColor: root.ink
+                        brightness: 1
+                    }
                 }
             }
 
@@ -318,8 +342,8 @@ Item {
     }
 
     // ---------------------------------------------------------------- fones
-    // Caixinhas lado a lado (WF-1000XM5 6.5 x 4 cm, FreeClip 2 6 x 6 cm) e o
-    // WH-1000XM5 no suporte (20 x 25 cm), na ponta direita
+    // Caixinhas lado a lado (WF-1000XM5 6,5 x 4 cm; FreeClip 2 5 x 5 cm) e o
+    // WH-1000XM5 (21,7 cm) no suporte, entre o mousepad e o notebook
     Repeater {
         model: root.headphones.length
 
@@ -330,15 +354,16 @@ Item {
             readonly property var dev: root.headphones[index] ?? ({})
             readonly property string file: ({ "WH-1000XM5": "sony-wh-1000xm5", "WF-1000XM5": "sony-wf-1000xm5", "HUAWEI FreeClip 2": "huawei-freeclip-2" })[hp.dev.model] ?? ""
             readonly property bool big: hp.dev.model === "WH-1000XM5"
-            // caixinhas: uma ao lado da outra; o headphone no suporte, atras
             readonly property int budIndex: root.headphones.filter((h, i) => i < hp.index && h.model !== "WH-1000XM5").length
+            readonly property real wCm: hp.big ? 21.7 : hp.dev.model === "WF-1000XM5" ? 6.5 : 5
+            readonly property real hCm: hp.big ? 21.7 * 214 / 189 : hp.dev.model === "WF-1000XM5" ? 6.5 * 308 / 331 : 5
 
             visible: hp.file !== "" && root.visibleFor(!!hp.dev.connected)
             opacity: hp.dev.connected ? 1 : 0.4
-            x: hp.big ? 168 * root.cm : (152 + hp.budIndex * 8) * root.cm
-            y: hp.big ? root.deskY - 26 * root.cm : root.deskY + 4 * root.cm
-            width: (hp.big ? 20 : 7) * root.cm
-            height: (hp.big ? 22 : 7) * root.cm
+            x: hp.big ? root.zoneX + 126 * root.cm : root.zoneX + (106 + hp.budIndex * 8) * root.cm
+            y: hp.big ? root.deskY - 27 * root.cm : root.deskY + 3 * root.cm
+            width: hp.wCm * root.cm
+            height: hp.hCm * root.cm
 
             // suporte do headphone: haste e base
             Rectangle {
@@ -346,14 +371,14 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height * 0.5
                 width: 1
-                height: 26 * root.cm - parent.height * 0.5
+                height: 27 * root.cm - parent.height * 0.5
                 color: root.faint
             }
 
             Rectangle {
                 visible: hp.big
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 26 * root.cm - 1
+                y: 27 * root.cm - 1
                 width: 10 * root.cm
                 height: 2 * root.cm
                 radius: 1 * root.cm
@@ -368,7 +393,7 @@ Item {
                 anchors.fill: parent
                 source: hp.file ? Quickshell.shellPath(`assets/devices/${hp.file}.svg`) : ""
                 fillMode: Image.PreserveAspectFit
-                sourceSize.width: hpArt.width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
+                sourceSize.width: hpArt.width * root.dpr
                 smooth: true
                 asynchronous: true
 
