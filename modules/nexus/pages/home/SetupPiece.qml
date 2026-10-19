@@ -8,10 +8,11 @@ import qs.services
 // Uma peca do setup do Home: fica onde o layout salvo manda (ou no lugar
 // padrao), em cm; com `editing` arrasta-se (encaixa em 0,5 cm) e ao soltar
 // sai `moved(key, xCm, yCm)`; fora da edicao, clique = `clicked`. Passar o
-// mouse mostra o nome (`label`) num balao -- nada escrito antes disso -- e
-// as pecas pequenas (fones, mouses) crescem um pouco para dar para ver o que
-// sao. Na edicao o nome fica sempre visivel (senao nao se sabe o que se esta
-// movendo). O conteudo (silhueta) vai dentro.
+// mouse avisa o diagrama (`hover`), que mostra o nome na legenda embaixo --
+// nada escrito na peca antes disso -- e as pecas pequenas (fones, mouses)
+// crescem um pouco para dar para ver o que sao. Na edicao o nome fica
+// escrito na propria peca (senao nao se sabe o que se esta movendo). `ox`/`oy`
+// deslocam o mundo (cm) quando o diagrama encaixa o conteudo na largura.
 Item {
     id: root
 
@@ -24,6 +25,10 @@ Item {
     // { key: { x, y } } salvo; cm = pixels por cm
     required property var layout
     required property real cm
+    property real ox: 0
+    property real oy: 0
+    // Linha da mesa (cm): soltar a peca com a base a ate 2 cm dela encosta nela
+    property real deskCm: 1e9
     property string label
     property bool editing
     property bool online: true
@@ -38,17 +43,20 @@ Item {
 
     signal clicked
     signal moved(key: string, xCm: real, yCm: real)
+    signal hover(label: string, on: bool)
 
     visible: root.online || root.showOffline
     opacity: root.online ? 1 : 0.4
-    x: root.xCm * root.cm
-    y: root.yCm * root.cm
+    x: (root.xCm + root.ox) * root.cm
+    y: (root.yCm + root.oy) * root.cm
     width: root.wCm * root.cm
     height: root.hCm * root.cm
     z: root.held ? 3 : root.hovered ? 2 : 0
     // Pecas pequenas crescem no hover: um estojo de 5 cm nao se le em 20 px
     scale: root.hovered && root.wCm < 15 ? 1.6 : 1
     transformOrigin: Item.Center
+
+    onHoveredChanged: root.hover(root.label, root.hovered)
 
     Behavior on x {
         enabled: !root.held
@@ -83,26 +91,24 @@ Item {
         border.color: root.held ? Colours.palette.m3tertiary : Qt.alpha(Colours.palette.m3outline, 0.7)
     }
 
-    // Balao com o nome: no hover, ou sempre enquanto se edita
+    // Na edicao: o nome escrito na peca, num fundo solido (legivel em cima da silhueta)
     StyledRect {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.top
-        anchors.bottomMargin: 6
-        visible: (root.hovered || root.editing) && root.label !== ""
-        implicitWidth: tip.implicitWidth + Tokens.padding.normal * 2
+        anchors.centerIn: parent
+        visible: root.editing && root.label !== ""
+        implicitWidth: Math.min(tip.implicitWidth + Tokens.padding.normal * 2, root.width + Tokens.padding.large * 2)
         implicitHeight: tip.implicitHeight + Tokens.padding.small * 2
         radius: Tokens.rounding.small
-        color: Colours.palette.m3inverseSurface
-        // o balao nao cresce junto com a peca
-        scale: root.scale > 1 ? 1 / root.scale : 1
+        color: Colours.palette.m3surfaceContainerHighest
 
         StyledText {
             id: tip
 
             anchors.centerIn: parent
+            width: Math.min(implicitWidth, parent.width - Tokens.padding.normal * 2)
             text: root.label
-            color: Colours.palette.m3inverseOnSurface
+            color: Colours.palette.m3onSurface
             font: Tokens.font.label.medium
+            elide: Text.ElideRight
         }
     }
 
@@ -120,11 +126,13 @@ Item {
             root.held = false;
             if (!was || !drag.active)
                 return;
-            const nx = Math.round(root.x / root.cm * 2) / 2;
-            const ny = Math.round(root.y / root.cm * 2) / 2;
+            const nx = Math.round((root.x / root.cm - root.ox) * 2) / 2;
+            let ny = Math.round((root.y / root.cm - root.oy) * 2) / 2;
+            if (Math.abs(ny + root.hCm - root.deskCm) <= 2)
+                ny = root.deskCm - root.hCm;
             root.moved(root.key, nx, ny);
-            root.x = Qt.binding(() => root.xCm * root.cm);
-            root.y = Qt.binding(() => root.yCm * root.cm);
+            root.x = Qt.binding(() => (root.xCm + root.ox) * root.cm);
+            root.y = Qt.binding(() => (root.yCm + root.oy) * root.cm);
         }
         onClicked: {
             if (!root.editing)

@@ -5,10 +5,10 @@ import Caelestia.Config
 import qs.components
 import qs.services
 
-// Um monitor no traco dos outros aparelhos: o notebook e a tampa aberta
-// (moldura mais grossa embaixo e a base por tras), um monitor externo e a
-// tela com o pe. O retangulo da tela e `width` x `height` (quem usa ja
-// escala pela area logica); o pe/base vai por fora, embaixo. Rotulo no meio.
+// Uma tela no arranjo (Display > General): so o retangulo da tela, no tamanho
+// logico do Hyprland -- aqui importa a resolucao, nao o aparelho (as silhuetas
+// reais ficam no Home). O notebook ganha a moldura de baixo um pouco mais
+// grossa, so para se distinguir; rotulo no meio.
 Item {
     id: root
 
@@ -22,52 +22,13 @@ Item {
     readonly property bool laptop: !!root.mon.internal
     readonly property color stroke: root.selected ? Colours.palette.m3tertiary : Colours.palette.m3outline
     readonly property real bezel: Math.max(2, root.height * 0.035)
-    // Altura extra do pe (monitor) ou da base (notebook), fora da tela
-    readonly property real foot: Math.max(6, root.height * (root.laptop ? 0.08 : 0.16))
 
     signal clicked
 
     implicitHeight: 100
     opacity: root.dim ? 0.4 : 1
 
-    // Base do notebook (atras, mais larga) ou pe do monitor
     Rectangle {
-        visible: root.laptop
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.height - root.foot * 0.3
-        width: root.width * 1.06
-        height: root.foot
-        radius: root.foot * 0.3
-        color: Qt.alpha(Colours.palette.m3surfaceContainerHighest, 0.4)
-        border.width: 1
-        border.color: root.stroke
-    }
-
-    Rectangle {
-        visible: !root.laptop
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.height
-        width: Math.max(4, root.width * 0.06)
-        height: root.foot * 0.6
-        color: root.stroke
-    }
-
-    Rectangle {
-        visible: !root.laptop
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.height + root.foot * 0.6
-        width: root.width * 0.35
-        height: Math.max(2, root.foot * 0.4)
-        radius: height / 2
-        color: "transparent"
-        border.width: 1
-        border.color: root.stroke
-    }
-
-    // Tela (moldura + painel)
-    Rectangle {
-        id: frame
-
         anchors.fill: parent
         radius: Math.max(2, root.height * 0.03)
         color: root.selected ? Qt.alpha(Colours.palette.m3tertiary, 0.1) : Qt.alpha(Colours.palette.m3surfaceContainerHigh, 0.6)

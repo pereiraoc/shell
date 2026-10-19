@@ -62,20 +62,20 @@ Item {
                 ]
             }
             ,
-            // Razer Atheris: desenho do guia (vista de cima, vetorizado de
-            // images/Atheris-00000097-en.pdf); so o que o mouse reporta ao
+            // Razer Atheris: silhueta do usuario (caelestia-assets, vista de
+            // cima, vetorizada); so o que o mouse reporta ao
             // Linux e clicavel: roda (middle) e os dois botoes laterais
             // (forward em cima, back embaixo). O botao de DPI abaixo da roda
             // troca o estagio dentro do mouse e nao chega ao sistema.
             "razer-atheris": {
                 source: "assets/mice/razer-atheris.svg",
-                w: 215,
-                h: 304,
+                w: 186,
+                h: 289,
                 shownW: 260,
                 spots: [
-                    { id: "middle", path: "M102.0 45.0 L117.0 45.0 A8 8 0 0 1 125.0 53.0 L125.0 91.0 A8 8 0 0 1 117.0 99.0 L102.0 99.0 A8 8 0 0 1 94.0 91.0 L94.0 53.0 A8 8 0 0 1 102.0 45.0 Z" },
-                    { id: "forward", path: "M22.0 106.0 L29.0 106.0 A4 4 0 0 1 33.0 110.0 L33.0 125.0 A4 4 0 0 1 29.0 129.0 L22.0 129.0 A4 4 0 0 1 18.0 125.0 L18.0 110.0 A4 4 0 0 1 22.0 106.0 Z" },
-                    { id: "back", path: "M22.0 131.0 L29.0 131.0 A4 4 0 0 1 33.0 135.0 L33.0 150.0 A4 4 0 0 1 29.0 154.0 L22.0 154.0 A4 4 0 0 1 18.0 150.0 L18.0 135.0 A4 4 0 0 1 22.0 131.0 Z" }
+                    { id: "middle", path: "M83.3 11.0 L104.3 11.0 A7 7 0 0 1 111.3 18.0 L111.3 92.3 A7 7 0 0 1 104.3 99.3 L83.3 99.3 A7 7 0 0 1 76.3 92.3 L76.3 18.0 A7 7 0 0 1 83.3 11.0 Z" },
+                    { id: "forward", path: "M12.0 104.0 L17.0 104.0 A4 4 0 0 1 21.0 108.0 L21.0 113.5 A4 4 0 0 1 17.0 117.5 L12.0 117.5 A4 4 0 0 1 8.0 113.5 L8.0 108.0 A4 4 0 0 1 12.0 104.0 Z" },
+                    { id: "back", path: "M12.0 117.5 L17.0 117.5 A4 4 0 0 1 21.0 121.5 L21.0 127.0 A4 4 0 0 1 17.0 131.0 L12.0 131.0 A4 4 0 0 1 8.0 127.0 L8.0 121.5 A4 4 0 0 1 12.0 117.5 Z" }
                 ]
             }
         })

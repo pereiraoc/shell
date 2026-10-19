@@ -40,10 +40,23 @@ Item {
     // Posicoes salvas: { key: { x, y } } em cm
     property var layout: ({})
     readonly property bool customized: Object.keys(root.layout).length > 0
+    // Nome da peca sob o mouse (a pagina mostra na legenda)
+    property string hoverLabel
 
-    readonly property real cm: root.width / 190
+    // Mundo em cm: 190 de largura; a linha da mesa (deskY) e a borda de tras
+    // do tampo -- monitor, suporte do fone e notebook apoiam nela, e o
+    // mousepad fica a frente (abaixo da linha). Na edicao aparece o mundo
+    // inteiro; fora dela o conteudo (caixa de todas as pecas visiveis) e
+    // encaixado na largura e centrado, sem vazio sobrando.
+    readonly property real worldW: 190
     readonly property real deskY: 50
+    readonly property real worldH: 90
     readonly property real shelfH: 8.3
+    readonly property real pad: 2
+    property rect fit: Qt.rect(0, 0, 190, 90)
+    readonly property real cm: root.editing ? root.width / root.worldW : root.width / Math.max(40, root.fit.width + root.pad * 2)
+    readonly property real ox: root.editing ? 0 : root.pad - root.fit.x
+    readonly property real oy: root.editing ? 0 : root.pad - root.fit.y
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
     readonly property real dpr: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
@@ -77,7 +90,42 @@ Item {
         layoutFile.setText("{}\n");
     }
 
-    implicitHeight: 104 * root.cm
+    function setHover(label: string, on: bool): void {
+        if (on)
+            root.hoverLabel = label;
+        else if (root.hoverLabel === label)
+            root.hoverLabel = "";
+    }
+
+    // Caixa (cm) das pecas visiveis + a mesa: e o que aparece fora da edicao
+    function refit(): void {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const c of root.children) {
+            if (c.key === undefined || !c.visible)
+                continue;
+            x0 = Math.min(x0, c.xCm);
+            y0 = Math.min(y0, c.yCm);
+            x1 = Math.max(x1, c.xCm + c.wCm);
+            y1 = Math.max(y1, c.yCm + c.hCm);
+        }
+        if (x0 === Infinity) {
+            root.fit = Qt.rect(0, 0, root.worldW, root.worldH);
+            return;
+        }
+        root.fit = Qt.rect(x0, y0, x1 - x0, y1 - y0);
+    }
+
+    implicitHeight: root.editing ? root.worldH * root.cm : (root.fit.height + root.pad * 2) * root.cm
+
+    onLayoutChanged: Qt.callLater(root.refit)
+    onShowOfflineChanged: Qt.callLater(root.refit)
+    onEditingChanged: Qt.callLater(root.refit)
+    onMonitorsChanged: Qt.callLater(root.refit)
+    onMiceChanged: Qt.callLater(root.refit)
+    onKeyboardChanged: Qt.callLater(root.refit)
+    onHeadphonesChanged: Qt.callLater(root.refit)
+    onControllersChanged: Qt.callLater(root.refit)
+    Component.onCompleted: Qt.callLater(root.refit)
 
     FileView {
         id: layoutFile
@@ -97,10 +145,10 @@ Item {
         onLoadFailed: root.layout = {}
     }
 
-    // Mesa
+    // Linha da mesa (borda de tras do tampo)
     Rectangle {
         x: 0
-        y: root.deskY * root.cm
+        y: (root.deskY + root.oy) * root.cm
         width: root.width
         height: 1
         color: root.ink
@@ -124,7 +172,11 @@ Item {
             hCm: ext.lg ? 59 * 754 / 1285 : 33
             layout: root.layout
             cm: root.cm
+            ox: root.ox
+            oy: root.oy
+            deskCm: root.deskY
             editing: root.editing
+            onHover: (l, on) => root.setHover(l, on)
             label: (ext.mon.description ?? ext.mon.name ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
             onClicked: root.open("display", ext.mon.name)
             onMoved: (k, x, y) => root.place(k, x, y)
@@ -170,7 +222,11 @@ Item {
         hCm: 35.5 * 1243 / 918
         layout: root.layout
         cm: root.cm
+        ox: root.ox
+        oy: root.oy
+        deskCm: root.deskY
         editing: root.editing
+        onHover: (l, on) => root.setHover(l, on)
         label: qsTr("Laptop")
         visible: !!root.laptop
         online: !!root.laptop?.enabled
@@ -207,7 +263,11 @@ Item {
         hCm: root.shelfH
         layout: root.layout
         cm: root.cm
+        ox: root.ox
+        oy: root.oy
+        deskCm: root.deskY
         editing: root.editing
+        onHover: (l, on) => root.setHover(l, on)
         label: qsTr("Monitor riser")
         onMoved: (k, x, y) => root.place(k, x, y)
 
@@ -237,7 +297,11 @@ Item {
         hCm: 25
         layout: root.layout
         cm: root.cm
+        ox: root.ox
+        oy: root.oy
+        deskCm: root.deskY
         editing: root.editing
+        onHover: (l, on) => root.setHover(l, on)
         label: qsTr("Mousepad · 90 × 25 cm")
         onMoved: (k, x, y) => root.place(k, x, y)
 
@@ -267,7 +331,11 @@ Item {
             hCm: 10.2
             layout: root.layout
             cm: root.cm
+            ox: root.ox
+            oy: root.oy
+            deskCm: root.deskY
             editing: root.editing
+            onHover: (l, on) => root.setHover(l, on)
             label: pad.dev.name ?? qsTr("Controller")
             online: !!pad.dev.connected
             showOffline: root.showOffline
@@ -294,7 +362,11 @@ Item {
         hCm: 32.6 * 793 / 1867
         layout: root.layout
         cm: root.cm
+        ox: root.ox
+        oy: root.oy
+        deskCm: root.deskY
         editing: root.editing
+        onHover: (l, on) => root.setHover(l, on)
         label: root.keyboard ? [(root.keyboard.name ?? "").replace(/\s*2\.4GHz$/, ""), root.keyboard.battery !== null && root.keyboard.battery !== undefined ? `${Math.round(root.keyboard.battery * 100)}%` : ""].filter(x => x).join(" · ") : ""
         visible: !!root.keyboard && (kbd.online || root.showOffline)
         online: !!root.keyboard?.online
@@ -338,7 +410,11 @@ Item {
             hCm: mouse.naga ? 12 : 10
             layout: root.layout
             cm: root.cm
+            ox: root.ox
+            oy: root.oy
+            deskCm: root.deskY
             editing: root.editing
+            onHover: (l, on) => root.setHover(l, on)
             label: (mouse.dev.name ?? "").replace(/\s*\(.*?\)\s*$/, "")
             online: !!mouse.dev.online
             showOffline: root.showOffline
@@ -390,7 +466,11 @@ Item {
             hCm: hp.big ? hp.standH : hp.dev.model === "WF-1000XM5" ? 4 : 5
             layout: root.layout
             cm: root.cm
+            ox: root.ox
+            oy: root.oy
+            deskCm: root.deskY
             editing: root.editing
+            onHover: (l, on) => root.setHover(l, on)
             label: [hp.dev.name, hp.dev.model].filter(x => x).join(" · ")
             visible: (hp.file !== "" || !hp.big) && (hp.online || root.showOffline)
             online: !!hp.dev.connected

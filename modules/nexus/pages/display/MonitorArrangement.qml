@@ -88,8 +88,7 @@ Item {
         return { x: nx, y: ny };
     }
 
-    // + o pe/base dos monitores, que fica por fora da tela (MonitorOutline.foot)
-    implicitHeight: root.box.h * root.k + root.pad * 2 + Math.max(16, root.box.h * root.k * 0.18)
+    implicitHeight: root.box.h * root.k + root.pad * 2
 
     Repeater {
         model: root.shown.length
@@ -114,11 +113,13 @@ Item {
 
             Behavior on x {
                 enabled: !tile.held
+
                 Anim {}
             }
 
             Behavior on y {
                 enabled: !tile.held
+
                 Anim {}
             }
 
