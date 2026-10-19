@@ -38,6 +38,10 @@ Singleton {
     // `index` e qual esta na tela; o dashboard volta ao primeiro ao abrir.
     property var configured: []
     property bool autoEnabled: true
+    // O local automatico guarda o seu proprio resultado: sem isso, voltar a ele
+    // dentro dos 15 min do ip-api mostrava o local manual anterior
+    property string autoLoc
+    property string autoCity
     property int index
     readonly property var locations: {
         const list = root.configured.filter(l => l && l.enabled !== false && l.coords);
@@ -101,6 +105,12 @@ Singleton {
 
         const configLocation = GlobalConfig.services.weatherLocation;
 
+        if (!configLocation && autoLoc && timer.elapsed() <= 900) {
+            city = autoCity;
+            loc = autoLoc;
+            return;
+        }
+
         if (configLocation) {
             if (configLocation.indexOf(",") !== -1 && !isNaN(parseFloat(configLocation.split(",")[0]))) {
                 loc = configLocation;
@@ -108,7 +118,7 @@ Singleton {
             } else {
                 fetchCoordsFromCity(configLocation);
             }
-        } else if ((!loc || timer.elapsed() > 900) && !ipApiRequestPending && Date.now() >= ipApiBlockedUntil) {
+        } else if ((!autoLoc || timer.elapsed() > 900) && !ipApiRequestPending && Date.now() >= ipApiBlockedUntil) {
             ipApiRequestPending = true;
 
             Requests.get("http://ip-api.com/json?fields=status,message,city,lat,lon", (text, metadata) => {
@@ -138,7 +148,10 @@ Singleton {
 
                 city = fixCityName(response.city ?? "");
                 timer.restart();
-                loc = `${lat},${lon}`;
+                autoCity = city;
+                autoLoc = `${lat},${lon}`;
+                if (!root.current || root.current.auto)
+                    loc = autoLoc;
             }, (error, metadata) => {
                 ipApiRequestPending = false;
 

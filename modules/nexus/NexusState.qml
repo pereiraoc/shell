@@ -59,7 +59,11 @@ QtObject {
         // mesma pagina ja aberta reage a mudanca
         requestedTab = tab ?? "";
         if (idx === currentPageIdx) {
-            if (sub > 0)
+            // Mesma pagina: volta ao topo antes (busca por "Wi-Fi" de dentro de
+            // All networks nao fazia nada) e nao empilha o que ja esta no topo
+            while (subPageIdxStack.length > 0 && subPageIdxStack[subPageIdxStack.length - 1] !== sub)
+                closeSubPage();
+            if (sub > 0 && subPageIdxStack[subPageIdxStack.length - 1] !== sub)
                 openSubPage(sub);
             return;
         }

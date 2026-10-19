@@ -64,6 +64,15 @@ PageBase {
         return words.length > 2 ? words.slice(-2).join(" ") : d;
     }
 
+    function pickRequested(): void {
+        const want = root.nState.requestedTab;
+        if (want && root.monitors.some(m => m.name === want)) {
+            root.selected = want;
+            root.tab = "general";
+            root.nState.requestedTab = "";
+        }
+    }
+
     title: qsTr("Display")
     description: qsTr("Resolution, refresh rate, scale and brightness for each screen")
     tabs: [
@@ -73,18 +82,25 @@ PageBase {
 
     // Deep link com o nome do monitor (busca, Home, IPC): escolhe-o no
     // arranjo. PageBase so aceita Item como filho direto.
+    // O pedido costuma chegar ANTES da pagina existir e antes da lista de
+    // monitores: confere tambem ao nascer e quando a lista chega.
     Item {
+        Component.onCompleted: root.pickRequested()
+
         Connections {
             function onRequestedTabChanged(): void {
-                const want = root.nState.requestedTab;
-                if (want && root.monitors.some(m => m.name === want)) {
-                    root.selected = want;
-                    root.tab = "general";
-                    root.nState.requestedTab = "";
-                }
+                root.pickRequested();
             }
 
             target: root.nState
+        }
+
+        Connections {
+            function onMonitorsChanged(): void {
+                root.pickRequested();
+            }
+
+            target: root
         }
     }
 
@@ -173,7 +189,9 @@ PageBase {
 
                 readonly property var modelData: root.selectedMon ?? ({})
                 readonly property var brightness: Brightness.getMonitor(mon.modelData.name ?? "")
-                readonly property bool busy: bridge.busyAction.endsWith(mon.modelData.name ?? "§") || bridge.busyAction.includes(`-${mon.modelData.name}-`)
+                // `-<nome>` no fim ou `-<nome>-` no meio: so endsWith(nome) fazia
+                // try-off-eDP-1 marcar o DP-1 como ocupado
+                readonly property bool busy: bridge.busyAction.endsWith(`-${mon.modelData.name ?? "§"}`) || bridge.busyAction.includes(`-${mon.modelData.name}-`)
 
                 Layout.fillWidth: true
                 visible: !!root.selectedMon

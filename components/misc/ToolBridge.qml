@@ -45,6 +45,10 @@ Item {
     // que o usuario levar no terminal -- o teto so evita ficar preso para
     // sempre se o terminal for fechado sem rodar nada.
     property string busyAction: ""
+    // Acoes pedidas enquanto outra roda: antes eram descartadas em silencio (um
+    // Keep do Display ou um clique no OLED durante o rgb-restore se perdiam).
+    // Fila curta, sem repetir o mesmo id.
+    property var queued: []
     property real busySince: 0
     readonly property int busyTimeoutMs: 15 * 60 * 1000
 
@@ -61,8 +65,13 @@ Item {
     }
 
     function run(action: var): void {
-        if (!action?.id || root.busyAction)
+        if (!action?.id)
             return;
+        if (root.busyAction) {
+            if (action.id !== root.busyAction && !root.queued.some(a => a.id === action.id))
+                root.queued = [...root.queued, action].slice(-5);
+            return;
+        }
         root.busyAction = action.id;
         root.busySince = Date.now();
         busyTimer.restart();
@@ -131,6 +140,11 @@ Item {
                 // tem watch ainda, entao recarrega explicitamente.
                 statusFile.reload();
                 actionsFile.reload();
+                if (root.queued.length > 0) {
+                    const next = root.queued[0];
+                    root.queued = root.queued.slice(1);
+                    Qt.callLater(() => root.run(next));
+                }
             }
         }
     }
@@ -174,6 +188,7 @@ Item {
         interval: root.busyTimeoutMs
         onTriggered: {
             root.busyAction = "";
+            root.queued = [];
             lastPoll.stop();
         }
     }

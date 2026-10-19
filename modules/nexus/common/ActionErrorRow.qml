@@ -17,6 +17,9 @@ InfoRow {
 
     readonly property var lastRun: root.bridge.last ?? ({})
     readonly property bool failed: !!root.lastRun.result && root.lastRun.result.ok === false && (root.lastRun.at ?? 0) >= root.since
+    // Uma 2a falha seguida nao muda `failed` (ja era true): rearma pelo instante
+    // da execucao, senao o aviso sumido depois de 12 s nao voltava
+    readonly property real failedAt: root.failed ? (root.lastRun.at ?? 0) : 0
 
     first: true
     last: true
@@ -28,6 +31,13 @@ InfoRow {
 
     onFailedChanged: {
         if (root.failed) {
+            root.dismissed = false;
+            hide.restart();
+        }
+    }
+
+    onFailedAtChanged: {
+        if (root.failedAt > 0) {
             root.dismissed = false;
             hide.restart();
         }

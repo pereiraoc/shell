@@ -49,7 +49,7 @@ PageBase {
         if (st === "Discharging")
             return t ? qsTr("On battery · %1 left").arg(t) : qsTr("On battery");
         if (st === "Full" || bridge.info.ac)
-            return root.battery.charge_limit < 100 && root.percent >= root.battery.charge_limit - 1 ? qsTr("Plugged in · held at %1% to protect the battery").arg(root.battery.charge_limit) : qsTr("Plugged in · fully charged");
+            return typeof root.battery.charge_limit === "number" && root.battery.charge_limit < 100 && root.percent >= root.battery.charge_limit - 1 ? qsTr("Plugged in · held at %1% to protect the battery").arg(root.battery.charge_limit) : qsTr("Plugged in · fully charged");
         return st;
     }
 

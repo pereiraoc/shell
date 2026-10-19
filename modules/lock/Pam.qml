@@ -36,7 +36,22 @@ Scope {
         return Qt.md5(pinSalt + pin + pinSalt);
     }
 
+    // PIN bloqueado depois de maxPinRetries: so a senha destrava (e reabilita o
+    // PIN). Antes o bloqueio so mudava pinEnabled, que nada checava -- dava para
+    // tentar os 10 000 PINs sem limite.
+    function lockOutPin(): void {
+        root.pinEnabled = false;
+        root.buffer = "";
+        root.currentMode = "password";
+        root.lockMessage = qsTr("Too many wrong PINs. Unlock with your password.");
+    }
+
     function verifyPin(): void {
+        if (!root.pinEnabled) {
+            root.lockOutPin();
+            root.flashMsg();
+            return;
+        }
         const storedPinHash = GlobalConfig.lock.userPin;
 
         if (!storedPinHash || storedPinHash === "") {
@@ -58,14 +73,31 @@ Scope {
             root.lock.unlock();
         } else {
             root.pinFailedAttempts++;
-            if (root.pinFailedAttempts >= GlobalConfig.lock.maxPinRetries) {
-                root.pinEnabled = false;
-            }
+            if (root.pinFailedAttempts >= GlobalConfig.lock.maxPinRetries)
+                root.lockOutPin();
             root.state = "fail";
             root.buffer = "";
             root.flashMsg();
             stateReset.restart();
         }
+    }
+
+    // Seletor de metodo: escolher o PIN bloqueado manda para a senha; escolher o
+    // rosto de novo (depois de esgotar as tentativas) recomeca o rosto
+    function selectMethod(method: string): void {
+        if (method === "pin" && !root.pinEnabled) {
+            root.lockOutPin();
+            root.flashMsg();
+            return;
+        }
+        if (method === "face") {
+            root.faceFailedAttempts = 0;
+            root.howdyState = "";
+            if (root.currentMode === "face")
+                howdyRetry.restart();
+        }
+        root.buffer = "";
+        root.currentMode = method;
     }
 
     function handleKey(event: KeyEvent): void {
@@ -77,6 +109,11 @@ Scope {
             return;
 
         // PIN mode: only digits, auto-submit on 4 digits
+        if (currentMode === "pin" && !pinEnabled) {
+            lockOutPin();
+            flashMsg();
+            return;
+        }
         if (currentMode === "pin") {
             if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
                 if (buffer.length < 4) {
@@ -132,8 +169,13 @@ Scope {
         }
 
         onCompleted: res => {
-            if (res === PamResult.Success)
+            if (res === PamResult.Success) {
+                // Senha certa: zera as tentativas e devolve o PIN bloqueado
+                root.pinFailedAttempts = 0;
+                root.pinEnabled = GlobalConfig.lock.enablePinAuth;
+                root.lockMessage = "";
                 return root.lock.unlock();
+            }
 
             if (res === PamResult.Error)
                 root.state = "error";
@@ -249,7 +291,7 @@ Scope {
                 root.howdyState = "max";
                 abort();
                 root.faceFailedAttempts = 0;
-                if (GlobalConfig.lock.enablePinAuth && GlobalConfig.lock.userPin !== "")
+                if (root.pinEnabled && GlobalConfig.lock.userPin !== "")
                     root.currentMode = "pin";
                 else
                     root.currentMode = "password";

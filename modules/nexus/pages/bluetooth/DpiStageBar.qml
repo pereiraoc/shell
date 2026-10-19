@@ -150,6 +150,9 @@ Item {
                 drag.threshold: 3
                 onPositionChanged: if (knob.dragging) knob.dragValue = root.value(knob.x + knob.width / 2)
                 onReleased: {
+                    // Arrastar quebra o binding de x (Qt 6): religa, senao o ponto
+                    // ficava parado onde foi solto mesmo depois de reordenar
+                    knob.x = Qt.binding(() => knob.dragging ? knob.x : root.pos(knob.stageValue) - knob.width / 2);
                     if (!knob.dragging && knob.dragValue === knob.stageValue)
                         return;
                     const list = [...root.stages];

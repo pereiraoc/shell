@@ -293,6 +293,9 @@ ColumnLayout {
     function toggle(id: string): void {
         root.selected = root.selected === id ? "" : id;
         root.customOpen = false;
+        // Digitar quebrava o binding do campo: o atalho do botao anterior ficava
+        // la e o Enter o aplicava no botao novo
+        customField.text = Qt.binding(() => root.isCustom ? root.actionText(root.selButton.action).toLowerCase() : "");
     }
 
     function applyCustom(): void {

@@ -15,6 +15,10 @@ RowLayout {
     property bool faceEnabled: true
     property bool pinEnabled: true
 
+    // Clique = pedido; quem decide o modo e o Pam (selectedMethod segue o modo real
+    // pelo binding do Center -- atribuir aqui quebrava o binding)
+    signal picked(method: string)
+
     spacing: Tokens.spacing.normal
 
     // Face button
@@ -37,7 +41,7 @@ RowLayout {
 
             onClicked: {
                 if (root.faceEnabled) {
-                    root.selectedMethod = "face";
+                    root.picked("face");
                 }
             }
         }
@@ -82,7 +86,7 @@ RowLayout {
 
             onClicked: {
                 if (root.pinEnabled) {
-                    root.selectedMethod = "pin";
+                    root.picked("pin");
                 }
             }
         }
@@ -123,7 +127,7 @@ RowLayout {
 
         StateLayer {
             onClicked: {
-                root.selectedMethod = "password";
+                root.picked("password");
             }
         }
 

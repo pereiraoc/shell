@@ -68,6 +68,9 @@ PageBase {
     isSubPage: true
 
     onEditorRolesChanged: {
+        // Paleta aplicada chegou: igual ao rascunho = o Apply deu certo
+        if (root.dirty && root.roleList.every(r => (root.draft[r.key] ?? "") === (root.editorRoles[r.key] ?? "")))
+            root.dirty = false;
         if (!root.dirty)
             root.resetDraft();
     }
@@ -286,8 +289,10 @@ PageBase {
             value: root.customName
             smallField: true
             maximumLength: 24
+            // `~` separa os campos da acao custom~<nome>~...
+            validate: v => !v.includes("~")
             onValueEdited: v => {
-                root.customName = v;
+                root.customName = v.replace(/~/g, "");
                 root.dirty = true;
             }
         }
@@ -325,10 +330,9 @@ PageBase {
                     text: bridge.busyAction.startsWith("custom~") ? qsTr("Applying…") : qsTr("Apply")
                     type: TextButton.Filled
                     disabled: bridge.busyAction !== "" || root.cli.ok !== true
-                    onClicked: {
-                        bridge.run({ id: root.customId });
-                        root.dirty = false;
-                    }
+                    // dirty so cai quando a paleta nova chega (editorRoles muda); se o
+                    // custom~ falhar, as cores do rascunho continuam la
+                    onClicked: bridge.run({ id: root.customId })
                 }
             }
         }

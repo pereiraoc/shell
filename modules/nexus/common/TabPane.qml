@@ -19,5 +19,12 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: Tokens.spacing.extraSmall / 2
 
+    // Nasceu ja ativa (aba de aparelho criada depois do tab escolhido): onActiveChanged
+    // nao dispara para o valor inicial e o Loader preguicoso nunca carregava
+    Component.onCompleted: {
+        if (active)
+            opened = true;
+    }
+
     onActiveChanged: if (active) opened = true
 }

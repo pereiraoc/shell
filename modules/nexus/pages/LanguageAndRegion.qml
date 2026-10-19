@@ -176,6 +176,14 @@ PageBase {
             SelectRow {
                 first: true
                 last: !root.region.locale
+                // Rotulo, valor atual e troca vieram do upstream (9112a959); o
+                // merge da v2.5.0 os perdeu e a escolha de idioma nao fazia nada
+                label: Tr.tr("UI language")
+                subtext: Tr.tr("The language used in the shell UI")
+                active: menuItems.find(i => i.modelData === Tr.language) ?? autoLang
+                onSelected: item => {
+                    Tr.language = item.modelData ?? ""; // qmllint disable missing-property
+                }
 
                 menuItems: [autoLang, ...langItems.instances]
 

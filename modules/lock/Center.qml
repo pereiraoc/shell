@@ -50,9 +50,7 @@ ColumnLayout {
         faceEnabled: root.lock.pam.faceEnabled
         pinEnabled: root.lock.pam.pinEnabled
 
-        onSelectedMethodChanged: {
-            root.lock.pam.currentMode = selectedMethod;
-        }
+        onPicked: method => root.lock.pam.selectMethod(method)
     }
 
     PasswordInput {

@@ -42,17 +42,17 @@ QtObject {
         { page: "mouse", sub: 0, tab: "touchpad", title: qsTr("Touchpad"), subtitle: qsTr("Tap to click, ignore while typing"), keywords: "tap click palm typing dwt trackpad" },
         { page: "mouse", sub: 0, tab: "general", title: qsTr("Left-handed mouse"), subtitle: qsTr("Swap left and right buttons"), keywords: "left handed swap buttons" },
         { page: "bluetooth", sub: 0, title: qsTr("Sharing"), subtitle: qsTr("Send files to phones and computers nearby"), keywords: "share send receive files localsend snapdrop airdrop phone transfer" },
-        { page: "camera", sub: 0, title: qsTr("Camera"), subtitle: qsTr("Preview, brightness, exposure, white balance, anti-flicker"), keywords: "webcam video ir camera v4l preview brightness contrast exposure white balance flicker privacy in use" },
+        { page: "camera", sub: 0, tab: "general", title: qsTr("Camera"), subtitle: qsTr("Preview, brightness, exposure, white balance, anti-flicker"), keywords: "webcam video ir camera v4l preview brightness contrast exposure white balance flicker privacy in use" },
 
         { page: "sound", sub: 0, tab: "output", title: qsTr("Headphone modes"), subtitle: qsTr("Noise cancelling, ambient sound, equalizer, gestures"), keywords: "anc noise cancelling ambient transparency sony wh-1000xm5 wf-1000xm5 huawei freeclip buds earbuds equalizer eq speak to chat low latency gesture tap" },
 
         // Display
-        { page: "display", sub: 0, title: qsTr("Scale"), subtitle: qsTr("Make everything bigger or smaller"), keywords: "zoom size text bigger smaller hidpi dpi scaling" },
-        { page: "display", sub: 0, title: qsTr("Resolution & refresh rate"), subtitle: qsTr("Screen mode, Hz"), keywords: "resolution hz refresh rate fps mode 240 144 60" },
-        { page: "display", sub: 0, title: qsTr("Use this display"), subtitle: qsTr("Turn a monitor on or off"), keywords: "disable enable monitor screen off external hdmi" },
-        { page: "display", sub: 0, title: qsTr("Bar position"), subtitle: qsTr("Bar on the left or right, per display"), keywords: "taskbar side left right mirror flip panel" },
-        { page: "display", sub: 0, title: qsTr("Mirror the wallpaper visualiser"), subtitle: qsTr("Visualiser follows the bar side"), keywords: "prism visualizer flip mirror audio bars" },
-        { page: "display", sub: 0, title: qsTr("Brightness"), subtitle: qsTr("Screen brightness"), keywords: "backlight dim light ddc" },
+        { page: "display", sub: 0, tab: "general", title: qsTr("Scale"), subtitle: qsTr("Make everything bigger or smaller"), keywords: "zoom size text bigger smaller hidpi dpi scaling" },
+        { page: "display", sub: 0, tab: "general", title: qsTr("Resolution & refresh rate"), subtitle: qsTr("Screen mode, Hz"), keywords: "resolution hz refresh rate fps mode 240 144 60" },
+        { page: "display", sub: 0, tab: "general", title: qsTr("Use this display"), subtitle: qsTr("Turn a monitor on or off"), keywords: "disable enable monitor screen off external hdmi" },
+        { page: "display", sub: 0, tab: "general", title: qsTr("Bar position"), subtitle: qsTr("Bar on the left or right, per display"), keywords: "taskbar side left right mirror flip panel" },
+        { page: "display", sub: 0, tab: "general", title: qsTr("Mirror the wallpaper visualiser"), subtitle: qsTr("Visualiser follows the bar side"), keywords: "prism visualizer flip mirror audio bars" },
+        { page: "display", sub: 0, tab: "general", title: qsTr("Brightness"), subtitle: qsTr("Screen brightness"), keywords: "backlight dim light ddc" },
         { page: "display", sub: 0, tab: "general", title: qsTr("Text size for X11 apps"), subtitle: qsTr("Steam and games font size"), keywords: "xft dpi steam xwayland font size" },
         { page: "display", sub: 0, tab: "advanced", title: qsTr("Arrange displays"), subtitle: qsTr("Position and mirroring (nwg-displays)"), keywords: "arrange position mirror layout nwg" },
 

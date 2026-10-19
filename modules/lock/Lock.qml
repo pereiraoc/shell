@@ -108,11 +108,13 @@ Scope {
         onLoadFailed: err => {
             if (err !== FileViewError.FileNotFound)
                 return;
-            // A marca e gravada sempre no 1o arranque: ligar o toggle no meio
-            // da sessao nao trava no proximo restart do shell
-            Qt.callLater(() => firstStart.setText("1"));
+            // Sem lock na entrada: marca ja (ligar o toggle no meio da sessao nao
+            // trava no proximo restart). Com: a marca so e gravada DEPOIS de travar
+            // -- se o shell cair nesses 2,5 s, o proximo arranque ainda trava
             if (root.wantLockOnLogin)
                 lockOnLogin.start();
+            else
+                Qt.callLater(() => firstStart.setText("1"));
         }
     }
 
@@ -122,6 +124,9 @@ Scope {
         id: lockOnLogin
 
         interval: 2500
-        onTriggered: lock.locked = true
+        onTriggered: {
+            lock.locked = true;
+            firstStart.setText("1");
+        }
     }
 }
