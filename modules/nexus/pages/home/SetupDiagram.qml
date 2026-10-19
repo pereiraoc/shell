@@ -8,7 +8,7 @@ import qs.components.effects
 import qs.services
 
 // O setup visto de frente, no traco dos outros diagramas: os monitores
-// externos atras (silhueta do LG com o pe), a mesa, e sobre ela os controles,
+// externos atras (silhueta do LG, sem o pe), a mesa, e sobre ela os controles,
 // o mousepad com o Azoth e os mouses, as caixinhas dos fones, o headphone no
 // suporte e o notebook aberto (silhueta do G16), do lado em que ele esta no
 // arranjo do Hyprland. Tamanhos reais em cm (1 cm = width/190):
@@ -71,8 +71,8 @@ Item {
             required property int index
             readonly property var mon: root.externals[index] ?? ({})
             readonly property bool lg: /LG ULTRAWIDE/i.test(ext.mon.description ?? "")
-            readonly property real wCm: ext.lg ? 59 : 59
-            readonly property real hCm: ext.lg ? 59 * 754 / 1285 : 59 * 0.56
+            readonly property real wCm: 59
+            readonly property real hCm: ext.lg ? 59 * 584 / 1285 : 59 * 0.56
 
             x: root.zoneX + (30 + ext.index * 62) * root.cm
             y: root.deskY - ext.hCm * root.cm + 1
@@ -84,7 +84,7 @@ Item {
 
                 anchors.fill: parent
                 visible: ext.lg
-                source: Quickshell.shellPath("assets/devices/lg-25-ultrawide-stand.svg")
+                source: Quickshell.shellPath("assets/devices/lg-25-ultrawide.svg")
                 fillMode: Image.PreserveAspectFit
                 sourceSize.width: lgArt.width * root.dpr
                 smooth: true
@@ -217,7 +217,7 @@ Item {
     }
 
     // --------------------------------------------------------------- teclado
-    // Azoth (32,6 x 13,6 cm) no mousepad: contorno com a grade de teclas
+    // Azoth (32,6 x 13,6 cm) no mousepad: a arte do QSG (a mesma da aba dele)
     Item {
         id: kbd
 
@@ -226,51 +226,29 @@ Item {
         x: root.zoneX + 27 * root.cm
         y: root.deskY + 6 * root.cm
         width: 32.6 * root.cm
-        height: 13.6 * root.cm
+        height: 32.6 * 716 / 1689 * root.cm
 
-        Rectangle {
+        Image {
+            id: kbdArt
+
             anchors.fill: parent
-            radius: 1 * root.cm
-            color: "transparent"
-            border.width: 1
-            border.color: root.ink
-        }
+            source: Quickshell.shellPath("assets/devices/rog-azoth.svg")
+            fillMode: Image.PreserveAspectFit
+            sourceSize.width: kbdArt.width * root.dpr
+            smooth: true
+            asynchronous: true
 
-        Column {
-            anchors.fill: parent
-            anchors.margins: 1.2 * root.cm
-            spacing: 0.5 * root.cm
-
-            Repeater {
-                model: 6
-
-                Row {
-                    required property int index
-
-                    spacing: 0.4 * root.cm
-
-                    Repeater {
-                        model: parent.index === 0 ? 14 : parent.index === 5 ? 8 : 15
-
-                        Rectangle {
-                            required property int index
-
-                            width: 1.55 * root.cm
-                            height: 1.55 * root.cm
-                            radius: 0.2 * root.cm
-                            color: "transparent"
-                            border.width: 1
-                            border.color: root.faint
-                        }
-                    }
-                }
+            layer.enabled: true
+            layer.effect: Colouriser {
+                colorizationColor: root.ink
+                brightness: 1
             }
         }
 
         StyledText {
             anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 1.4 * root.cm
+            anchors.bottom: parent.top
+            anchors.rightMargin: 0.5 * root.cm
             text: root.keyboard?.battery !== undefined && root.keyboard?.battery !== null ? `${Math.round(root.keyboard.battery * 100)}%` : ""
             color: root.ink
             font: Tokens.font.label.small
@@ -305,31 +283,21 @@ Item {
             width: mouse.wCm * root.cm
             height: mouse.hCm * root.cm
 
-            // Naga: o desenho tem o corpo (225 de 356 de largura) e, a direita, o
-            // painel lateral com os 12 botoes; aqui so o corpo (recorte)
-            Item {
+            // Naga: a silhueta sem o painel lateral (…-body.svg); os outros, a do mouse
+            Image {
+                id: art
+
                 anchors.fill: parent
-                clip: true
+                source: Quickshell.shellPath(`assets/mice/${mouse.dev.model}${mouse.naga ? "-body" : ""}.svg`)
+                fillMode: Image.PreserveAspectFit
+                sourceSize.width: art.width * root.dpr
+                smooth: true
+                asynchronous: true
 
-                Image {
-                    id: art
-
-                    x: 0
-                    y: 0
-                    width: mouse.naga ? parent.width * 356 / 225 : parent.width
-                    height: parent.height
-                    source: Quickshell.shellPath(`assets/mice/${mouse.dev.model}.svg`)
-                    fillMode: Image.PreserveAspectFit
-                    horizontalAlignment: Image.AlignLeft
-                    sourceSize.width: art.width * root.dpr
-                    smooth: true
-                    asynchronous: true
-
-                    layer.enabled: true
-                    layer.effect: Colouriser {
-                        colorizationColor: root.ink
-                        brightness: 1
-                    }
+                layer.enabled: true
+                layer.effect: Colouriser {
+                    colorizationColor: root.ink
+                    brightness: 1
                 }
             }
 

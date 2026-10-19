@@ -36,11 +36,34 @@ def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0)):
         # topo = maior contorno de dentro que ocupa mais da metade da tecla
         tops = [c for c in inner if c["box"][2] > bw_ * 0.5 and c["box"][3] > bh * 0.5]
         tops.sort(key=lambda c: -c["box"][2] * c["box"][3])
-        f = tops[0]["box"] if tops else (x, y, bw_, bh)
-        ks.append({"x": round(x, 1), "y": round(y, 1), "w": round(bw_, 1), "h": round(bh, 1),
-                   "f": [round(f[0] - x, 1), round(f[1] - y, 1), round(f[2], 1), round(f[3], 1)],
-                   "d": path([c["pts"] for c in groups[i]], x, y)})
-    return {"w": w, "h": h, "chassis": path([c["pts"] for c in rest]), "keys": ks}
+        parts = groups[i]
+        outline_only = not tops
+        if outline_only:
+            # sem o topo separado no desenho: fica so a serigrafia, e o QML
+            # desenha o keycap como contorno (o = true); topo = caixa recuada
+            parts = [c for c in parts if c is not cs[i]]
+            ins = min(bw_, bh) * 0.1
+            f = (x + ins, y + ins, bw_ - 2 * ins, bh - 2 * ins)
+        else:
+            f = tops[0]["box"]
+        k = {"x": round(x, 1), "y": round(y, 1), "w": round(bw_, 1), "h": round(bh, 1),
+             "f": [round(f[0] - x, 1), round(f[1] - y, 1), round(f[2], 1), round(f[3], 1)],
+             "d": path([c["pts"] for c in parts], x, y)}
+        if outline_only:
+            k["o"] = True
+        ks.append(k)
+    # chassis tambem como caixas (contornos sem tecla), para quem prefere
+    # contornos finos em vez da arte (o QSG do Azoth tem bordas grossas)
+    rects = []
+    for c in sorted(rest, key=lambda c: -c["box"][2] * c["box"][3]):
+        x, y, bw_, bh = c["box"]
+        if bw_ < 20 or bh < 20:
+            continue
+        # caixa encaixada numa ja listada (linha dupla): ignora
+        if any(abs(x - r[0]) < 14 and abs(y - r[1]) < 14 and abs(bw_ - r[2]) < 28 and abs(bh - r[3]) < 28 for r in rects):
+            continue
+        rects.append([round(x, 1), round(y, 1), round(bw_, 1), round(bh, 1)])
+    return {"w": w, "h": h, "chassis": path([c["pts"] for c in rest]), "rects": rects, "keys": ks}
 
 def rows(doc, tol):
     ks = sorted(doc["keys"], key=lambda k: k["y"] + k["h"] / 2)
@@ -68,9 +91,13 @@ def emit(doc, seqs, tol, out, src_note, extra_keys=()):
           "// Unidades do desenho; cada tecla = caixa externa do keycap (x, y, w, h), topo do",
           "// keycap (f = [x, y, w, h] relativo) e a arte dela (d = SVG evenodd, relativo).",
           f"var W = {doc['w']};", f"var H = {doc['h']};", f"var CHASSIS = {json.dumps(doc['chassis'])};",
+          f"var RECTS = {json.dumps(doc['rects'])};",
           "var KEYS = [", ]
     for k in keys:
-        js.append("    " + json.dumps({"id": k["id"], "x": k["x"], "y": k["y"], "w": k["w"], "h": k["h"], "f": k["f"], "d": k["d"]}, separators=(",", ":")) + ",")
+        rec = {"id": k["id"], "x": k["x"], "y": k["y"], "w": k["w"], "h": k["h"], "f": k["f"], "d": k["d"]}
+        if k.get("o"):
+            rec["o"] = True
+        js.append("    " + json.dumps(rec, separators=(",", ":")) + ",")
     js[-1] = js[-1].rstrip(",")
     js += ["];", "", "function keys() {", "    return KEYS;", "}", "", "function size() {", "    return { w: W, h: H };", "}", ""]
     open(out, "w").write("\n".join(js))

@@ -2,7 +2,7 @@
 as teclas: caixa externa de cada keycap + todos os contornos dentro dela (path proprio)."""
 import sys, json, cv2, numpy as np
 
-def load(src, K=3, crop=(0, 0, 0, 0)):
+def load(src, K=3, crop=(0, 0, 0, 0), edge=2):
     im = cv2.imread(src, cv2.IMREAD_UNCHANGED)
     if im.ndim == 3 and im.shape[2] == 4:
         # transparente vira branco (senao o fundo vazio vira tinta)
@@ -15,7 +15,8 @@ def load(src, K=3, crop=(0, 0, 0, 0)):
     big = cv2.resize(gray, (w * K, h * K), interpolation=cv2.INTER_CUBIC)
     big = cv2.GaussianBlur(big, (3, 3), 0)
     _, bw = cv2.threshold(big, 160, 255, cv2.THRESH_BINARY_INV)
-    bw[:2, :] = 0; bw[-2:, :] = 0; bw[:, :2] = 0; bw[:, -2:] = 0
+    if edge:
+        bw[:edge, :] = 0; bw[-edge:, :] = 0; bw[:, :edge] = 0; bw[:, -edge:] = 0
     return bw, w, h, K
 
 def contours(bw, K):
@@ -37,8 +38,8 @@ def path(pts_list, ox=0, oy=0):
 def svg(w, h, d):
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}"><path fill="#000" fill-rule="evenodd" d="{d}"/></svg>'
 
-def whole(src, out, K=3, crop=(0, 0, 0, 0)):
-    bw, w, h, K = load(src, K, crop)
+def whole(src, out, K=3, crop=(0, 0, 0, 0), edge=2):
+    bw, w, h, K = load(src, K, crop, edge)
     cs = [c for c in contours(bw, K) if c]
     open(out, "w").write(svg(w, h, path([c["pts"] for c in cs])))
     print(out, w, h, "contornos", len(cs))

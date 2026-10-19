@@ -91,7 +91,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small
-        art: ({ W: G16Art.W, H: G16Art.H, CHASSIS: G16Art.CHASSIS, KEYS: G16Art.KEYS })
+        art: ({ W: G16Art.W, H: G16Art.H, CHASSIS: G16Art.CHASSIS, RECTS: G16Art.RECTS, KEYS: G16Art.KEYS })
         special: Lk.SPECIAL
         selected: root.selected
         lighting: root.laptopRgb ? lights.preview : null
@@ -184,16 +184,16 @@ ColumnLayout {
         onPicked: v => bridge.run({ id: `sleep-${v}` })
     }
 
-    // Iluminacao: brilho (asusctl) e o efeito (asusd), com previa na silhueta
+    // Brilho (asusctl); o efeito (asusd) vem logo abaixo com o proprio "Effect"
     SectionHeader {
-        text: Tr.tr("Lighting")
+        text: Tr.tr("Backlight")
     }
 
     ChipSelectRow {
         first: true
         last: true
         visible: root.backlightAvailable
-        label: Tr.tr("Backlight")
+        label: Tr.tr("Level")
         subtext: Tr.tr("Fn + F2 / F3 on the laptop change this too")
         options: [
             { value: "off", label: Tr.tr("Off"), icon: "light_off" },

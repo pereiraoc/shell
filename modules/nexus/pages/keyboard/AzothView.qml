@@ -76,7 +76,8 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small
-        art: ({ W: AzArt.W, H: AzArt.H, CHASSIS: AzArt.CHASSIS, KEYS: AzArt.KEYS })
+        art: ({ W: AzArt.W, H: AzArt.H, CHASSIS: AzArt.CHASSIS, RECTS: AzArt.RECTS, KEYS: AzArt.KEYS })
+        thinChassis: true
         special: Az.SPECIAL
         selected: root.selected
         lighting: lights.preview
@@ -146,11 +147,7 @@ ColumnLayout {
         }
     }
 
-    // Iluminacao: o rascunho anima a silhueta acima
-    SectionHeader {
-        text: Tr.tr("Lighting")
-    }
-
+    // Iluminacao (o rascunho anima a silhueta acima): comeca direto na grade de efeitos
     RgbLightingView {
         id: lights
 

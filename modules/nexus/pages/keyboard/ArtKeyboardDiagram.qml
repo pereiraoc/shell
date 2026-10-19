@@ -17,8 +17,11 @@ import "keyLighting.js" as Lit
 Item {
     id: root
 
-    // Biblioteca da arte: { W, H, CHASSIS, KEYS: [{ id, x, y, w, h, f, d }] }
+    // Biblioteca da arte: { W, H, CHASSIS, RECTS, KEYS: [{ id, x, y, w, h, f, d, o? }] }
     required property var art
+    // Chassis como contornos finos (RECTS) em vez da arte (CHASSIS): o QSG do
+    // Azoth desenha a carcaca com bordas grossas que viram faixas claras
+    property bool thinChassis
     // ids clicaveis
     required property var special
     property string selected
@@ -35,14 +38,16 @@ Item {
 
     signal picked(id: string)
 
-    // Visor e knob nao acendem; teclas sem o topo separado no desenho
-    // (contorno colado no vizinho) ganham um contorno simples
+    // Visor, knob e o botao de ligar nao acendem; teclas sem o topo separado
+    // no desenho (contorno colado no vizinho) ganham um contorno simples
     function lightable(key: var): bool {
-        return key.d !== "" && key.id !== "oled" && key.id !== "knob";
+        return key.d !== "" && key.id !== "oled" && key.id !== "knob" && key.id !== "power";
     }
 
+    // Tecla sem o topo separado no desenho: a arte so tem a serigrafia e o
+    // keycap vira um contorno simples
     function hasFace(key: var): bool {
-        return key.f[0] > 0 || key.f[1] > 0;
+        return !key.o;
     }
 
     implicitHeight: root.art.H * root.k
@@ -85,6 +90,7 @@ Item {
         }
 
         Shape {
+            visible: !root.thinChassis
             preferredRendererType: Shape.CurveRenderer
 
             ShapePath {
@@ -95,6 +101,23 @@ Item {
                 PathSvg {
                     path: root.art.CHASSIS
                 }
+            }
+        }
+
+        Repeater {
+            model: root.thinChassis ? root.art.RECTS : []
+
+            Rectangle {
+                required property var modelData
+
+                x: modelData[0]
+                y: modelData[1]
+                width: modelData[2]
+                height: modelData[3]
+                radius: Math.min(width, height) * 0.08
+                color: "transparent"
+                border.width: 2
+                border.color: Qt.alpha(root.ink, 0.7)
             }
         }
 
@@ -131,7 +154,6 @@ Item {
                 }
 
                 Shape {
-                    visible: root.hasFace(key.modelData)
                     preferredRendererType: Shape.CurveRenderer
 
                     ShapePath {

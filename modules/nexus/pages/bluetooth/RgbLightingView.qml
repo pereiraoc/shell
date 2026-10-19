@@ -24,8 +24,11 @@ ColumnLayout {
     required property string deviceId
     // ToolBridge do caelestia-peripherals de quem embute (um so por pagina)
     required property var bridge
-    // Dentro da aba do teclado a silhueta ja mostra a previa: sem a barra de cor
+    // Dentro da aba do teclado a silhueta ja mostra a previa e a grade de
+    // efeitos diz qual esta escolhido: o cartao de estado so aparece quando ha
+    // algo a avisar (teclado dormindo, aplicando), e sem a barra de cor
     property bool embedded
+    readonly property bool statusNeeded: !root.embedded || root.pending || root.bridge.busyAction.startsWith("rgb-")
 
     readonly property var dev: (root.bridge.info.rgb ?? []).find(d => d.id === root.deviceId) ?? null
     readonly property var caps: root.dev?.caps ?? ({})
@@ -214,8 +217,8 @@ ColumnLayout {
 
         // Previa: faixa com as cores escolhidas (como a luz do teclado vai ficar)
         ConnectedRect {
+            visible: root.statusNeeded && (!!root.dev)
             Layout.fillWidth: true
-            visible: !!root.dev
             first: true
             last: true
             implicitHeight: previewCol.implicitHeight + Tokens.padding.large * 2
