@@ -11,8 +11,8 @@ import qs.services
 import qs.utils
 import qs.modules.nexus.common
 
-// Atalhos da barra (V3-02): lista em ~/.config/caelestia/shortcuts.json, que
-// o widget modules/bar/components/Shortcuts.qml observa. Vaults do Obsidian
+// Atalhos do dashboard (V3-02): lista em ~/.config/caelestia/shortcuts.json, que
+// a faixa modules/dashboard/dash/QuickLaunch.qml observa. Vaults do Obsidian
 // encontrados (flatpak ou nativo) viram atalho com um toque.
 PageBase {
     id: root
@@ -23,8 +23,6 @@ PageBase {
     property string draftIcon
     property string draftCommand
     property string draftCwd
-    readonly property int barIndex: GlobalConfig.bar.entries.values.findIndex(e => e.id === "shortcuts")
-    readonly property bool onBar: root.barIndex >= 0 && GlobalConfig.bar.entries.values[root.barIndex].enabled
     readonly property bool draftReady: root.draftName.trim() !== "" && root.draftCommand.trim() !== ""
 
     function save(list: var): void {
@@ -39,24 +37,6 @@ PageBase {
         } catch (e) {
             root.shortcuts = [];
         }
-    }
-
-    // Entrada "shortcuts" na lista da barra (GlobalConfig.bar.entries): liga
-    // a existente ou cria uma logo abaixo das workspaces
-    function setOnBar(on: bool): void {
-        const entries = GlobalConfig.bar.entries;
-        const i = entries.values.findIndex(e => e.id === "shortcuts");
-        if (i >= 0) {
-            entries.at(i).enabled = on;
-            return;
-        }
-        if (!on)
-            return;
-        entries.insert({ id: "shortcuts", enabled: true });
-        const ws = entries.values.findIndex(e => e.id === "workspaces");
-        const last = entries.values.length - 1;
-        if (ws >= 0 && last > ws + 1)
-            entries.move(last, ws + 1);
     }
 
     function addVaults(text: string): void {
@@ -128,19 +108,6 @@ PageBase {
 
         SectionHeader {
             first: true
-            text: Tr.tr("Taskbar")
-        }
-
-        ToggleRow {
-            first: true
-            last: true
-            text: Tr.tr("Show on the taskbar")
-            subtext: Tr.tr("Below the workspaces; takes no room while the list is empty")
-            checked: root.onBar
-            onToggled: root.setOnBar(checked)
-        }
-
-        SectionHeader {
             text: Tr.tr("Your shortcuts")
         }
 
@@ -158,7 +125,7 @@ PageBase {
                 width: parent.width - Tokens.padding.largeIncreased * 2
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: Tr.tr("Nothing yet. Add one below, or pick an Obsidian vault.")
+                text: Tr.tr("Nothing yet. Add one below, or pick an Obsidian vault; they show at the bottom of the dashboard.")
                 color: Colours.palette.m3outline
                 font: Tokens.font.body.small
             }

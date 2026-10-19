@@ -78,6 +78,27 @@ PageBase {
         }
 
         // Performance widgets
+        // Faixa de atalhos e jogos embaixo do dashboard (V3-02/03)
+        SectionHeader {
+            text: Tr.tr("Quick launch")
+        }
+
+        NavRow {
+            first: true
+            icon: "bolt"
+            text: Tr.tr("Shortcuts")
+            subtext: Tr.tr("Your commands and Obsidian vaults")
+            onClicked: root.nState.openSubPage(11)
+        }
+
+        NavRow {
+            last: true
+            icon: "sports_esports"
+            text: Tr.tr("Games")
+            subtext: Tr.tr("Steam games to launch from the dashboard")
+            onClicked: root.nState.openSubPage(12)
+        }
+
         SectionHeader {
             text: Tr.tr("Performance widgets")
         }

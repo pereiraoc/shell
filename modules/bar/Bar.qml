@@ -169,22 +169,6 @@ ColumnLayout {
                 }
             }
             DelegateChoice {
-                roleValue: "shortcuts"
-                delegate: EntryWrapper {
-                    Shortcuts {
-                        objectName: "taskbarShortcuts"
-                    }
-                }
-            }
-            DelegateChoice {
-                roleValue: "games"
-                delegate: EntryWrapper {
-                    Games {
-                        objectName: "taskbarGames"
-                    }
-                }
-            }
-            DelegateChoice {
                 roleValue: "clock"
                 delegate: EntryWrapper {
                     Clock {
@@ -230,17 +214,8 @@ ColumnLayout {
         Layout.bottomMargin: (index === repeater.count - 1 ? root.vPadding : 0) + (entryId === "clock" ? root.groupGap : 0)
         Layout.alignment: Qt.AlignHCenter
 
-        // Bandeja sem icones (todos escondidos), atalhos e jogos vazios nao
-        // ocupam lugar nem somam spacing.
-        visible: {
-            if (entryId === "tray")
-                return ((item as Tray)?.items.count ?? 1) > 0;
-            if (entryId === "shortcuts")
-                return ((item as Shortcuts)?.count ?? 1) > 0;
-            if (entryId === "games")
-                return ((item as Games)?.count ?? 1) > 0;
-            return true;
-        }
+        // Bandeja sem icones (todos escondidos) nao ocupa lugar nem soma spacing.
+        visible: entryId !== "tray" || ((item as Tray)?.items.count ?? 1) > 0
 
         implicitWidth: item?.implicitWidth ?? 0
         implicitHeight: item?.implicitHeight ?? 0

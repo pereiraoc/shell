@@ -84,25 +84,11 @@ PageBase {
         }
 
         NavRow {
+            last: true
             icon: "schedule"
             text: Tr.tr("Clock")
             subtext: Tr.tr("Date, icon, background")
             onClicked: root.nState.openSubPage(10)
-        }
-
-        NavRow {
-            icon: "bolt"
-            text: Tr.tr("Shortcuts")
-            subtext: Tr.tr("Your commands and Obsidian vaults")
-            onClicked: root.nState.openSubPage(11)
-        }
-
-        NavRow {
-            last: true
-            icon: "sports_esports"
-            text: Tr.tr("Games")
-            subtext: Tr.tr("Steam games to launch from the bar")
-            onClicked: root.nState.openSubPage(12)
         }
 
         // Scroll actions

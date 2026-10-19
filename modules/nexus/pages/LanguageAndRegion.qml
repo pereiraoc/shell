@@ -176,7 +176,6 @@ PageBase {
             SelectRow {
                 first: true
                 last: !root.region.locale
-                implicitHeight: localeLayout.implicitHeight + localeLayout.anchors.margins * 2
 
                 menuItems: [autoLang, ...langItems.instances]
 

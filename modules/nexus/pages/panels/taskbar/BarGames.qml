@@ -11,33 +11,14 @@ import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
 
-// Jogos da Steam na barra (V3-03): caelestia-games lista os instalados e
+// Jogos da Steam no dashboard (V3-03): caelestia-games lista os instalados e
 // grava os favoritos em ~/.config/caelestia/games.json, que o widget
-// modules/bar/components/Games.qml observa.
+// modules/dashboard/dash/QuickLaunch.qml observa.
 PageBase {
     id: root
 
     readonly property var all: games.info.games ?? []
     readonly property var favs: games.info.favourites ?? []
-    readonly property int barIndex: GlobalConfig.bar.entries.values.findIndex(e => e.id === "games")
-    readonly property bool onBar: root.barIndex >= 0 && GlobalConfig.bar.entries.values[root.barIndex].enabled
-
-    function setOnBar(on: bool): void {
-        const entries = GlobalConfig.bar.entries;
-        const i = entries.values.findIndex(e => e.id === "games");
-        if (i >= 0) {
-            entries.at(i).enabled = on;
-            return;
-        }
-        if (!on)
-            return;
-        entries.insert({ id: "games", enabled: true });
-        // Logo abaixo dos atalhos (ou das workspaces)
-        const after = Math.max(entries.values.findIndex(e => e.id === "shortcuts"), entries.values.findIndex(e => e.id === "workspaces"));
-        const last = entries.values.length - 1;
-        if (after >= 0 && last > after + 1)
-            entries.move(last, after + 1);
-    }
 
     title: Tr.tr("Games")
     isSubPage: true
@@ -56,20 +37,7 @@ PageBase {
 
         SectionHeader {
             first: true
-            text: Tr.tr("Taskbar")
-        }
-
-        ToggleRow {
-            first: true
-            last: true
-            text: Tr.tr("Show on the taskbar")
-            subtext: Tr.tr("Below the shortcuts; takes no room while nothing is picked")
-            checked: root.onBar
-            onToggled: root.setOnBar(checked)
-        }
-
-        SectionHeader {
-            text: Tr.tr("On the taskbar")
+            text: Tr.tr("In the dashboard")
         }
 
         ConnectedRect {
@@ -86,7 +54,7 @@ PageBase {
                 width: parent.width - Tokens.padding.largeIncreased * 2
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
-                text: Tr.tr("No game picked yet. Switch one on below.")
+                text: Tr.tr("No game picked yet. Switch one on below; they show at the bottom of the dashboard.")
                 color: Colours.palette.m3outline
                 font: Tokens.font.body.small
             }
@@ -206,7 +174,7 @@ PageBase {
             last: true
             icon: "refresh"
             text: Tr.tr("Refresh names and icons")
-            subtext: Tr.tr("Also drops uninstalled games from the taskbar")
+            subtext: Tr.tr("Also drops uninstalled games from the dashboard")
             disabled: games.busyAction !== ""
             onClicked: games.run({ id: "refresh" })
         }

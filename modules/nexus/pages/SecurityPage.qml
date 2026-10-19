@@ -2,22 +2,21 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.components.misc
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 PageBase {
     id: root
 
-    title: qsTr("Security")
-    description: qsTr("Unlock methods, face recognition and PIN")
-    tabs: [
-        { id: "unlock", label: qsTr("Unlock") },
-        { id: "lock", label: qsTr("Lock screen") },
-        { id: "recovery", label: qsTr("Recovery") }
-    ]
+    // Lock na entrada (modules/lock/Lock.qml le o mesmo arquivo)
+    property bool lockOnLogin
 
     property string newPin: ""
     property string confirmPin: ""
@@ -71,6 +70,39 @@ PageBase {
         root.pinError = false;
         root.statusMessage = qsTr("Authentication methods reset");
         statusTimer.restart();
+    }
+
+    function saveSession(on: bool): void {
+        root.lockOnLogin = on;
+        sessionFile.setText(JSON.stringify({ lockOnLogin: on }, null, 4) + "\n");
+    }
+
+    title: qsTr("Security")
+    description: qsTr("Unlock methods, face recognition and PIN")
+    tabs: [
+        { id: "unlock", label: qsTr("Unlock") },
+        { id: "lock", label: qsTr("Lock screen") },
+        { id: "recovery", label: qsTr("Recovery") }
+    ]
+
+    // PageBase so aceita Item como filho e o ultimo e o conteudo
+    Item {
+        FileView {
+            id: sessionFile
+
+            path: `${Paths.config}/session.json`
+            watchChanges: true
+            printErrors: false
+            onFileChanged: reload()
+            onLoaded: {
+                try {
+                    root.lockOnLogin = JSON.parse(text()).lockOnLogin === true;
+                } catch (e) {
+                    root.lockOnLogin = false;
+                }
+            }
+            onLoadFailed: root.lockOnLogin = false
+        }
     }
 
     ColumnLayout {
@@ -235,11 +267,19 @@ PageBase {
             ToggleRow {
                 Layout.fillWidth: true
                 first: true
-                last: true
                 text: qsTr("Hide notifications")
                 subtext: qsTr("Don't show notification content on the lock screen")
                 checked: Config.lock.hideNotifs
                 onToggled: GlobalConfig.lock.hideNotifs = checked
+            }
+
+            ToggleRow {
+                Layout.fillWidth: true
+                last: true
+                text: qsTr("Lock at login")
+                subtext: qsTr("With autologin, the lock screen is the first thing you see; a shell restart does not lock again. Escape hatch: delete ~/.config/caelestia/session.json from a TTY")
+                checked: root.lockOnLogin
+                onToggled: root.saveSession(checked)
             }
         }
 
