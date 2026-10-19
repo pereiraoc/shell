@@ -18,6 +18,14 @@ PageBase {
     readonly property bool hiddenByRegex: app && matchedByRegex(GlobalConfig.launcher.hiddenApps, app.id)
 
     readonly property var placement: (appmon.info.apps ?? []).find(a => a.desktop_id === root.app?.id) ?? null
+    // Nome/icone proprios (caelestia-apps: override .desktop marcado X-Caelestia-Nexus)
+    readonly property var override: (apps.info.overrides ?? []).find(o => o.id === root.app?.id) ?? null
+    readonly property bool customised: !!root.override && (root.override.name !== root.override.orig_name || root.override.icon !== root.override.orig_icon)
+    // Id guardado: ao salvar um override o Quickshell recarrega os .desktop, o
+    // objeto antigo morre (selectedApp vira null) e o novo nasce com o mesmo id;
+    // `lost` reacha pelo id (applications.values nao notifica o reload).
+    // (nao chamar appId: e o id do WrapInfoRow "App ID" la embaixo)
+    property string heldId
     readonly property var knownMonitors: appmon.info.monitors ?? []
 
     function monitorOptions(exclude: string): var {
@@ -40,10 +48,21 @@ PageBase {
         return filterList.some(f => isRegexEntry(f) && new RegExp(f).test(id));
     }
 
+    // onAppChanged nao dispara para o valor inicial: guardar o id ja na criacao
+    Component.onCompleted: {
+        if (app)
+            heldId = app.id;
+    }
+
     onAppChanged: {
-        // Auto close when app lost
-        if (!app)
+        if (app) {
+            heldId = app.id;
+            lost.stop();
+        } else if (heldId) {
+            lost.restart();
+        } else {
             nState.closeSubPage();
+        }
     }
 
     title: Tr.tr("App info")
@@ -54,6 +73,12 @@ PageBase {
         id: appmon
 
         tool: "app-monitor"
+    }
+
+    ToolBridge {
+        id: apps
+
+        tool: "apps"
     }
 
     ColumnLayout {
@@ -116,7 +141,6 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: Tr.tr("Hidden")
             subtext: root.hiddenByRegex ? Tr.tr("Matched by a regex in hiddenApps — edit the config file to change") : Tr.tr("Hide from the launcher")
             enabled: !root.hiddenByRegex
@@ -124,6 +148,70 @@ PageBase {
             onToggled: {
                 const apps = GlobalConfig.launcher.hiddenApps;
                 GlobalConfig.launcher.hiddenApps = checked ? [...apps, root.app.id] : apps.filter(a => a !== root.app.id);
+            }
+        }
+
+        TextFieldRow {
+            label: Tr.tr("Name")
+            subtext: root.override && root.override.name !== root.override.orig_name ? Tr.tr("Originally “%1”").arg(root.override.orig_name) : Tr.tr("Shown in the launcher and wherever apps are listed")
+            value: root.app?.name ?? (root.override?.name ?? "")
+            maximumLength: 100
+            validate: v => v.trim() !== ""
+            field.emptyIsValid: false
+            onEditingFinished: v => {
+                const name = v.trim();
+                if (root.app && name && name !== root.app.name)
+                    apps.run({ id: `rename~${root.app.id}~${name}` });
+            }
+        }
+
+        TextFieldRow {
+            last: !restoreRow.visible
+            label: Tr.tr("Icon")
+            subtext: root.override && root.override.icon !== root.override.orig_icon ? Tr.tr("Originally “%1”").arg(root.override.orig_icon || Tr.tr("none")) : Tr.tr("Icon name from the theme, or the path to an image")
+            value: root.app?.icon ?? (root.override?.icon ?? "")
+            maximumLength: 300
+            onEditingFinished: v => {
+                const icon = v.trim();
+                if (root.app && icon !== (root.app.icon ?? ""))
+                    apps.run({ id: `icon~${root.app.id}~${icon}` });
+            }
+        }
+
+        RowButton {
+            id: restoreRow
+
+            last: true
+            visible: root.customised
+            icon: "restart_alt"
+            text: Tr.tr("Restore the original name and icon")
+            subtext: root.override ? root.override.orig_name : ""
+            disabled: apps.busyAction !== ""
+            onClicked: apps.run({ id: `restore~${root.app.id}` })
+        }
+
+        // Reacha o app pelo id depois do reload; se sumiu de vez (desinstalado),
+        // fecha a pagina
+        Timer {
+            id: lost
+
+            property int tries
+
+            interval: 250
+            repeat: true
+            onRunningChanged: {
+                if (running)
+                    tries = 0;
+            }
+            onTriggered: {
+                const e = DesktopEntries.byId(root.heldId);
+                if (e) {
+                    stop();
+                    root.nState.selectedApp = e;
+                } else if (++tries >= 8) {
+                    stop();
+                    root.nState.closeSubPage();
+                }
             }
         }
 
