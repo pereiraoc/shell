@@ -25,6 +25,33 @@ PageBase {
     readonly property bool isDynamic: root.cur.name === "dynamic"
     readonly property var curScheme: root.schemes.find(s => s.name === root.cur.name && s.flavour === root.cur.flavour) ?? null
     readonly property var modes: root.isDynamic ? ["dark", "light"] : (root.curScheme?.modes ?? [])
+    // Editor de cores proprias: comeca nos papeis do tema atual (status.editor)
+    // e so segue o status enquanto nao foi mexido
+    readonly property var editorRoles: root.info.editor?.roles ?? ({})
+    readonly property var roleList: [
+        { key: "panel", label: qsTr("Background"), sub: qsTr("Bar, panels and the page behind everything") },
+        { key: "bg", label: qsTr("Cards"), sub: qsTr("Rows and cards; the other greys come from this one") },
+        { key: "fg", label: qsTr("Text"), sub: qsTr("Labels and the main ink") },
+        { key: "border", label: qsTr("Lines"), sub: qsTr("Outlines and separators") },
+        { key: "red", label: qsTr("Accent"), sub: qsTr("Arch logo, clock and the power button") }
+    ]
+    property var draft: ({})
+    property bool dirty
+    property string customName
+    readonly property string customId: `custom~${root.customName || "mine"}~` + root.roleList.map(r => `${r.key}=${root.draft[r.key] ?? "000000"}`).join(",")
+
+    function resetDraft(): void {
+        root.draft = Object.assign({}, root.editorRoles);
+        root.customName = root.info.editor?.name || root.customName || "mine";
+        root.dirty = false;
+    }
+
+    function setRole(key: string, hex: string): void {
+        const d = Object.assign({}, root.draft);
+        d[key] = hex;
+        root.draft = d;
+        root.dirty = true;
+    }
 
     function pretty(text: string): string {
         if (!text || text === "default")
@@ -39,6 +66,11 @@ PageBase {
     title: qsTr("Theme")
     description: qsTr("Colours for the shell, terminal and apps")
     isSubPage: true
+
+    onEditorRolesChanged: {
+        if (!root.dirty)
+            root.resetDraft();
+    }
 
     ToolBridge {
         id: bridge
@@ -165,6 +197,153 @@ PageBase {
                     onPicked: bridge.run({ id: `scheme-${tile.modelData.name}-${tile.modelData.flavour}` })
                 }
             }
+        }
+
+        // ------------------------------------------------ Custom colours
+        // Cinco papeis (os mesmos do tema do Odysseus) viram a paleta inteira
+        // no caelestia-theme (custom~<nome>~...) e um esquema do usuario na grade
+        SectionHeader {
+            text: qsTr("Custom colours")
+        }
+
+        // Previa: a janela em miniatura com as cores do rascunho
+        ConnectedRect {
+            Layout.fillWidth: true
+            first: true
+            implicitHeight: preview.implicitHeight + Tokens.padding.large * 2
+            color: root.hex(root.draft.panel, Colours.palette.m3surface)
+
+            RowLayout {
+                id: preview
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Tokens.padding.largeIncreased
+                spacing: Tokens.spacing.medium
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: pvCol.implicitHeight + Tokens.padding.medium * 2
+                    radius: Tokens.rounding.small
+                    color: root.hex(root.draft.bg, Colours.palette.m3surfaceContainerHigh)
+                    border.width: 1
+                    border.color: root.hex(root.draft.border, Colours.palette.m3outline)
+
+                    ColumnLayout {
+                        id: pvCol
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: Tokens.padding.medium
+                        spacing: Tokens.spacing.extraSmall
+
+                        StyledText {
+                            text: qsTr("Preview")
+                            color: root.hex(root.draft.fg, Colours.palette.m3onSurfaceVariant)
+                            font: Tokens.font.body.small
+                        }
+
+                        StyledText {
+                            text: qsTr("Cards and text on the background, lines around them")
+                            color: root.hex(root.draft.fg, Colours.palette.m3onSurfaceVariant)
+                            font: Tokens.font.label.small
+                        }
+                    }
+                }
+
+                MaterialIcon {
+                    text: "schedule"
+                    color: root.hex(root.draft.red, Colours.palette.m3tertiary)
+                    fontStyle: Tokens.font.icon.large
+                }
+
+                MaterialIcon {
+                    text: "power_settings_new"
+                    color: root.hex(root.draft.red, Colours.palette.m3error)
+                    fontStyle: Tokens.font.icon.large
+                }
+            }
+        }
+
+        Repeater {
+            model: root.roleList
+
+            ColourRow {
+                required property var modelData
+
+                label: modelData.label
+                subtext: modelData.sub
+                value: root.draft[modelData.key] ?? "000000"
+                onEdited: hex => root.setRole(modelData.key, hex)
+            }
+        }
+
+        TextFieldRow {
+            label: qsTr("Name")
+            subtext: qsTr("Saved as a theme of yours; pick it again in the grid above")
+            value: root.customName
+            smallField: true
+            maximumLength: 24
+            onValueEdited: v => {
+                root.customName = v;
+                root.dirty = true;
+            }
+        }
+
+        ConnectedRect {
+            Layout.fillWidth: true
+            last: true
+            implicitHeight: btns.implicitHeight + Tokens.padding.medium * 2
+
+            RowLayout {
+                id: btns
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Tokens.padding.largeIncreased
+                spacing: Tokens.spacing.small
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: root.dirty ? qsTr("Unsaved changes") : qsTr("Colours of the current theme")
+                    color: Colours.palette.m3outline
+                    font: Tokens.font.label.small
+                    elide: Text.ElideRight
+                }
+
+                TextButton {
+                    visible: root.dirty
+                    text: qsTr("Reset")
+                    type: TextButton.Text
+                    onClicked: root.resetDraft()
+                }
+
+                TextButton {
+                    text: bridge.busyAction.startsWith("custom~") ? qsTr("Applying…") : qsTr("Apply")
+                    type: TextButton.Filled
+                    disabled: bridge.busyAction !== "" || root.cli.ok !== true
+                    onClicked: {
+                        bridge.run({ id: root.customId });
+                        root.dirty = false;
+                    }
+                }
+            }
+        }
+
+        RowButton {
+            Layout.topMargin: Tokens.spacing.small
+            first: true
+            last: true
+            visible: !!root.curScheme?.user
+            icon: "delete"
+            iconLabel.color: Colours.palette.m3error
+            text: qsTr("Forget this theme of yours")
+            subtext: qsTr("%1 %2 leaves the grid; the colours stay until you pick another").arg(root.cur.name ?? "").arg(root.cur.flavour ?? "")
+            disabled: bridge.busyAction !== ""
+            onClicked: bridge.run({ id: `forget~${root.cur.name}~${root.cur.flavour}` })
         }
     }
 
