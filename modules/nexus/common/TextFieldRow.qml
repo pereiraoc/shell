@@ -73,8 +73,11 @@ ConnectedRect {
         StyledTextField {
             id: input
 
-            Layout.preferredWidth: root.smallField ? Tokens.sizes.nexus.smallTextFieldWidth : Tokens.sizes.nexus.textFieldWidth
-            Layout.maximumWidth: root.width / 2
+            // smallTextFieldWidth nao existe nos tokens do plugin: sem o
+            // fallback a largura ficava indefinida e o campo vazava o card
+            Layout.preferredWidth: root.smallField ? (Tokens.sizes.nexus.smallTextFieldWidth ?? Math.round(Tokens.sizes.nexus.textFieldWidth * 0.7)) : Tokens.sizes.nexus.textFieldWidth
+            Layout.minimumWidth: 0
+            Layout.maximumWidth: Math.max(80, root.width / 2)
             Layout.alignment: Qt.AlignVCenter
             verticalPadding: Tokens.padding.small
 

@@ -9,15 +9,21 @@ import qs.components.controls
 import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.camera
 
-// Cameras (Nexus > Camera): quem esta usando, previa ao vivo (so quando
-// pedida: acende a luz da camera) e os ajustes de imagem que o driver expoe
-// (V4L2) -- caelestia-camera. Os ajustes ficam salvos e voltam no login.
+// Cameras (Nexus > Camera), em abas: General (quem esta usando, previa ao vivo
+// -- so quando pedida: acende a luz da camera -- e os ajustes de imagem que o
+// driver expoe, V4L2 -- caelestia-camera; ficam salvos e voltam no login),
+// Laptop (a tampa do GU603 com a camera e os microfones do array, clicaveis)
+// e Advanced (apps).
 PageBase {
     id: root
 
     readonly property var cams: bridge.info.cameras ?? []
+    readonly property var webcam: root.cams.find(c => !c.ir) ?? null
     property string previewNode
+    // Aba Laptop: o que esta escolhido na tampa (camera / mic / screen; "" = nada)
+    property string lidSpot
 
     // Sliders: o valor vai ~0,3 s depois de parar de arrastar, um por vez.
     property var pending: ({})
@@ -97,6 +103,11 @@ PageBase {
 
     title: qsTr("Camera")
     description: qsTr("Preview, privacy and picture settings")
+    tabs: [
+        { id: "general", label: qsTr("General") },
+        { id: "laptop", label: qsTr("Laptop") },
+        { id: "advanced", label: qsTr("Advanced") }
+    ]
 
     onVisibleChanged: {
         if (!visible)
@@ -141,290 +152,389 @@ PageBase {
             bridge: bridge
         }
 
-        Repeater {
-            model: root.cams.length
+        // ----------------------------------------------------------- General
+        TabPane {
+            active: root.tab === "general"
 
-            ColumnLayout {
-                id: cam
+            Repeater {
+                model: root.cams.length
 
-                // Modelo = quantidade: atualizar o status nao recria a linha
-                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                // que vai sumir guarda o ultimo item ate ser destruida.
-                property var modelData: root.cams[index] ?? ({})
-                readonly property var liveItem: root.cams[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                required property int index
+                ColumnLayout {
+                    id: cam
 
-                readonly property bool previewing: root.previewNode === cam.modelData.node
-                readonly property bool changed: (cam.modelData.controls ?? []).some(c => c.value !== c.default)
+                    // Modelo = quantidade: atualizar o status nao recria a linha
+                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                    // que vai sumir guarda o ultimo item ate ser destruida.
+                    property var modelData: root.cams[index] ?? ({})
+                    readonly property var liveItem: root.cams[index]
+                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    required property int index
 
-                Layout.fillWidth: true
-                spacing: Tokens.spacing.extraSmall / 2
+                    readonly property bool previewing: root.previewNode === cam.modelData.node
+                    readonly property bool changed: (cam.modelData.controls ?? []).some(c => c.value !== c.default)
 
-                SectionHeader {
-                    first: cam.index === 0
-                    text: cam.modelData.ir ? qsTr("Infrared camera") : qsTr("Webcam")
-                }
-
-                // Estado + previa
-                ConnectedRect {
                     Layout.fillWidth: true
-                    first: true
-                    last: !cam.previewing && (cam.modelData.controls ?? []).length === 0 && !cam.modelData.face_unlock
-                    implicitHeight: camHead.implicitHeight + Tokens.padding.large * 2
+                    spacing: Tokens.spacing.extraSmall / 2
 
-                    RowLayout {
-                        id: camHead
+                    SectionHeader {
+                        first: cam.index === 0
+                        text: cam.modelData.ir ? qsTr("Infrared camera") : qsTr("Webcam")
+                    }
 
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: Tokens.padding.largeIncreased
-                        spacing: Tokens.spacing.medium
+                    // Estado + previa
+                    ConnectedRect {
+                        Layout.fillWidth: true
+                        first: true
+                        last: !cam.previewing && (cam.modelData.controls ?? []).length === 0 && !cam.modelData.face_unlock
+                        implicitHeight: camHead.implicitHeight + Tokens.padding.large * 2
 
-                        MaterialIcon {
-                            text: cam.modelData.in_use_by?.length ? "radio_button_checked" : cam.modelData.ir ? "face" : "videocam"
-                            color: cam.modelData.in_use_by?.length ? Colours.palette.m3error : Colours.palette.m3primary
-                            fontStyle: Tokens.font.icon.large
-                            fill: 1
+                        RowLayout {
+                            id: camHead
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.margins: Tokens.padding.largeIncreased
+                            spacing: Tokens.spacing.medium
+
+                            MaterialIcon {
+                                text: cam.modelData.in_use_by?.length ? "radio_button_checked" : cam.modelData.ir ? "face" : "videocam"
+                                color: cam.modelData.in_use_by?.length ? Colours.palette.m3error : Colours.palette.m3primary
+                                fontStyle: Tokens.font.icon.large
+                                fill: 1
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: cam.modelData.in_use_by?.length ? qsTr("In use by %1").arg(cam.modelData.in_use_by.join(", ")) : cam.previewing ? qsTr("Previewing") : qsTr("Not in use")
+                                    font: Tokens.font.title.small
+                                    elide: Text.ElideRight
+                                }
+
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    text: [cam.modelData.device, cam.modelData.sizes?.[0] ? qsTr("up to %1").arg(cam.modelData.sizes[0]) : "", cam.modelData.name].filter(x => x).join(" · ")
+                                    color: Colours.palette.m3outline
+                                    font: Tokens.font.label.small
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            TextButton {
+                                visible: !cam.modelData.in_use_by?.length || cam.previewing
+                                text: cam.previewing ? qsTr("Stop") : qsTr("Preview")
+                                type: cam.previewing ? TextButton.Filled : TextButton.Text
+                                onClicked: root.previewNode = cam.previewing ? "" : cam.modelData.node
+                            }
                         }
+                    }
+
+                    // Previa ao vivo: so existe enquanto pedida (a camera liga)
+                    ConnectedRect {
+                        Layout.fillWidth: true
+                        visible: cam.previewing
+                        implicitHeight: previewLoader.item ? width * 9 / 16 : 0
+                        clip: true
+
+                        Loader {
+                            id: previewLoader
+
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.small
+                            active: cam.previewing
+                            sourceComponent: Item {
+                                id: pv
+
+                                readonly property var device: mediaDevices.videoInputs.find(d => String(d.id).includes(cam.modelData.node)) ?? mediaDevices.defaultVideoInput
+
+                                MediaDevices {
+                                    id: mediaDevices
+                                }
+
+                                CaptureSession {
+                                    camera: Camera {
+                                        cameraDevice: pv.device
+                                        active: true
+                                    }
+                                    videoOutput: output
+                                }
+
+                                VideoOutput {
+                                    id: output
+
+                                    anchors.fill: parent
+                                    fillMode: VideoOutput.PreserveAspectFit
+                                }
+                            }
+                        }
+                    }
+
+                    RowButton {
+                        last: (cam.modelData.controls ?? []).length === 0
+                        visible: !!cam.modelData.face_unlock
+                        icon: "face"
+                        text: qsTr("Used by face unlock")
+                        subtext: qsTr("Models and unlock methods are in Security")
+                        trailingIcon: "chevron_right"
+                        onClicked: root.nState.openPage("security", 0, "")
+                    }
+
+                    InfoRow {
+                        last: true
+                        visible: (cam.modelData.controls ?? []).length === 0 && !cam.modelData.face_unlock
+                        icon: "tune"
+                        label: qsTr("This camera has no picture settings")
+                    }
+
+                    // Ajustes, por grupo
+                    Repeater {
+                        model: (root.grouped(cam.modelData.controls ?? [])).length
 
                         ColumnLayout {
+                            id: grp
+
+                            // Modelo = quantidade: atualizar o status nao recria a linha
+                            // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                            // que vai sumir guarda o ultimo item ate ser destruida.
+                            property var modelData: (root.grouped(cam.modelData.controls ?? []))[index] ?? ({})
+                            readonly property var liveItem: (root.grouped(cam.modelData.controls ?? []))[index]
+                            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                            required property int index
+
                             Layout.fillWidth: true
-                            spacing: 0
+                            spacing: Tokens.spacing.extraSmall / 2
 
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: cam.modelData.in_use_by?.length ? qsTr("In use by %1").arg(cam.modelData.in_use_by.join(", ")) : cam.previewing ? qsTr("Previewing") : qsTr("Not in use")
-                                font: Tokens.font.title.small
-                                elide: Text.ElideRight
+                            SubsectionHeader {
+                                text: grp.modelData.title
                             }
 
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: [cam.modelData.device, cam.modelData.sizes?.[0] ? qsTr("up to %1").arg(cam.modelData.sizes[0]) : "", cam.modelData.name].filter(x => x).join(" · ")
-                                color: Colours.palette.m3outline
-                                font: Tokens.font.label.small
-                                elide: Text.ElideRight
-                            }
-                        }
+                            Repeater {
+                                model: grp.modelData.ctrls.length
 
-                        TextButton {
-                            visible: !cam.modelData.in_use_by?.length || cam.previewing
-                            text: cam.previewing ? qsTr("Stop") : qsTr("Preview")
-                            type: cam.previewing ? TextButton.Filled : TextButton.Text
-                            onClicked: root.previewNode = cam.previewing ? "" : cam.modelData.node
-                        }
-                    }
-                }
+                                Loader {
+                                    id: ctl
 
-                // Previa ao vivo: so existe enquanto pedida (a camera liga)
-                ConnectedRect {
-                    Layout.fillWidth: true
-                    visible: cam.previewing
-                    implicitHeight: previewLoader.item ? width * 9 / 16 : 0
-                    clip: true
+                                    // Modelo = quantidade: atualizar o status nao recria a linha
+                                    // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
+                                    // que vai sumir guarda o ultimo item ate ser destruida.
+                                    property var modelData: grp.modelData.ctrls[index] ?? ({})
+                                    readonly property var liveItem: grp.modelData.ctrls[index]
+                                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                                    required property int index
 
-                    Loader {
-                        id: previewLoader
+                                    readonly property bool isFirst: ctl.index === 0
+                                    readonly property bool isLast: ctl.index === grp.modelData.ctrls.length - 1
 
-                        anchors.fill: parent
-                        anchors.margins: Tokens.padding.small
-                        active: cam.previewing
-                        sourceComponent: Item {
-                            id: pv
+                                    Layout.fillWidth: true
+                                    sourceComponent: ctl.modelData.type === "bool" ? boolComp : ctl.modelData.type === "menu" ? menuComp : intComp
 
-                            readonly property var device: mediaDevices.videoInputs.find(d => String(d.id).includes(cam.modelData.node)) ?? mediaDevices.defaultVideoInput
+                                    Component {
+                                        id: boolComp
 
-                            MediaDevices {
-                                id: mediaDevices
-                            }
-
-                            CaptureSession {
-                                camera: Camera {
-                                    cameraDevice: pv.device
-                                    active: true
-                                }
-                                videoOutput: output
-                            }
-
-                            VideoOutput {
-                                id: output
-
-                                anchors.fill: parent
-                                fillMode: VideoOutput.PreserveAspectFit
-                            }
-                        }
-                    }
-                }
-
-                RowButton {
-                    last: (cam.modelData.controls ?? []).length === 0
-                    visible: !!cam.modelData.face_unlock
-                    icon: "face"
-                    text: qsTr("Used by face unlock")
-                    subtext: qsTr("Models and unlock methods are in Security")
-                    trailingIcon: "chevron_right"
-                    onClicked: root.nState.openPage("security", 0, "")
-                }
-
-                InfoRow {
-                    last: true
-                    visible: (cam.modelData.controls ?? []).length === 0 && !cam.modelData.face_unlock
-                    icon: "tune"
-                    label: qsTr("This camera has no picture settings")
-                }
-
-                // Ajustes, por grupo
-                Repeater {
-                    model: (root.grouped(cam.modelData.controls ?? [])).length
-
-                    ColumnLayout {
-                        id: grp
-
-                        // Modelo = quantidade: atualizar o status nao recria a linha
-                        // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                        // que vai sumir guarda o ultimo item ate ser destruida.
-                        property var modelData: (root.grouped(cam.modelData.controls ?? []))[index] ?? ({})
-                        readonly property var liveItem: (root.grouped(cam.modelData.controls ?? []))[index]
-                        onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                        required property int index
-
-                        Layout.fillWidth: true
-                        spacing: Tokens.spacing.extraSmall / 2
-
-                        SubsectionHeader {
-                            text: grp.modelData.title
-                        }
-
-                        Repeater {
-                            model: grp.modelData.ctrls.length
-
-                            Loader {
-                                id: ctl
-
-                                // Modelo = quantidade: atualizar o status nao recria a linha
-                                // (sliders e chips nao voltam do zero). Lista encolhendo: a linha
-                                // que vai sumir guarda o ultimo item ate ser destruida.
-                                property var modelData: grp.modelData.ctrls[index] ?? ({})
-                                readonly property var liveItem: grp.modelData.ctrls[index]
-                                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-                                required property int index
-
-                                readonly property bool isFirst: ctl.index === 0
-                                readonly property bool isLast: ctl.index === grp.modelData.ctrls.length - 1
-
-                                Layout.fillWidth: true
-                                sourceComponent: ctl.modelData.type === "bool" ? boolComp : ctl.modelData.type === "menu" ? menuComp : intComp
-
-                                Component {
-                                    id: boolComp
-
-                                    ToggleRow {
-                                        first: ctl.isFirst
-                                        last: ctl.isLast
-                                        text: root.pretty(ctl.modelData.name)
-                                        subtext: root.hints[ctl.modelData.name] ?? ""
-                                        checked: ctl.modelData.value === 1
-                                        disabled: ctl.modelData.inactive
-                                        onToggled: root.setCtrl(cam.modelData.node, ctl.modelData.name, checked ? 1 : 0)
-                                    }
-                                }
-
-                                Component {
-                                    id: menuComp
-
-                                    ChipSelectRow {
-                                        first: ctl.isFirst
-                                        last: ctl.isLast
-                                        label: root.pretty(ctl.modelData.name)
-                                        subtext: root.hints[ctl.modelData.name] ?? ""
-                                        options: (ctl.modelData.options ?? []).map(o => ({ value: String(o.value), label: root.menuLabels[o.label] ?? o.label }))
-                                        current: String(ctl.modelData.value)
-                                        disabled: ctl.modelData.inactive
-                                        onPicked: v => root.setCtrl(cam.modelData.node, ctl.modelData.name, Number(v))
-                                    }
-                                }
-
-                                Component {
-                                    id: intComp
-
-                                    ColumnLayout {
-                                        id: intRow
-
-                                        readonly property int range: Math.max(1, ctl.modelData.max - ctl.modelData.min)
-                                        property int shown: ctl.modelData.value
-
-                                        spacing: 0
-                                        opacity: ctl.modelData.inactive ? 0.5 : 1
-
-                                        Connections {
-                                            target: ctl
-                                            function onModelDataChanged(): void {
-                                                // valor pendente (arrastando) manda: o refresh
-                                                // do anterior nao puxa o slider de volta
-                                                if (root.pending[`${cam.modelData.node}|${ctl.modelData.name}`] === undefined)
-                                                    intRow.shown = ctl.modelData.value;
-                                            }
-                                        }
-
-                                        SliderRow {
-                                            Layout.fillWidth: true
+                                        ToggleRow {
                                             first: ctl.isFirst
-                                            last: ctl.isLast && !root.hints[ctl.modelData.name]
-                                            enabled: !ctl.modelData.inactive
-                                            icon: "tune"
-                                            label: root.pretty(ctl.modelData.name)
-                                            valueLabel: intRow.shown === ctl.modelData.default ? qsTr("%1 (default)").arg(intRow.shown) : String(intRow.shown) + (ctl.modelData.name === "white_balance_temperature" ? " K" : "")
-                                            value: (intRow.shown - ctl.modelData.min) / intRow.range
-                                            onMoved: v => {
-                                                const step = ctl.modelData.step || 1;
-                                                const raw = ctl.modelData.min + Math.round(v * intRow.range / step) * step;
-                                                intRow.shown = Math.max(ctl.modelData.min, Math.min(ctl.modelData.max, raw));
-                                                root.setCtrl(cam.modelData.node, ctl.modelData.name, intRow.shown);
-                                            }
+                                            last: ctl.isLast
+                                            text: root.pretty(ctl.modelData.name)
+                                            subtext: root.hints[ctl.modelData.name] ?? ""
+                                            checked: ctl.modelData.value === 1
+                                            disabled: ctl.modelData.inactive
+                                            onToggled: root.setCtrl(cam.modelData.node, ctl.modelData.name, checked ? 1 : 0)
                                         }
+                                    }
 
-                                        StyledText {
-                                            Layout.fillWidth: true
-                                            Layout.leftMargin: Tokens.padding.largeIncreased
-                                            Layout.bottomMargin: Tokens.spacing.small
-                                            visible: !!root.hints[ctl.modelData.name] && (ctl.modelData.inactive || ctl.modelData.name !== "white_balance_temperature" && ctl.modelData.name !== "exposure_time_absolute")
-                                            text: root.hints[ctl.modelData.name] ?? ""
-                                            color: Colours.palette.m3outline
-                                            font: Tokens.font.label.small
-                                            wrapMode: Text.WordWrap
+                                    Component {
+                                        id: menuComp
+
+                                        ChipSelectRow {
+                                            first: ctl.isFirst
+                                            last: ctl.isLast
+                                            label: root.pretty(ctl.modelData.name)
+                                            subtext: root.hints[ctl.modelData.name] ?? ""
+                                            options: (ctl.modelData.options ?? []).map(o => ({ value: String(o.value), label: root.menuLabels[o.label] ?? o.label }))
+                                            current: String(ctl.modelData.value)
+                                            disabled: ctl.modelData.inactive
+                                            onPicked: v => root.setCtrl(cam.modelData.node, ctl.modelData.name, Number(v))
+                                        }
+                                    }
+
+                                    Component {
+                                        id: intComp
+
+                                        ColumnLayout {
+                                            id: intRow
+
+                                            readonly property int range: Math.max(1, ctl.modelData.max - ctl.modelData.min)
+                                            property int shown: ctl.modelData.value
+
+                                            spacing: 0
+                                            opacity: ctl.modelData.inactive ? 0.5 : 1
+
+                                            Connections {
+                                                target: ctl
+                                                function onModelDataChanged(): void {
+                                                    // valor pendente (arrastando) manda: o refresh
+                                                    // do anterior nao puxa o slider de volta
+                                                    if (root.pending[`${cam.modelData.node}|${ctl.modelData.name}`] === undefined)
+                                                        intRow.shown = ctl.modelData.value;
+                                                }
+                                            }
+
+                                            SliderRow {
+                                                Layout.fillWidth: true
+                                                first: ctl.isFirst
+                                                last: ctl.isLast && !root.hints[ctl.modelData.name]
+                                                enabled: !ctl.modelData.inactive
+                                                icon: "tune"
+                                                label: root.pretty(ctl.modelData.name)
+                                                valueLabel: intRow.shown === ctl.modelData.default ? qsTr("%1 (default)").arg(intRow.shown) : String(intRow.shown) + (ctl.modelData.name === "white_balance_temperature" ? " K" : "")
+                                                value: (intRow.shown - ctl.modelData.min) / intRow.range
+                                                onMoved: v => {
+                                                    const step = ctl.modelData.step || 1;
+                                                    const raw = ctl.modelData.min + Math.round(v * intRow.range / step) * step;
+                                                    intRow.shown = Math.max(ctl.modelData.min, Math.min(ctl.modelData.max, raw));
+                                                    root.setCtrl(cam.modelData.node, ctl.modelData.name, intRow.shown);
+                                                }
+                                            }
+
+                                            StyledText {
+                                                Layout.fillWidth: true
+                                                Layout.leftMargin: Tokens.padding.largeIncreased
+                                                Layout.bottomMargin: Tokens.spacing.small
+                                                visible: !!root.hints[ctl.modelData.name] && (ctl.modelData.inactive || ctl.modelData.name !== "white_balance_temperature" && ctl.modelData.name !== "exposure_time_absolute")
+                                                text: root.hints[ctl.modelData.name] ?? ""
+                                                color: Colours.palette.m3outline
+                                                font: Tokens.font.label.small
+                                                wrapMode: Text.WordWrap
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                RowButton {
-                    Layout.topMargin: Tokens.spacing.medium
-                    first: true
-                    last: true
-                    visible: (cam.modelData.controls ?? []).length > 0
-                    icon: "restart_alt"
-                    text: qsTr("Reset picture settings")
-                    subtext: cam.changed ? qsTr("Back to the camera's defaults") : qsTr("Everything is at the default")
-                    disabled: !cam.changed || bridge.busyAction !== ""
-                    onClicked: bridge.run({ id: `reset-${cam.modelData.node}` })
+                    RowButton {
+                        Layout.topMargin: Tokens.spacing.medium
+                        first: true
+                        last: true
+                        visible: (cam.modelData.controls ?? []).length > 0
+                        icon: "restart_alt"
+                        text: qsTr("Reset picture settings")
+                        subtext: cam.changed ? qsTr("Back to the camera's defaults") : qsTr("Everything is at the default")
+                        disabled: !cam.changed || bridge.busyAction !== ""
+                        onClicked: bridge.run({ id: `reset-${cam.modelData.node}` })
+                    }
                 }
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.large
+                Layout.leftMargin: Tokens.padding.small
+                visible: root.cams.length > 0
+                text: qsTr("Settings apply to every app and come back after a restart.")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
             }
         }
 
-        StyledText {
-            Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.large
-            Layout.leftMargin: Tokens.padding.small
-            visible: root.cams.length > 0
-            text: qsTr("Settings apply to every app and come back after a restart.")
-            color: Colours.palette.m3outline
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
+        // ------------------------------------------------------------ Laptop
+        // A tampa: camera (em uso / livre), microfones do array (o que o
+        // sistema usa como entrada, mudo) e a tela
+        TabPane {
+            active: root.tab === "laptop"
+
+            LaptopLidDiagram {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.small
+                Layout.bottomMargin: Tokens.spacing.small
+                selected: root.lidSpot
+                cameraOn: !!root.webcam?.in_use_by?.length || root.previewNode !== ""
+                micMuted: Audio.sourceMuted
+                onPicked: id => root.lidSpot = root.lidSpot === id ? "" : id
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.bottomMargin: Tokens.spacing.small
+                visible: root.lidSpot === ""
+                text: qsTr("Tap the camera, a microphone or the screen")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            // Camera
+            InfoRow {
+                first: true
+                visible: root.lidSpot === "camera"
+                icon: root.webcam?.in_use_by?.length ? "radio_button_checked" : "videocam"
+                iconColour: root.webcam?.in_use_by?.length ? Colours.palette.m3error : Colours.palette.m3primary
+                label: root.webcam ? (root.webcam.in_use_by?.length ? qsTr("In use by %1").arg(root.webcam.in_use_by.join(", ")) : qsTr("Camera free")) : qsTr("No webcam found")
+                subtext: root.webcam ? [root.webcam.device, root.webcam.sizes?.[0] ? qsTr("up to %1").arg(root.webcam.sizes[0]) : "", qsTr("The LED next to it lights whenever an app opens the camera")].filter(x => x).join(" · ") : ""
+            }
+
+            RowButton {
+                last: true
+                visible: root.lidSpot === "camera" && !!root.webcam
+                icon: "tune"
+                text: qsTr("Preview and picture settings")
+                subtext: qsTr("In the General tab")
+                trailingIcon: "chevron_right"
+                onClicked: root.tab = "general"
+            }
+
+            // Microfones do array
+            InfoRow {
+                first: true
+                visible: root.lidSpot === "mic"
+                icon: Audio.sourceMuted ? "mic_off" : "mic"
+                iconColour: Audio.sourceMuted ? Colours.palette.m3error : Colours.palette.m3primary
+                label: qsTr("Array microphones")
+                subtext: qsTr("Two microphones on the lid, one on each side of the camera. The system uses them as “%1”.").arg(Audio.source?.description ?? qsTr("no input"))
+                value: Audio.sourceMuted ? qsTr("Muted") : `${Math.round(Audio.sourceVolume * 100)}%`
+            }
+
+            RowButton {
+                last: true
+                visible: root.lidSpot === "mic"
+                icon: "settings_voice"
+                text: qsTr("Input device, gain and apps using it")
+                subtext: qsTr("Sound › Input")
+                trailingIcon: "chevron_right"
+                onClicked: root.nState.openPage("sound", 0, "input")
+            }
+
+            // Tela
+            RowButton {
+                first: true
+                last: true
+                visible: root.lidSpot === "screen"
+                icon: "laptop"
+                text: qsTr("Built-in display")
+                subtext: qsTr("Resolution, scale, brightness and the bar side")
+                trailingIcon: "chevron_right"
+                onClicked: root.nState.openPage("display", 0, "general")
+            }
+        }
+
+        // ---------------------------------------------------------- Advanced
+        TabPane {
+            active: root.tab === "advanced"
+
+            AdvancedGroup {
+                apps: [
+                    { id: "org.gnome.Cheese", alt: ["cheese"], text: qsTr("Cheese"), subtext: qsTr("Take photos and videos with the webcam") },
+                    { id: "io.github.webcamoid.Webcamoid", alt: ["webcamoid"], text: qsTr("Webcamoid"), subtext: qsTr("Virtual camera, effects and recording") },
+                    { id: "guvcview", text: qsTr("guvcview"), subtext: qsTr("Every V4L2 control the driver exposes") }
+                ]
+            }
         }
     }
 }

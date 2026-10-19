@@ -96,6 +96,10 @@ TextFieldBase {
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: root.leftPadding
             anchors.topMargin: Tokens.padding.extraSmall
+            // Nunca mais largo que o campo: um placeholder longo num campo
+            // estreito (apelido do monitor) vazava para fora do card
+            width: Math.min(implicitWidth, Math.max(0, parent.width - root.leftPadding - root.rightPadding))
+            elide: Text.ElideRight
             renderType: Text.QtRendering
 
             text: root.placeholderText
