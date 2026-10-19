@@ -2,11 +2,14 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import Quickshell.Services.UPower
 import Caelestia.Config
 import qs.components
 import qs.components.misc
 import qs.services
+import qs.utils
 import qs.modules.nexus.common
 
 // Energia: bateria (carga, tempo, consumo, saude, limite de carga), perfil de
@@ -25,6 +28,10 @@ PageBase {
     readonly property real percent: UPower.displayDevice?.isLaptopBattery ? UPower.displayDevice.percentage * 100 : (root.battery.percent ?? 0)
 
     readonly property var profileIcons: ({ Quiet: "eco", Balanced: "balance", Performance: "bolt" })
+
+    // Filme do boot e despedida (01-pendencias "Bootsplash"): ~/.config/caelestia/boot.json,
+    // lido pelo quickshell -c caelestia-boot e pelo caelestia-farewell
+    property var boot: ({ bootFilm: true, farewell: true })
 
     function duration(minutes: var): string {
         if (minutes === null || minutes === undefined)
@@ -50,8 +57,36 @@ PageBase {
         return (root.profile.choices ?? []).map(p => ({ value: p.toLowerCase(), label: p, icon: root.profileIcons[p] ?? "" }));
     }
 
+    function saveBoot(key: string, on: bool): void {
+        const d = Object.assign({}, root.boot);
+        d[key] = on;
+        root.boot = d;
+        bootFile.setText(JSON.stringify(d, null, 4) + "\n");
+    }
+
     title: qsTr("Power")
     description: qsTr("Battery, performance profile, graphics and sleep")
+
+    // PageBase so aceita Item como filho e o ultimo e o conteudo
+    Item {
+        FileView {
+            id: bootFile
+
+            path: `${Paths.config}/boot.json`
+            watchChanges: true
+            printErrors: false
+            onFileChanged: reload()
+            onLoaded: {
+                try {
+                    const d = JSON.parse(text());
+                    root.boot = { bootFilm: d.bootFilm !== false, farewell: d.farewell !== false };
+                } catch (e) {
+                    root.boot = { bootFilm: true, farewell: true };
+                }
+            }
+            onLoadFailed: root.boot = { bootFilm: true, farewell: true }
+        }
+    }
 
     ToolBridge {
         id: bridge
@@ -281,6 +316,27 @@ PageBase {
                     return (root.hibernate.swap_gb ?? 0) < (root.hibernate.ram_gb ?? 0) ? qsTr("%1 · may fail if memory is very full").arg(sizes) : sizes;
                 return qsTr("Hibernating now would lose your session. Fix: sudo bash scripts/system/enable-hibernate.sh · %1").arg(sizes);
             }
+        }
+
+        // Ligar e desligar
+        SectionHeader {
+            text: qsTr("Start and shut down")
+        }
+
+        ToggleRow {
+            first: true
+            text: qsTr("Boot animation")
+            subtext: qsTr("The Prism film (line, burst, logo) while the desktop loads; off = straight to the desktop")
+            checked: root.boot.bootFilm
+            onToggled: root.saveBoot("bootFilm", checked)
+        }
+
+        ToggleRow {
+            last: true
+            text: qsTr("Farewell animation")
+            subtext: qsTr("The film in reverse before shutting down or restarting; off = shuts down at once")
+            checked: root.boot.farewell
+            onToggled: root.saveBoot("farewell", checked)
         }
 
         AdvancedGroup {

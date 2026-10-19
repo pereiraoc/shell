@@ -116,11 +116,20 @@ PageBase {
         }
 
         RowButton {
-            last: true
             icon: "add"
             text: Tr.tr("Add network")
             disabled: !Nmcli.wifiEnabled
             onClicked: root.nState.openSubPage(2) // Add network sub-page
+        }
+
+        // Aparelhos da rede de casa (caelestia-lan)
+        RowButton {
+            last: true
+            icon: "devices"
+            text: Tr.tr("Devices on this network")
+            subtext: Tr.tr("Who is connected, names, open ports, router page, SSH")
+            trailingIcon: "chevron_right"
+            onClicked: root.nState.openSubPage(7) // LanDevicesPage
         }
 
         // ---- VPN -------------------------------------------------------------

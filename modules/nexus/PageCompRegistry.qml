@@ -56,6 +56,9 @@ QtObject {
             Component {
                 SavedNetworksPage {}
             }
+            Component {
+                LanDevicesPage {}
+            }
         }
     }
 
