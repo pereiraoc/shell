@@ -15,6 +15,9 @@ QtObject {
     // Abas das paginas (PageBase.tabs): a pedida por um deep link (busca, IPC,
     // Super+/) e a ultima de cada pagina nesta sessao (id da pagina -> aba)
     property string requestedTab
+    // Rolagem pedida por IPC (`nexus scroll <px>`): a pagina visivel leva o
+    // conteudo a essa altura e zera. -1 = nada pedido.
+    property int requestedScroll: -1
     property var pageTabs: ({})
 
     property string selectedWallpaperCategory

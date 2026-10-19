@@ -11,12 +11,13 @@ import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.bluetooth
 import qs.modules.nexus.pages.keyboard
 
-
 // Teclados (Nexus > Keyboard), em abas: General (layout, repeticao --
-// caelestia-input), Laptop (brilho asusctl + efeito asusd + teclas especiais),
-// uma aba por teclado externo (Azoth: bateria + luz -- caelestia-peripherals),
+// caelestia-input), Laptop (LaptopKeysView: teclas especiais, brilho asusctl,
+// efeito asusd com previa na silhueta), uma aba por teclado externo (Azoth:
+// AzothView -- bateria, silhueta, luz, OLED -- caelestia-peripherals),
 // Shortcuts (a pagina do Super+/) e Advanced (outras luzes RGB, OpenRGB).
 PageBase {
     id: root
@@ -53,10 +54,6 @@ PageBase {
     // "ASUS ROG Azoth 2.4GHz" -> "ROG Azoth"
     function keyboardLabel(name: string): string {
         return (name ?? "").replace(/\s*(2\.4GHz|USB)$/, "").replace(/^ASUS\s+/i, "");
-    }
-
-    function batteryText(b: var): string {
-        return b.charging ? qsTr("Charging") : b.stale ? qsTr("Last known level — the device is asleep") : "";
     }
 
     function periphRun(id: string): void {
@@ -168,63 +165,30 @@ PageBase {
         }
 
         // ------------------------------------------------------------ Laptop
-        // Teclado do notebook: brilho (asusctl), efeito (asusd) e as teclas especiais
+        // Teclado do notebook: teclas especiais, brilho e efeito (LaptopKeysView).
+        // So nasce quando a aba abre; depois fica viva.
         TabPane {
+            id: laptopPane
+
             active: root.tab === "laptop"
 
-            ChipSelectRow {
-                first: true
-                last: !root.laptopRgb
-                visible: root.periph.laptop_keyboard?.available === true
-                label: qsTr("Backlight")
-                subtext: qsTr("Fn + F2 / F3 on the laptop change this too")
-                options: [
-                    { value: "off", label: qsTr("Off"), icon: "light_off" },
-                    { value: "low", label: qsTr("Low") },
-                    { value: "med", label: qsTr("Medium") },
-                    { value: "high", label: qsTr("High") }
-                ]
-                current: root.periph.laptop_keyboard?.brightness ?? ""
-                busy: periphBridge.busyAction.startsWith("kbd-")
-                onPicked: v => root.periphRun(`kbd-${v}`)
-            }
-
-            RowButton {
-                first: root.periph.laptop_keyboard?.available !== true
-                last: true
-                visible: !!root.laptopRgb
-                icon: root.isOff(root.laptopRgb?.settings) ? "light_off" : "palette"
-                text: qsTr("Lighting")
-                subtext: root.lightingText(root.laptopRgb?.settings)
-                trailingIcon: "chevron_right"
-                onClicked: root.openLighting(root.laptopRgb.id)
+            Loader {
+                Layout.fillWidth: true
+                active: laptopPane.opened
+                visible: active
+                sourceComponent: LaptopKeysView {
+                    peripherals: periphBridge
+                }
             }
 
             ActionErrorRow {
                 bridge: periphBridge
             }
-
-            SubsectionHeader {
-                icon: "keyboard_alt"
-                text: qsTr("Special keys")
-            }
-
-            // Diagrama e ferramenta so nascem quando a aba abre; depois ficam vivos
-            Loader {
-                id: laptopKeys
-
-                property bool opened
-
-                Layout.fillWidth: true
-                active: laptopKeys.opened || root.tab === "laptop"
-                visible: active
-                onActiveChanged: if (active) opened = true
-                sourceComponent: LaptopKeysView {}
-            }
         }
 
         // ------------------------------------------- Um teclado externo por aba
-        // Teclados externos com luz (Azoth...): bateria + iluminacao
+        // Familia do Azoth (canal vendor): AzothView. Outro teclado externo com
+        // luz: bateria + iluminacao. So nascem quando a aba abre; depois ficam vivos.
         Repeater {
             model: root.keyboards.length
 
@@ -236,79 +200,72 @@ PageBase {
                 // que vai sumir guarda o ultimo item ate ser destruida.
                 property var modelData: root.keyboards[index] ?? ({})
                 readonly property var liveItem: root.keyboards[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
-
                 readonly property var battery: kbd.index === 0 ? root.kbBattery : null
+                readonly property bool azoth: kbd.modelData.backend === "hid"
 
                 active: root.tab === kbd.modelData.id
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+
+                Loader {
+                    Layout.fillWidth: true
+                    active: kbd.azoth && kbd.opened
+                    visible: active
+                    sourceComponent: AzothView {
+                        device: kbd.modelData
+                        bridge: periphBridge
+                        battery: kbd.battery
+                    }
+                }
 
                 SubsectionHeader {
+                    visible: !kbd.azoth
                     icon: "keyboard"
-                    text: kbd.modelData.name.replace(/\s*(2\.4GHz|USB)$/, "")
+                    text: root.keyboardLabel(kbd.modelData.name)
                     status: kbd.battery ? (kbd.battery.stale ? qsTr("Asleep · %1%") : "%1%").arg(Math.round(kbd.battery.pct * 100)) : ""
                     warn: !!kbd.battery && kbd.battery.pct < 0.2
                 }
 
                 MeterRow {
                     first: true
-                    visible: !!kbd.battery
+                    last: true
+                    visible: !kbd.azoth && !!kbd.battery
                     icon: "battery_full"
                     label: qsTr("Battery")
                     valueText: kbd.battery ? `${Math.round(kbd.battery.pct * 100)}%` : ""
                     value: kbd.battery?.pct ?? 0
                     warnAt: 0.2
                     warnBelow: true
-                    subtext: kbd.battery ? root.batteryText(kbd.battery) : ""
+                    subtext: kbd.battery?.charging ? qsTr("Charging") : kbd.battery?.stale ? qsTr("Last known level — the device is asleep") : ""
                 }
 
-                RowButton {
-                    first: !kbd.battery
-                    last: true
-                    icon: root.isOff(kbd.modelData.settings) ? "light_off" : "palette"
-                    text: qsTr("Lighting")
-                    subtext: root.lightingText(kbd.modelData.settings)
-                    trailingIcon: "chevron_right"
-                    onClicked: root.openLighting(kbd.modelData.id)
+                Loader {
+                    Layout.fillWidth: true
+                    active: !kbd.azoth && kbd.opened
+                    visible: active
+                    sourceComponent: RgbLightingView {
+                        deviceId: kbd.modelData.id
+                        bridge: periphBridge
+                    }
                 }
 
                 ActionErrorRow {
                     bridge: periphBridge
-                }
-
-                // Familia do Azoth (canal vendor): silhueta, camada Fn e OLED.
-                // So nasce quando a aba abre; depois fica viva.
-                Loader {
-                    id: azoth
-
-                    property bool opened
-
-                    Layout.fillWidth: true
-                    active: kbd.modelData.backend === "hid" && (azoth.opened || root.tab === kbd.modelData.id)
-                    visible: active
-                    onActiveChanged: if (active) opened = true
-                    sourceComponent: AzothView {
-                        device: kbd.modelData
-                        bridge: periphBridge
-                    }
                 }
             }
         }
 
         // --------------------------------------------------------- Shortcuts
         TabPane {
+            id: shortcutsPane
+
             active: root.tab === "shortcuts"
 
             // A grade de atalhos custa ~0,4 s para nascer: so na 1a abertura da aba
             Loader {
-                id: shortcuts
-
-                property bool opened
-
                 Layout.fillWidth: true
-                active: shortcuts.opened || root.tab === "shortcuts"
+                active: shortcutsPane.opened
                 visible: active
-                onActiveChanged: if (active) opened = true
                 sourceComponent: ShortcutsView {}
             }
         }

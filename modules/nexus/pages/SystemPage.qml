@@ -260,34 +260,28 @@ PageBase {
 
         // -------------------------------------------------------------- Boot
         TabPane {
+            id: bootPane
+
             active: root.tab === "boot"
 
             Loader {
-                id: boot
-
-                property bool opened
-
                 Layout.fillWidth: true
-                active: boot.opened || root.tab === "boot"
+                active: bootPane.opened
                 visible: active
-                onActiveChanged: if (active) opened = true
                 sourceComponent: BootView {}
             }
         }
 
         // -------------------------------------------------------------- Logs
         TabPane {
+            id: logsPane
+
             active: root.tab === "logs"
 
             Loader {
-                id: logs
-
-                property bool opened
-
                 Layout.fillWidth: true
-                active: logs.opened || root.tab === "logs"
+                active: logsPane.opened
                 visible: active
-                onActiveChanged: if (active) opened = true
                 sourceComponent: LogsView {}
             }
         }

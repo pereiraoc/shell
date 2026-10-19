@@ -7,47 +7,96 @@ import Caelestia.I18n
 import qs.components
 import qs.services
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.bluetooth
 import "azothLayout.js" as Az
 
-// Aba do ROG Azoth em Keyboard, parte do teclado em si: a silhueta (75 %,
-// OLED + knob no canto) com as teclas da camada Fn clicaveis, o cartao da
-// tecla escolhida, e o OLED -- qual animacao esta no visor (lida do teclado;
-// nada muda sozinho), brilho e liga/desliga. Tudo pelo caelestia-peripherals
+// Aba do ROG Azoth em Keyboard, de cima para baixo: bateria e como esta ligado,
+// a silhueta (75 %, OLED + knob no canto) com a previa da luz e as teclas da
+// camada Fn clicaveis, o cartao da tecla escolhida, a iluminacao (efeito,
+// cores, brilho, velocidade -- o que se escolhe aparece na silhueta) e o OLED:
+// qual animacao esta no visor (lida do teclado; nada muda sozinho), a imagem
+// que o usuario subiu pelo Armoury Crate (fica guardada no teclado e da para
+// voltar a ela), brilho e liga/desliga. Tudo pelo caelestia-peripherals
 // (canal vendor, mesmos pacotes do g-helper).
 ColumnLayout {
     id: root
 
-    // Entrada rgb do caelestia-peripherals para este teclado ({ id, name, oled: { animation, count } })
+    // Entrada rgb do caelestia-peripherals para este teclado ({ id, name, node, oled: { animation, raw, count, custom } })
     required property var device
-    // bridge.run({ id }) e bridge.busyAction do caelestia-peripherals
+    // ToolBridge do caelestia-peripherals (bridge.run({ id }), bridge.busyAction)
     required property var bridge
+    // Entrada do caelestia-peripheral-battery ({ pct, charging, stale }) ou null
+    property var battery: null
 
     readonly property var oled: root.device.oled ?? null
+    readonly property bool hasCustom: (root.oled?.custom ?? null) !== null
     readonly property var keyInfo: Az.keys().find(k => k.id === root.selected) ?? null
+    readonly property string name: (root.device.name ?? "").replace(/\s*(2\.4GHz|USB)$/, "")
+    readonly property bool wireless: /2\.4GHz$/.test(root.device.name ?? "")
     property string selected
 
-    Layout.fillWidth: true
-    spacing: Tokens.spacing.medium
-
-    StyledText {
-        Layout.fillWidth: true
-        text: Tr.tr("Tap a highlighted key to see what Fn does with it. Profiles, macros and the knob modes live in the keyboard itself.")
-        color: Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.body.small
-        wrapMode: Text.WordWrap
+    function batteryText(b: var): string {
+        return b.charging ? Tr.tr("Charging") : b.stale ? Tr.tr("Last known level — the keyboard is asleep") : "";
     }
 
+    Layout.fillWidth: true
+    spacing: Tokens.spacing.extraSmall / 2
+
+    SubsectionHeader {
+        icon: "keyboard"
+        text: root.name
+        status: root.battery ? (root.battery.stale ? Tr.tr("Asleep · %1%") : "%1%").arg(Math.round(root.battery.pct * 100)) : ""
+        warn: !!root.battery && root.battery.pct < 0.2
+    }
+
+    MeterRow {
+        first: true
+        visible: !!root.battery
+        icon: "battery_full"
+        label: Tr.tr("Battery")
+        valueText: root.battery ? `${Math.round(root.battery.pct * 100)}%` : ""
+        value: root.battery?.pct ?? 0
+        warnAt: 0.2
+        warnBelow: true
+        subtext: root.battery ? root.batteryText(root.battery) : ""
+    }
+
+    InfoRow {
+        first: !root.battery
+        last: true
+        icon: root.wireless ? "settings_remote" : "usb"
+        label: Tr.tr("Connection")
+        value: root.wireless ? Tr.tr("2.4 GHz receiver") : Tr.tr("USB cable")
+        subtext: Tr.tr("Lighting, display and Fn layer are read from the keyboard")
+    }
+
+    // Silhueta: previa da luz + teclas da camada Fn
     KeyboardDiagram {
         Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.medium
+        Layout.bottomMargin: Tokens.spacing.small
         keys: Az.keys()
         size: Az.size()
         selected: root.selected
+        lighting: lights.preview
         onPicked: id => root.selected = root.selected === id ? "" : id
+    }
+
+    StyledText {
+        Layout.fillWidth: true
+        Layout.bottomMargin: Tokens.spacing.small
+        visible: root.selected === ""
+        text: Tr.tr("Tap a highlighted key to see what Fn does with it. Profiles, macros and the knob modes live in the keyboard.")
+        color: Colours.palette.m3outline
+        font: Tokens.font.label.small
+        wrapMode: Text.WordWrap
+        horizontalAlignment: Text.AlignHCenter
     }
 
     // Cartao da tecla selecionada
     StyledRect {
         Layout.fillWidth: true
+        Layout.bottomMargin: Tokens.spacing.small
         visible: root.selected !== ""
         implicitHeight: card.implicitHeight + Tokens.padding.large * 2
         radius: Tokens.rounding.large
@@ -96,10 +145,22 @@ ColumnLayout {
         }
     }
 
+    // Iluminacao: o rascunho anima a silhueta acima
+    SectionHeader {
+        text: Tr.tr("Lighting")
+    }
+
+    RgbLightingView {
+        id: lights
+
+        deviceId: root.device.id
+        bridge: root.bridge
+    }
+
     SubsectionHeader {
         icon: "screenshot_monitor"
         text: Tr.tr("OLED display")
-        status: root.oled ? (root.oled.animation !== null ? Tr.tr("Animation %1 of %2").arg(root.oled.animation + 1).arg(root.oled.count) : Tr.tr("Custom")) : Tr.tr("Asleep")
+        status: root.oled ? (root.oled.animation !== null ? Tr.tr("Animation %1 of %2").arg(root.oled.animation + 1).arg(root.oled.count) : Tr.tr("Your GIF")) : Tr.tr("Asleep")
     }
 
     InfoRow {
@@ -114,12 +175,17 @@ ColumnLayout {
     ChipSelectRow {
         first: true
         visible: !!root.oled
-        label: Tr.tr("Animation on the display")
-        subtext: Tr.tr("Read from the keyboard; it only changes if you pick another one here")
-        options: Array.from({ length: root.oled?.count ?? 0 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))
-        current: root.oled && root.oled.animation !== null ? String(root.oled.animation + 1) : ""
-        busy: root.bridge.busyAction.startsWith(`oled-${root.device.id}-anim-`)
-        onPicked: v => root.bridge.run({ id: `oled-${root.device.id}-anim-${v}` })
+        label: Tr.tr("On the display")
+        subtext: root.hasCustom ? Tr.tr("Read from the keyboard. Your GIF stays stored in it; only Armoury Crate can upload a new one") : Tr.tr("Read from the keyboard; it only changes if you pick another one here")
+        options: {
+            const o = Array.from({ length: root.oled?.count ?? 0 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
+            if (root.hasCustom)
+                o.push({ value: "custom", label: Tr.tr("Your GIF"), icon: "gif_box" });
+            return o;
+        }
+        current: !root.oled ? "" : root.oled.animation !== null ? String(root.oled.animation + 1) : (root.oled.raw === root.oled.custom ? "custom" : "")
+        busy: root.bridge.busyAction.startsWith(`oled-${root.device.id}-anim-`) || root.bridge.busyAction === `oled-${root.device.id}-custom`
+        onPicked: v => root.bridge.run({ id: v === "custom" ? `oled-${root.device.id}-custom` : `oled-${root.device.id}-anim-${v}` })
     }
 
     ChipSelectRow {

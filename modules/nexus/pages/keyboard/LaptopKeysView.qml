@@ -8,29 +8,28 @@ import qs.components
 import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.bluetooth
 import "laptopLayout.js" as Lk
 
-// Aba Laptop de Keyboard, parte das teclas especiais: o que cada tecla
-// (M1-M4, fila Fn) faz e qual o feedback -- lido do caelestia-laptop-keys, com
-// o diagrama. So o Fn+F11 e escolhivel (lock / suspend / screen off /
-// hibernate); as outras fazem o impresso (o Fn nao chega ao sistema, entao M1 e
-// Fn+M1 sao a mesma tecla).
+// Aba Laptop de Keyboard, de cima para baixo: o que o teclado controla agora
+// (touchpad, monitores), a silhueta do GU603 com a previa da luz e as teclas
+// especiais clicaveis (M1-M4 e a fila Fn: o que cada uma faz e qual o
+// feedback, lido do caelestia-laptop-keys; so o Fn + F11 e escolhivel), e a
+// iluminacao: brilho (asusctl) e efeito/cores (asusd), que aparecem na
+// silhueta conforme se escolhe.
 ColumnLayout {
     id: root
 
+    // ToolBridge do caelestia-peripherals da pagina (brilho asusctl + luz asusd)
+    required property var peripherals
+
+    readonly property var periph: root.peripherals.info
+    readonly property var laptopRgb: (root.periph.rgb ?? []).find(d => d.backend === "asusd") ?? null
+    readonly property bool backlightAvailable: root.periph.laptop_keyboard?.available === true
     readonly property var info: bridge.info
     readonly property var keyInfo: (root.info.keys ?? []).find(k => k.id === root.selected) ?? null
-    readonly property var backlight: root.info.kbd_backlight ?? null
     // Nada selecionado de inicio; clicar na tecla marcada desmarca (como no Naga)
     property string selected
-
-    function backlightText(b: var): string {
-        if (!b)
-            return Tr.tr("Not available");
-        if (b.max === 3)
-            return [Tr.tr("Off"), Tr.tr("Low"), Tr.tr("Medium"), Tr.tr("High")][b.level] ?? `${b.level}/${b.max}`;
-        return `${b.level}/${b.max}`;
-    }
 
     function byText(by: string): string {
         switch (by) {
@@ -46,7 +45,7 @@ ColumnLayout {
     }
 
     Layout.fillWidth: true
-    spacing: Tokens.spacing.medium
+    spacing: Tokens.spacing.extraSmall / 2
 
     ToolBridge {
         id: bridge
@@ -54,34 +53,65 @@ ColumnLayout {
         tool: "laptop-keys"
     }
 
-    StyledText {
-        Layout.fillWidth: true
+    InfoRow {
+        first: true
+        last: true
         visible: root.info.nkey_present === false
-        text: Tr.tr("The laptop keyboard (ASUS N-KEY device) was not found — these keys do nothing on this machine")
-        color: Colours.palette.m3error
-        font: Tokens.font.body.medium
-        wrapMode: Text.WordWrap
+        icon: "error"
+        iconColour: Colours.palette.m3error
+        label: Tr.tr("The laptop keyboard (ASUS N-KEY device) was not found")
+        subtext: Tr.tr("The special keys do nothing on this machine")
     }
 
-    StyledText {
-        Layout.fillWidth: true
-        text: Tr.tr("Tap a highlighted key. Fn + M1…M4 send the same key as M1…M4, so they are not configurable; Fn + F5 is handled by the kernel.")
-        color: Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.body.small
-        wrapMode: Text.WordWrap
+    SubsectionHeader {
+        icon: "laptop"
+        text: Tr.tr("Laptop keyboard")
+        status: root.backlightAvailable ? Tr.tr("Backlight %1").arg(({ off: Tr.tr("off"), low: Tr.tr("low"), med: Tr.tr("medium"), high: Tr.tr("high") })[root.periph.laptop_keyboard?.brightness] ?? "") : ""
     }
 
+    InfoRow {
+        first: true
+        icon: "touchpad_mouse"
+        label: Tr.tr("Touchpad")
+        value: root.info.touchpad_enabled === false ? Tr.tr("Off") : Tr.tr("On")
+        subtext: Tr.tr("Fn + F10 toggles it")
+    }
+
+    InfoRow {
+        last: true
+        icon: "screenshot_monitor"
+        label: Tr.tr("Monitors")
+        value: root.info.mirror_active ? Tr.tr("Mirrored on the laptop screen") : Tr.tr("Normal layout")
+        subtext: Tr.tr("Fn + F9 mirrors everything on the laptop screen and back")
+    }
+
+    // Silhueta: previa da luz + teclas especiais
     KeyboardDiagram {
         Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.medium
+        Layout.bottomMargin: Tokens.spacing.small
         keys: Lk.keys()
         size: Lk.size()
         selected: root.selected
+        lighting: root.laptopRgb ? lights.preview : null
         onPicked: id => root.selected = root.selected === id ? "" : id
+    }
+
+    StyledText {
+        Layout.fillWidth: true
+        Layout.bottomMargin: Tokens.spacing.small
+        visible: root.selected === ""
+        text: Tr.tr("Tap a highlighted key to see what it does")
+        color: Colours.palette.m3outline
+        font: Tokens.font.label.small
+        wrapMode: Text.WordWrap
+        horizontalAlignment: Text.AlignHCenter
     }
 
     // Cartao da tecla selecionada
     StyledRect {
         Layout.fillWidth: true
+        Layout.bottomMargin: Tokens.spacing.small
         visible: root.selected !== ""
         implicitHeight: card.implicitHeight + Tokens.padding.large * 2
         radius: Tokens.rounding.large
@@ -128,6 +158,16 @@ ColumnLayout {
                 font: Tokens.font.label.small
                 wrapMode: Text.WordWrap
             }
+
+            // M1-M4: o Fn nao chega ao sistema, entao Fn + M1 e a propria M1
+            StyledText {
+                Layout.fillWidth: true
+                visible: root.selected.startsWith("m")
+                text: Tr.tr("Fn + %1 sends the same key as %1, so it does the same thing").arg(root.keyInfo?.printed ?? root.selected.toUpperCase())
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
         }
     }
 
@@ -143,29 +183,34 @@ ColumnLayout {
         onPicked: v => bridge.run({ id: `sleep-${v}` })
     }
 
-    SubsectionHeader {
-        icon: "info"
-        text: Tr.tr("Now")
+    // Iluminacao: brilho (asusctl) e o efeito (asusd), com previa na silhueta
+    SectionHeader {
+        text: Tr.tr("Lighting")
     }
 
-    InfoRow {
+    ChipSelectRow {
         first: true
-        icon: "keyboard"
-        label: Tr.tr("Keyboard backlight")
-        value: root.backlightText(root.backlight)
-    }
-
-    InfoRow {
-        icon: "touchpad_mouse"
-        label: Tr.tr("Touchpad")
-        value: root.info.touchpad_enabled === false ? Tr.tr("Off") : Tr.tr("On")
-    }
-
-    InfoRow {
         last: true
-        icon: "screenshot_monitor"
-        label: Tr.tr("Monitors")
-        value: root.info.mirror_active ? Tr.tr("Mirrored on the laptop screen") : Tr.tr("Normal layout")
+        visible: root.backlightAvailable
+        label: Tr.tr("Backlight")
+        subtext: Tr.tr("Fn + F2 / F3 on the laptop change this too")
+        options: [
+            { value: "off", label: Tr.tr("Off"), icon: "light_off" },
+            { value: "low", label: Tr.tr("Low") },
+            { value: "med", label: Tr.tr("Medium") },
+            { value: "high", label: Tr.tr("High") }
+        ]
+        current: root.periph.laptop_keyboard?.brightness ?? ""
+        busy: root.peripherals.busyAction.startsWith("kbd-")
+        onPicked: v => root.peripherals.run({ id: `kbd-${v}` })
+    }
+
+    RgbLightingView {
+        id: lights
+
+        visible: !!root.laptopRgb
+        deviceId: root.laptopRgb?.id ?? ""
+        bridge: root.peripherals
     }
 
     ActionErrorRow {

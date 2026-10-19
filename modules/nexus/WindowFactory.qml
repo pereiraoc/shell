@@ -39,6 +39,13 @@ Singleton {
         w.nState.openPage(page, sub, tab ?? "");
     }
 
+    // IPC `nexus scroll <px>`: rola a pagina aberta (nada sem janela)
+    function scrollTo(px: int): void {
+        const w = root.windows[0];
+        if (w)
+            w.nState.requestedScroll = Math.max(0, px);
+    }
+
     // Botao da barra: fecha se ja houver Nexus aberto, senao abre.
     function toggle(): void {
         if (root.windows.length > 0) {

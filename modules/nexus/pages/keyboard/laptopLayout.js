@@ -67,11 +67,11 @@ var SPECIAL = ["m1", "m2", "m3", "m4", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
 function entry(k, label, x, y, w, h) {
     const id = k.id || "";
     // corner: onde fica o nome pequeno da tecla especial (F: superior direito; M: inferior direito)
-    return { id: id, label: label, icon: id ? ICONS[id] : "", fn: "", kind: "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, corner: isFn(id) ? "tr" : "br", x: x, y: y, w: w, h: h };
+    return { id: id, label: label, icon: id ? ICONS[id] : "", legend: "", fn: "", kind: "", top: k.top || "", glyph: k.glyph || "", micon: k.micon || "", bar: !!k.bar, corner: isFn(id) ? "tr" : "br", x: x, y: y, w: w, h: h };
 }
 
 // Teclas achatadas, com posicao absoluta em u:
-// [{ id, label, icon, top, glyph, micon, bar, x, y, w, h }]
+// [{ id, label, icon, legend, fn, kind, top, glyph, micon, bar, corner, x, y, w, h }]
 function keys() {
     const out = [];
     for (const row of ROWS) {

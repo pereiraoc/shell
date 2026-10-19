@@ -61,6 +61,18 @@ ColumnLayout {
         root.applyRequestedTab();
     }
 
+    // `nexus scroll <px>`: so a pagina que esta na tela rola
+    Connections {
+        function onRequestedScrollChanged(): void {
+            if (root.nState.requestedScroll < 0 || !root.visible)
+                return;
+            flickable.contentY = Math.max(-flickable.topMargin, Math.min(root.nState.requestedScroll, flickable.contentHeight - flickable.height + flickable.bottomMargin));
+            root.nState.requestedScroll = -1;
+        }
+
+        target: root.nState
+    }
+
     Connections {
         function onRequestedTabChanged(): void {
             if (root.tabs.length > 0 && !root.isSubPage)

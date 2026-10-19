@@ -28,13 +28,13 @@ TestCase {
         verify(col.every(k => k.x === 15));
         verify(col[0].y < col[1].y && col[1].y < col[2].y && col[2].y < col[3].y);
         // setas em T invertido: ↑ sobre ↓ em x = 14; → fecha a coluna em x = 15
-        compare(ks.find(k => k.id === "up").x, 14);
-        compare(ks.find(k => k.id === "down").x, 14);
+        compare(ks.find(k => k.label === "↑").x, 14);
+        compare(ks.find(k => k.label === "↓").x, 14);
         compare(ks.find(k => k.id === "right").x, 15);
         // OLED largo e knob no canto superior direito, depois do F12, ate a borda
         const oled = ks.find(k => k.kind === "oled");
         const knob = ks.find(k => k.kind === "knob");
-        const f12 = ks.find(k => k.id === "f12");
+        const f12 = ks.find(k => k.label === "F12");
         verify(oled.x > f12.x + f12.w && oled.y === 0 && oled.w >= 1.5);
         fuzzyCompare(knob.x + knob.w, 16, 1e-9);
     }
@@ -45,10 +45,16 @@ TestCase {
         compare(ids.length, A.SPECIAL.length);
         verify(ids.every(id => A.SPECIAL.includes(id)));
         verify(ks.filter(k => k.id).every(k => k.fn !== "" && k.icon !== ""));
-        compare(A.comboLabel("tab"), "Fn + TAB");
+        // segunda funcao impressa, conferida no teclado
+        const legends = ks.filter(k => k.legend).map(k => `${k.label || "win"}=${k.legend}`).sort().join(" ");
+        compare(legends, "1=I 2=II 3=III 4=IV 5=V 6=DEFAULT ALT=MACRO DEL=SCRLK ESC=RESET INS=PAUSE PGDN=END PGUP=HOME win=LOCK ←=MODE< →=MODE>");
+        // so o OLED e o knob sao clicaveis sem legenda impressa
+        compare(ks.filter(k => k.id && !k.legend).map(k => k.kind).sort().join(","), "knob,oled");
+        compare(A.comboLabel("lalt"), "Fn + ALT · MACRO");
+        compare(A.comboLabel("win"), "Fn + Win · LOCK");
         compare(A.comboLabel("oled"), "OLED");
         compare(A.comboLabel("knob"), "Knob");
         compare(A.comboLabel("nope"), "");
-        compare(ks.find(k => k.id === "k6").fn, "Profile 6 (default)");
+        compare(ks.find(k => k.id === "k6").fn, "Default profile");
     }
 }

@@ -165,6 +165,11 @@ Scope {
             WindowFactory.toggleAt(page, sub, false, tab);
         }
 
+        // Rola a pagina aberta ate `px` do topo (0 = topo; alem do fim = fim)
+        function scroll(px: int): void {
+            WindowFactory.scrollTo(px);
+        }
+
         target: "nexus"
     }
 
