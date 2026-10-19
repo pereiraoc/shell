@@ -12,7 +12,7 @@ import qs.utils
 // O setup visto de frente, no traco dos outros diagramas, com cada peca onde
 // o usuario a deixou: monitores (silhueta do LG com o pe, numa mesinha da
 // largura dele e da altura do touchpad, com os estojos dos fones ao lado do
-// pe), notebook (G16 aberto), mousepad de 90 x 50, Azoth, mouses, headphone
+// pe), notebook (G16 aberto), mousepad de 90 x 25, Azoth, mouses, headphone
 // no suporte e controles. Silhuetas em assets/devices com o traco normalizado
 // para o tamanho em que aparecem (scripts/art/trace.py, `stroke`). Tamanhos reais em cm (1 cm = width/190):
 //   LG 25" 58 x 24 cm de tela (EDID), ~59 cm com a moldura; G16 35,5 x 24,3;
@@ -234,11 +234,11 @@ Item {
         defX: root.zoneX + 22
         defY: root.deskY + 2
         wCm: 90
-        hCm: 50
+        hCm: 25
         layout: root.layout
         cm: root.cm
         editing: root.editing
-        label: qsTr("Mousepad · 90 × 50 cm")
+        label: qsTr("Mousepad · 90 × 25 cm")
         onMoved: (k, x, y) => root.place(k, x, y)
 
         Rectangle {
@@ -387,12 +387,12 @@ Item {
             defX: hp.big ? root.zoneX + 126 : root.lgX + (hp.budIndex === 0 ? 8 : 44)
             defY: hp.big ? root.deskY - hp.standH : root.lgBottom - hp.hCm + 0.5
             wCm: hp.big ? 21.7 : hp.dev.model === "WF-1000XM5" ? 6.5 : 5
-            hCm: hp.big ? hp.standH : hp.dev.model === "WF-1000XM5" ? 6.5 * 308 / 331 : 5
+            hCm: hp.big ? hp.standH : hp.dev.model === "WF-1000XM5" ? 4 : 5
             layout: root.layout
             cm: root.cm
             editing: root.editing
             label: [hp.dev.name, hp.dev.model].filter(x => x).join(" · ")
-            visible: hp.file !== "" && (hp.online || root.showOffline)
+            visible: (hp.file !== "" || !hp.big) && (hp.online || root.showOffline)
             online: !!hp.dev.connected
             showOffline: root.showOffline
             onClicked: root.open("sound", "output")
@@ -435,9 +435,40 @@ Item {
                 border.color: root.ink
             }
 
+            // Estojo fechado (o desenho aberto dos guias nao se le em 2 cm de tela):
+            // caixinha arredondada, a costura da tampa e o LED
+            Rectangle {
+                visible: !hp.big
+                anchors.fill: parent
+                radius: hp.dev.model === "WF-1000XM5" ? 1.4 * root.cm : 1.6 * root.cm
+                color: "transparent"
+                border.width: 1
+                border.color: root.ink
+            }
+
+            Rectangle {
+                visible: !hp.big
+                x: 0
+                y: parent.height * 0.42
+                width: parent.width
+                height: 1
+                color: root.ink
+            }
+
+            Rectangle {
+                visible: !hp.big
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: parent.height * 0.62
+                width: Math.max(2, 0.4 * root.cm)
+                height: width
+                radius: width / 2
+                color: hp.dev.connected ? Colours.palette.m3primary : root.faint
+            }
+
             Image {
                 id: hpArt
 
+                visible: hp.big
                 x: 0
                 y: hp.big ? 1.4 * root.cm : 0
                 width: parent.width
