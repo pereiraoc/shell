@@ -17,7 +17,11 @@ import "keyLighting.js" as Lit
 Item {
     id: root
 
-    // Biblioteca da arte: { W, H, CHASSIS, RECTS, KEYS: [{ id, x, y, w, h, f, d, o? }] }
+    // Biblioteca da arte: { W, H, CHASSIS, RECTS, LINE, SPLIT, KEYS: [{ id, x, y,
+    // w, h, f, d, u?, o? }]. Com SPLIT (Azoth) cada tecla tem a parte que
+    // acende (`d`: contorno externo, relevo, legenda principal) e a que fica
+    // branca (`u`: simbolos Shift e legendas frontais); o contorno do topo do
+    // keycap tambem fica branco (desenhado por cima, com a espessura LINE).
     required property var art
     // Chassis como contornos finos (RECTS) em vez da arte (CHASSIS): o QSG do
     // Azoth desenha a carcaca com bordas grossas que viram faixas claras
@@ -172,6 +176,40 @@ Item {
 
                         PathSvg {
                             path: key.modelData.d
+                        }
+                    }
+                }
+
+                // Contorno do topo do keycap: nao acende (fica na cor do
+                // traco). Linha fina, por fora da caixa do topo -- e onde a
+                // linha do desenho esta; so recolore, nao engrossa
+                Rectangle {
+                    readonly property real lw: 1.8
+
+                    visible: !!root.art.SPLIT && !key.plain && key.modelData.d !== ""
+                    x: key.modelData.f[0] - lw
+                    y: key.modelData.f[1] - lw
+                    width: key.modelData.f[2] + lw * 2
+                    height: key.modelData.f[3] + lw * 2
+                    radius: Math.min(width, height) * 0.06
+                    antialiasing: true
+                    color: "transparent"
+                    border.width: lw
+                    border.color: key.active ? Colours.palette.m3onTertiary : root.ink
+                }
+
+                // Legendas que nao acendem (Shift e frontais)
+                Shape {
+                    visible: !!key.modelData.u
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        fillColor: key.active ? Colours.palette.m3onTertiary : root.ink
+                        strokeWidth: -1
+                        fillRule: ShapePath.OddEvenFill
+
+                        PathSvg {
+                            path: key.modelData.u ?? ""
                         }
                     }
                 }

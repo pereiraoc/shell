@@ -76,7 +76,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small
-        art: ({ W: AzArt.W, H: AzArt.H, CHASSIS: AzArt.CHASSIS, RECTS: AzArt.RECTS, KEYS: AzArt.KEYS })
+        art: ({ W: AzArt.W, H: AzArt.H, CHASSIS: AzArt.CHASSIS, RECTS: AzArt.RECTS, LINE: AzArt.LINE, SPLIT: AzArt.SPLIT, KEYS: AzArt.KEYS })
         special: Az.SPECIAL
         selected: root.selected
         lighting: lights.preview

@@ -19,7 +19,11 @@ def ring_pts(x, y, w, h, lw, r):
     """Anel (contorno) de espessura lw: dois poligonos, evenodd."""
     return [rrect_pts(x, y, w, h, r), rrect_pts(x + lw, y + lw, w - 2 * lw, h - 2 * lw, max(1, r - lw))]
 
-def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=2):
+def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=2, split=False):
+    """split: separa em cada tecla o que acende (contorno externo, relevo e a
+    legenda principal, `d`) do que fica branco (`u`: legendas Shift na parte de
+    baixo do topo e as legendas frontais no relevo) -- como no Azoth, em que so
+    a serigrafia principal e translucida."""
     from trace import line_width
     bw, w, h, K = load(src, K, crop, edge)
     line_w = max(1.5, line_width(bw, K))
@@ -70,8 +74,42 @@ def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=
             x1 = max(c["box"][0] + c["box"][2] for c in tops); y1 = max(c["box"][1] + c["box"][3] for c in tops)
             f = (x0, y0, x1 - x0, y1 - y0)
         k = {"x": round(x, 1), "y": round(y, 1), "w": round(bw_, 1), "h": round(bh, 1),
-             "f": [round(f[0] - x, 1), round(f[1] - y, 1), round(f[2], 1), round(f[3], 1)],
-             "d": path([c["pts"] for c in parts], x, y)}
+             "f": [round(f[0] - x, 1), round(f[1] - y, 1), round(f[2], 1), round(f[3], 1)]}
+        if split and tops and parts and parts[0] is cs[i]:
+            # profundidade dentro da tecla: 0 = contorno externo, 1 = faces
+            # (topo e relevos), 2 = glifos, 3+ = buracos dos glifos
+            idx = {id(c): n for n, c in enumerate(cs) if c}
+            def depth(c):
+                dpt = 0; p = c["parent"]
+                while p >= 0 and p != i:
+                    dpt += 1; p = cs[p]["parent"]
+                return dpt + 1
+            top = tops[0]
+            unlit_roots = []
+            for c in parts:
+                if c is cs[i] or depth(c) != 2:
+                    continue
+                par = cs[c["parent"]]
+                cx, cy = c["box"][0] + c["box"][2] / 2, c["box"][1] + c["box"][3] / 2
+                if par is top:
+                    if cy > top["box"][1] + top["box"][3] * 0.5:
+                        unlit_roots.append(c)          # simbolo Shift, embaixo da legenda
+                else:
+                    unlit_roots.append(c)              # legenda frontal, no relevo
+            def under(c, roots):
+                p = c["parent"]
+                while p >= 0 and p != i:
+                    if any(cs[p] is r for r in roots):
+                        return True
+                    p = cs[p]["parent"]
+                return any(c is r for r in roots)
+            unlit = [c for c in parts if under(c, unlit_roots)]
+            lit = [c for c in parts if not under(c, unlit_roots)]
+            k["d"] = path([c["pts"] for c in lit], x, y)
+            if unlit:
+                k["u"] = path([c["pts"] for c in unlit], x, y)
+        else:
+            k["d"] = path([c["pts"] for c in parts], x, y)
         if outline_only:
             k["o"] = True
         ks.append(k)
@@ -93,7 +131,7 @@ def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=
         if any(abs(x - r[0]) < 14 and abs(y - r[1]) < 14 and abs(bw_ - r[2]) < 28 and abs(bh - r[3]) < 28 for r in rects):
             continue
         rects.append([round(x, 1), round(y, 1), round(bw_, 1), round(bh, 1)])
-    return {"w": w, "h": h, "chassis": path([c["pts"] for c in rest]), "rects": rects, "keys": ks}
+    return {"w": w, "h": h, "chassis": path([c["pts"] for c in rest]), "rects": rects, "keys": ks, "line": round(line_w, 1), "split": split}
 
 def rows(doc, tol):
     ks = sorted(doc["keys"], key=lambda k: k["y"] + k["h"] / 2)
@@ -122,9 +160,12 @@ def emit(doc, seqs, tol, out, src_note, extra_keys=()):
           "// keycap (f = [x, y, w, h] relativo) e a arte dela (d = SVG evenodd, relativo).",
           f"var W = {doc['w']};", f"var H = {doc['h']};", f"var CHASSIS = {json.dumps(doc['chassis'])};",
           f"var RECTS = {json.dumps(doc['rects'])};",
+          f"var LINE = {doc['line']};", f"var SPLIT = {'true' if doc['split'] else 'false'};",
           "var KEYS = [", ]
     for k in keys:
         rec = {"id": k["id"], "x": k["x"], "y": k["y"], "w": k["w"], "h": k["h"], "f": k["f"], "d": k["d"]}
+        if k.get("u"):
+            rec["u"] = k["u"]
         if k.get("o"):
             rec["o"] = True
         js.append("    " + json.dumps(rec, separators=(",", ":")) + ",")
@@ -138,7 +179,7 @@ I = A
 F = "/data/projects/caelestia-shell-pereiraoc-patch/modules/nexus/pages/keyboard"
 # Silhueta mono do usuario (uma cor, fundo transparente): 1u = 106 px;
 # OLED = caixa larga no canto; knob = caixa estreita colada na borda direita
-az = keys2(f"{A}/ROG Azoth Keyboard Silhouette (mono).png", 60, 130, 40, 800, edge=0,
+az = keys2(f"{A}/ROG Azoth Keyboard Silhouette (mono).png", 60, 130, 40, 800, edge=0, split=True,
            extra=lambda b: (b[0] > 1400 and 250 < b[2] < 420 and 60 <= b[3] <= 140) or (b[0] > 1790 and 12 <= b[2] <= 60 and 40 <= b[3] <= 110))
 AZ = [
     ["esc", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "oled"],

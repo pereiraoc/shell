@@ -91,7 +91,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: Tokens.spacing.medium
         Layout.bottomMargin: Tokens.spacing.small
-        art: ({ W: G16Art.W, H: G16Art.H, CHASSIS: G16Art.CHASSIS, RECTS: G16Art.RECTS, KEYS: G16Art.KEYS })
+        art: ({ W: G16Art.W, H: G16Art.H, CHASSIS: G16Art.CHASSIS, RECTS: G16Art.RECTS, LINE: G16Art.LINE, SPLIT: G16Art.SPLIT, KEYS: G16Art.KEYS })
         glowPad: 0.035
         glowAlpha: 0.3
         special: Lk.SPECIAL
