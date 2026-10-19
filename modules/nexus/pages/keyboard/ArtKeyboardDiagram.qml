@@ -38,16 +38,14 @@ Item {
 
     signal picked(id: string)
 
-    // Visor, knob e o botao de ligar nao acendem; teclas sem o topo separado
-    // no desenho (contorno colado no vizinho) ganham um contorno simples
-    function lightable(key: var): bool {
-        return key.d !== "" && key.id !== "oled" && key.id !== "knob" && key.id !== "power";
+    // Visor, knob e botao de ligar: nao acendem, nao sao keycaps (sem o tom
+    // de tecla clicavel; a arte deles fica na cor do chassis)
+    function plain(key: var): bool {
+        return key.id === "oled" || key.id === "knob" || key.id === "power";
     }
 
-    // Tecla sem o topo separado no desenho: a arte so tem a serigrafia e o
-    // keycap vira um contorno simples
-    function hasFace(key: var): bool {
-        return !key.o;
+    function lightable(key: var): bool {
+        return key.d !== "" && !root.plain(key);
     }
 
     implicitHeight: root.art.H * root.k
@@ -89,12 +87,13 @@ Item {
             }
         }
 
+        // Chassis mais discreto que as teclas (grelhas, dobradica, molduras)
         Shape {
             visible: !root.thinChassis
             preferredRendererType: Shape.CurveRenderer
 
             ShapePath {
-                fillColor: root.ink
+                fillColor: Qt.alpha(root.ink, 0.55)
                 strokeWidth: -1
                 fillRule: ShapePath.OddEvenFill
 
@@ -130,10 +129,11 @@ Item {
                 required property var modelData
                 required property int index
                 readonly property bool special: root.special.includes(key.modelData.id)
+                readonly property bool plain: root.plain(key.modelData)
                 readonly property bool active: key.special && key.modelData.id === root.selected
                 readonly property var glow: root.lit && root.lightable(key.modelData) ? Lit.sample(root.lighting, root.litColors, (key.modelData.x + key.modelData.w / 2) / root.art.W, (key.modelData.y + key.modelData.h / 2) / root.art.H, key.index, root.phase) : null
                 // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
-                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(root.ink, key.glow.c, 0.25 + 0.75 * key.glow.k) : key.special ? Colours.palette.m3tertiary : root.ink
+                readonly property color inkNow: key.active ? Colours.palette.m3onTertiary : key.glow ? Lit.mix(root.ink, key.glow.c, 0.25 + 0.75 * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
 
                 x: key.modelData.x
                 y: key.modelData.y
@@ -141,16 +141,15 @@ Item {
                 height: key.modelData.h
 
                 // Topo do keycap: opaco (a luz nao atravessa o plastico), com o
-                // destaque das teclas clicaveis / da escolhida
+                // destaque das teclas clicaveis / da escolhida; visor, knob e
+                // botao de ligar ficam no fundo da pagina
                 Rectangle {
                     x: key.modelData.f[0]
                     y: key.modelData.f[1]
                     width: key.modelData.f[2]
                     height: key.modelData.f[3]
                     radius: Math.min(width, height) * 0.08
-                    color: key.modelData.id === "oled" ? Colours.palette.m3surfaceContainerHighest : key.active ? Colours.palette.m3tertiary : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
-                    border.width: root.hasFace(key.modelData) ? 0 : 2
-                    border.color: key.inkNow
+                    color: key.plain ? (key.active ? Qt.alpha(Colours.palette.m3tertiary, 0.25) : Colours.palette.m3surface) : key.active ? Colours.palette.m3tertiary : key.special ? Qt.tint(root.face, Qt.alpha(Colours.palette.m3tertiary, 0.14)) : root.face
                 }
 
                 Shape {

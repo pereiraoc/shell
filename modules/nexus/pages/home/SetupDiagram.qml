@@ -253,14 +253,20 @@ Item {
     }
 
     // ------------------------------------------------------------- mesinha
-    // Apoio horizontal do monitor: a largura do LG e a altura do touchpad do
-    // G16 (8,3 cm); o pe fica em cima e os estojos dos fones ao lado dele
+    // Apoio horizontal do monitor: a largura do LG, do pe do monitor ate a
+    // linha da mesa; os estojos dos fones ficam em cima, ao lado do pe
     SetupPiece {
+        id: shelf
+
+        // o topo fica onde foi posto (sob o pe do monitor); a base desce ate a
+        // linha da mesa
+        readonly property real topCm: root.layout["shelf"]?.y ?? root.lgBottom
+
         key: "shelf"
         defX: root.lgX
         defY: root.lgBottom
         wCm: 59
-        hCm: root.shelfH
+        hCm: Math.max(2, root.deskY - shelf.topCm)
         layout: root.layout
         cm: root.cm
         ox: root.ox
@@ -478,7 +484,8 @@ Item {
             onClicked: root.open("sound", "output")
             onMoved: (k, x, y) => root.place(k, x, y)
 
-            // Suporte: base oval na mesa, haste e o gancho onde o arco apoia
+            // Suporte: base oval na mesa, haste e o gancho -- por baixo da
+            // banda, dentro do arco, segurando-a (a banda tem ~1,5 cm)
             Rectangle {
                 visible: hp.big
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -494,7 +501,7 @@ Item {
             Rectangle {
                 visible: hp.big
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 1.2 * root.cm
+                y: 3.4 * root.cm
                 width: Math.max(2, 0.8 * root.cm)
                 height: parent.height - 2.2 * root.cm - y
                 radius: width / 2
@@ -506,11 +513,11 @@ Item {
             Rectangle {
                 visible: hp.big
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 0.6 * root.cm
-                width: 6 * root.cm
-                height: 1.6 * root.cm
+                y: 3.0 * root.cm
+                width: 5 * root.cm
+                height: 1.4 * root.cm
                 radius: height / 2
-                color: Colours.palette.m3surface
+                color: "transparent"
                 border.width: 1
                 border.color: root.ink
             }
