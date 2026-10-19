@@ -40,6 +40,7 @@ PageBase {
     readonly property var setupHeadphones: (headphonesBridge.info.headphones ?? []).map(h => ({ model: h.model, name: h.name, connected: !!h.connected }))
     readonly property var setupControllers: Bluetooth.devices.values.filter(d => d.bonded && (/controller|gamepad/i.test(d.name ?? "") || (d.icon ?? "").includes("gaming"))).map(d => ({ name: d.name, connected: d.connected }))
     property bool showOffline
+    property bool editLayout
 
     readonly property var worstDisk: (root.storage.partitions ?? []).reduce((a, b) => (!a || b.pct > a.pct) ? b : a, null)
     readonly property var lowestPeripheral: root.peripherals.reduce((a, b) => (!a || b.pct < a.pct) ? b : a, null)
@@ -108,13 +109,16 @@ PageBase {
         spacing: Tokens.spacing.medium
 
         SetupDiagram {
+            id: setup
+
             Layout.fillWidth: true
             monitors: root.display.monitors ?? []
             mice: root.setupMice
             keyboard: root.setupKeyboard
             headphones: root.setupHeadphones
             controllers: root.setupControllers
-            showOffline: root.showOffline
+            showOffline: root.showOffline || root.editLayout
+            editing: root.editLayout
             onOpen: (page, tab) => root.nState.openPage(page, 0, tab)
         }
 
@@ -124,16 +128,30 @@ PageBase {
 
             StyledText {
                 Layout.fillWidth: true
-                text: qsTr("Tap a device to open its settings")
+                text: root.editLayout ? qsTr("Drag each piece to where it sits on your desk") : qsTr("Tap a device to open its settings")
                 color: Colours.palette.m3outline
                 font: Tokens.font.label.small
                 elide: Text.ElideRight
             }
 
             TextButton {
+                visible: root.editLayout && setup.customized
+                text: qsTr("Reset")
+                type: TextButton.Text
+                onClicked: setup.reset()
+            }
+
+            TextButton {
+                visible: !root.editLayout
                 text: root.showOffline ? qsTr("Hide devices that are off") : qsTr("Show devices that are off")
                 type: root.showOffline ? TextButton.Tonal : TextButton.Text
                 onClicked: root.showOffline = !root.showOffline
+            }
+
+            TextButton {
+                text: root.editLayout ? qsTr("Done") : qsTr("Edit layout")
+                type: root.editLayout ? TextButton.Filled : TextButton.Tonal
+                onClicked: root.editLayout = !root.editLayout
             }
         }
 

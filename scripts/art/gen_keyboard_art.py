@@ -5,8 +5,8 @@ import json, sys, cv2, numpy as np
 sys.path.insert(0, ".")
 from trace import load, contours, path
 
-def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0)):
-    bw, w, h, K = load(src, K, crop)
+def keys2(src, hmin, hmax, wmin, wmax, extra=None, K=3, crop=(0, 0, 0, 0), edge=2):
+    bw, w, h, K = load(src, K, crop, edge)
     cs = contours(bw, K)
     def is_key(i):
         c = cs[i]
@@ -106,8 +106,10 @@ def emit(doc, seqs, tol, out, src_note, extra_keys=()):
 A = "/data/images/projects-assets/caelestia-assets"
 I = A
 F = "/data/projects/caelestia-shell-pereiraoc-patch/modules/nexus/pages/keyboard"
-az = keys2(f"{A}/ROG Azoth QSG Keyboard.png", 60, 120, 40, 700, crop=(6, 6, 6, 6),
-           extra=lambda b: (b[0] > 1300 and 250 < b[2] < 350 and 60 <= b[3] <= 120))
+# Silhueta mono do usuario (uma cor, fundo transparente): 1u = 106 px;
+# OLED = caixa larga no canto; knob = caixa estreita colada na borda direita
+az = keys2(f"{A}/ROG Azoth Keyboard Silhouette (mono).png", 60, 130, 40, 800, edge=0,
+           extra=lambda b: (b[0] > 1400 and 250 < b[2] < 420 and 60 <= b[3] <= 140) or (b[0] > 1790 and 12 <= b[2] <= 60 and 40 <= b[3] <= 110))
 AZ = [
     ["esc", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "oled"],
     ["grave", "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k0", "minus", "equal", "bksp", "ins"],
@@ -116,8 +118,8 @@ AZ = [
     ["lshift", "z", "x", "c", "v", "b", "n", "m", "comma", "period", "slash", "rshift", "up", "pgdn"],
     ["lctrl", "win", "lalt", "space", "ralt", "fn", "rctrl", "left", "down", "right"],
 ]
-knob = {"id": "knob", "x": 1630.0, "y": 49.0, "w": 46.0, "h": 70.0, "f": [0, 0, 46, 70], "d": ""}
-emit(az, AZ, 30, f"{F}/azothArt.js", "ROG Azoth QSG (Q20535_M701)", [knob])
+knob = {"id": "knob", "x": 1820.0, "y": 60.0, "w": 34.0, "h": 72.0, "f": [0, 0, 34, 72], "d": ""}
+emit(az, AZ, 34, f"{F}/azothArt.js", "ROG Azoth Keyboard Silhouette (mono).png (caelestia-assets)", [knob] if not any(k["w"] < 60 and k["x"] > 1790 for k in az["keys"]) else [])
 g = keys2(f"{A}/ROG G16 Keyboard Silhouette.png", 11, 60, 20, 400)
 G = [
     ["m1", "m2", "m3", "m4", "power"],
