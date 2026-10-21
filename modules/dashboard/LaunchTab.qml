@@ -1,25 +1,31 @@
 pragma ComponentBehavior: Bound
 
+import "launch"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Widgets
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.containers
 import qs.services
+import qs.utils
 
-// Aba "Launch" do dashboard (V3-02/03): atalhos do usuario e jogos favoritos
-// da Steam em dois cartoes lado a lado, linhas no estilo do launcher (icone
-// de app, nome, linha cinza embaixo). Dados lidos no Content.qml
-// (shortcuts.json / games.json); a aba so existe com algo nas listas.
-// Editados em Nexus > Panels > Dashboard > Shortcuts / Games.
+// Aba "Launch" do dashboard (V3-02/03): atalhos do usuario (esq.) e a
+// biblioteca da Steam (dir.) -- os jogos instalados separados por tipo (inferido
+// pelas tags da loja no caelestia-games), favoritos primeiro no tipo e com estrela.
+// Icones monocromaticos como a barra lateral: silhueta propria do jogo
+// (~/.config/caelestia/launch-icons) ou o simbolo Material do tipo; atalho usa a
+// imagem/silhueta (obsidian:// -> launch-icons/obsidian.svg) ou um simbolo.
+// Dados lidos no Content.qml; editados em Nexus > Panels > Dashboard.
 Item {
     id: root
 
     required property ScreenState screenState
     required property list<var> shortcuts
-    required property list<var> games
+    required property list<var> groups
+
+    readonly property bool hasGames: groups.length > 0
 
     function runShortcut(s: var): void {
         const opts = { command: ["sh", "-c", s.command] };
@@ -32,6 +38,30 @@ Item {
     function runGame(g: var): void {
         Quickshell.execDetached(["steam", `steam://rungameid/${g.appid}`]);
         root.screenState.dashboard = false;
+    }
+
+    // Simbolo de traco do atalho: nome Material gravado (sem ponto nem barra),
+    // senao pelo que ele abre
+    function shortcutGlyph(s: var): string {
+        const ic = s.icon ?? "";
+        if (ic && !ic.includes(".") && !ic.includes("/"))
+            return ic;
+        const c = s.command ?? "";
+        if (c.includes("obsidian://"))
+            return "book_2";
+        if (s.cwd)
+            return "folder";
+        return "bolt";
+    }
+
+    // Silhueta do atalho: caminho de imagem gravado, ou a do app que ele abre
+    function shortcutArt(s: var): string {
+        const ic = s.icon ?? "";
+        if (ic.includes("/"))
+            return ic;
+        if ((s.command ?? "").includes("obsidian://"))
+            return `${Paths.config}/launch-icons/obsidian.svg`;
+        return "";
     }
 
     implicitWidth: 840
@@ -47,7 +77,7 @@ Item {
 
         // Nada configurado ainda
         StyledRect {
-            visible: root.shortcuts.length === 0 && root.games.length === 0
+            visible: root.shortcuts.length === 0 && !root.hasGames
             Layout.fillWidth: true
             implicitHeight: emptyCol.implicitHeight + Tokens.padding.extraLarge * 2
             radius: Tokens.rounding.extraLarge
@@ -75,142 +105,64 @@ Item {
             }
         }
 
-        Card {
+        // Atalhos
+        LaunchCard {
             visible: root.shortcuts.length > 0
+            Layout.preferredWidth: root.hasGames ? 280 : -1
+            Layout.fillWidth: !root.hasGames
             title: Tr.tr("Shortcuts")
             icon: "bolt"
-            model: root.shortcuts
-            kind: "shortcut"
-        }
-
-        Card {
-            visible: root.games.length > 0
-            title: Tr.tr("Games")
-            icon: "sports_esports"
-            model: root.games
-            kind: "game"
-        }
-    }
-
-    component Card: StyledRect {
-        id: card
-
-        property string title
-        property string icon
-        property var model: []
-        property string kind
-
-        Layout.fillWidth: true
-        Layout.alignment: Qt.AlignTop
-        implicitHeight: cardCol.implicitHeight + Tokens.padding.large * 2
-        radius: Tokens.rounding.extraLarge
-        color: Colours.tPalette.m3surfaceContainer
-
-        ColumnLayout {
-            id: cardCol
-
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: Tokens.padding.large
-            spacing: Tokens.spacing.extraSmall
-
-            RowLayout {
-                Layout.leftMargin: Tokens.padding.medium
-                Layout.bottomMargin: Tokens.spacing.small
-                spacing: Tokens.spacing.small
-
-                MaterialIcon {
-                    text: card.icon
-                    color: Colours.palette.m3primary
-                    fontStyle: Tokens.font.icon.medium
-                }
-
-                StyledText {
-                    text: card.title
-                    color: Colours.palette.m3onSurface
-                    font: Tokens.font.title.small
-                }
-            }
 
             Repeater {
-                model: card.model
+                model: root.shortcuts
 
-                Item {
-                    id: row
-
+                LaunchRow {
                     required property var modelData
 
-                    readonly property bool isGame: card.kind === "game"
-                    readonly property string iconRef: modelData.icon ?? ""
-                    readonly property string iconSource: {
-                        if (!iconRef)
-                            return "";
-                        if (iconRef.includes("/"))
-                            return `file://${iconRef}`;
-                        return Quickshell.iconPath(iconRef, true);
-                    }
-
                     Layout.fillWidth: true
-                    implicitHeight: Tokens.sizes.launcher.itemHeight
-
-                    StateLayer {
-                        radius: Tokens.rounding.large
-                        onClicked: row.isGame ? root.runGame(row.modelData) : root.runShortcut(row.modelData)
+                    glyph: root.shortcutGlyph(modelData)
+                    art: root.shortcutArt(modelData)
+                    label: modelData.name ?? ""
+                    sublabel: {
+                        const c = modelData.command ?? "";
+                        if (c.includes("obsidian://open?vault="))
+                            return Tr.tr("Obsidian vault");
+                        return modelData.cwd || c;
                     }
+                    onActivated: root.runShortcut(modelData)
+                }
+            }
+        }
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: Tokens.padding.medium
-                        anchors.rightMargin: Tokens.padding.medium
-                        spacing: Tokens.spacing.medium
+        // Jogos: favoritos + biblioteca por tipo
+        LaunchCard {
+            visible: root.hasGames
+            Layout.fillWidth: true
+            title: Tr.tr("Games")
+            icon: "sports_esports"
 
-                        Item {
-                            implicitWidth: Math.round(Tokens.sizes.launcher.itemHeight * 0.7)
-                            implicitHeight: implicitWidth
+            VerticalFadeFlickable {
+                Layout.fillWidth: true
+                implicitHeight: Math.min(sections.implicitHeight, 460)
+                contentHeight: sections.implicitHeight
+                clip: true
 
-                            IconImage {
-                                anchors.fill: parent
-                                visible: row.iconSource !== ""
-                                asynchronous: true
-                                source: row.iconSource
-                            }
+                ColumnLayout {
+                    id: sections
 
-                            // Simbolo Material (atalho com icone por nome) ou sem icone
-                            MaterialIcon {
-                                anchors.centerIn: parent
-                                visible: row.iconSource === ""
-                                text: row.iconRef || (row.isGame ? "sports_esports" : "bolt")
-                                color: Colours.palette.m3secondary
-                                fontStyle: Tokens.font.icon.large
-                            }
-                        }
+                    width: parent.width
+                    spacing: Tokens.spacing.medium
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
+                    Repeater {
+                        model: root.groups
 
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: row.modelData.name ?? ""
-                                font: Tokens.font.body.medium
-                                elide: Text.ElideRight
-                            }
+                        GameSection {
+                            required property var modelData
 
-                            StyledText {
-                                Layout.fillWidth: true
-                                text: {
-                                    if (row.isGame)
-                                        return Tr.tr("Steam");
-                                    const c = row.modelData.command ?? "";
-                                    if (c.includes("obsidian://open?vault="))
-                                        return Tr.tr("Obsidian vault");
-                                    return row.modelData.cwd || c;
-                                }
-                                font: Tokens.font.body.small
-                                color: Colours.palette.m3outline
-                                elide: Text.ElideRight
-                            }
+                            name: modelData.name === "Other" ? Tr.tr("Other") : modelData.name
+                            glyph: modelData.glyph
+                            model: modelData.games
+                            onLaunched: game => root.runGame(game)
                         }
                     }
                 }

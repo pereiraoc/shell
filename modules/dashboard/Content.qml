@@ -18,9 +18,10 @@ Item {
     required property ScreenState screenState
     required property FileDialog facePicker
 
-    // Aba Launch: ~/.config/caelestia/shortcuts.json e games.json (caelestia-games)
+    // Aba Launch: ~/.config/caelestia/shortcuts.json e a biblioteca da Steam
+    // (caelestia-games status: jogos por tipo, favoritos primeiro, com silhueta/glifo)
     property list<var> shortcuts: []
-    property list<var> games: []
+    property list<var> groups: []
 
     readonly property var dashboardTabs: {
         const allTabs = [
@@ -202,7 +203,7 @@ Item {
                 LaunchTab {
                     screenState: root.screenState
                     shortcuts: root.shortcuts
-                    games: root.games
+                    groups: root.groups
                 }
             }
 
@@ -235,18 +236,39 @@ Item {
         onLoadFailed: root.shortcuts = []
     }
 
+    // games.json muda (favorito marcado no Nexus) ou o dashboard abre: relê a
+    // biblioteca (jogo instalado ou colecao mexida na Steam aparece na hora)
     FileView {
         path: `${Paths.config}/games.json`
         watchChanges: true
         printErrors: false
-        onFileChanged: reload()
-        onLoaded: {
-            try {
-                root.games = (JSON.parse(text()).favourites ?? []).filter(x => x && x.appid);
-            } catch (e) {
-                root.games = [];
+        onFileChanged: gamesProc.running = true
+        onLoaded: gamesProc.running = true
+    }
+
+    Connections {
+        target: root.screenState
+
+        function onDashboardChanged(): void {
+            if (root.screenState.dashboard)
+                gamesProc.running = true;
+        }
+    }
+
+    Process {
+        id: gamesProc
+
+        // Caminho absoluto: ~/.local/bin nao esta no PATH do shell
+        command: [`${Quickshell.env("HOME")}/.local/bin/caelestia-games`, "status", "--json"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const d = JSON.parse(text).data;
+                    root.groups = (d.groups ?? []).filter(x => x && x.games?.length);
+                } catch (e) {
+                    root.groups = [];
+                }
             }
         }
-        onLoadFailed: root.games = []
     }
 }
