@@ -181,16 +181,15 @@ ColumnLayout {
         first: true
         visible: !!root.oled
         label: Tr.tr("On the display")
-        subtext: root.hasCustom ? Tr.tr("Read from the keyboard. Your GIF stays stored in it; only Armoury Crate can upload a new one") : Tr.tr("Read from the keyboard; it only changes if you pick another one here")
-        options: {
-            const o = Array.from({ length: root.oled?.count ?? 0 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
-            if (root.hasCustom)
-                o.push({ value: "custom", label: Tr.tr("Your GIF"), icon: "gif_box" });
-            return o;
-        }
-        current: !root.oled ? "" : root.oled.animation !== null ? String(root.oled.animation + 1) : (root.oled.raw === root.oled.custom ? "custom" : "")
-        busy: root.bridge.busyAction.startsWith(`oled-${root.device.id}-anim-`) || root.bridge.busyAction === `oled-${root.device.id}-custom`
-        onPicked: v => root.bridge.run({ id: v === "custom" ? `oled-${root.device.id}-custom` : `oled-${root.device.id}-anim-${v}` })
+        // A imagem/GIF do usuario fica num slot que o firmware NAO aceita pelo 0x61
+        // (testado 2026-10-22: anim 0-5 ok, slot 6 -> ffaa; o g-helper tambem so
+        // conhece 0-5). Trocar daqui para uma animacao e caminho sem volta pelo
+        // Linux: o aviso diz isso antes, e nao ha botao "Your GIF" que nao funciona.
+        subtext: root.oled?.animation === null ? Tr.tr("Showing your GIF. Picking an animation replaces it, and only Armoury Crate (Windows) can switch back to the GIF") : root.hasCustom ? Tr.tr("Your GIF is still stored in the keyboard, but only Armoury Crate (Windows) can put it back on the display") : Tr.tr("Read from the keyboard; it only changes if you pick another one here")
+        options: Array.from({ length: root.oled?.count ?? 0 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))
+        current: !root.oled || root.oled.animation === null ? "" : String(root.oled.animation + 1)
+        busy: root.bridge.busyAction.startsWith(`oled-${root.device.id}-anim-`)
+        onPicked: v => root.bridge.run({ id: `oled-${root.device.id}-anim-${v}` })
     }
 
     ChipSelectRow {
