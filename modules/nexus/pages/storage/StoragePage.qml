@@ -22,6 +22,7 @@ PageBase {
     property string armed: ""
 
     readonly property var partitions: storage.info.partitions ?? []
+    readonly property var disks: storage.info.disks ?? []
     readonly property var withLargest: root.partitions.filter(p => (p.largest ?? []).length > 0)
 
     function fmt(bytes: var): string {
@@ -106,19 +107,37 @@ PageBase {
                 Layout.fillWidth: true
                 Layout.leftMargin: Tokens.padding.small
                 Layout.bottomMargin: Tokens.spacing.medium
-                text: qsTr("Disk usage from caelestia-storage — also usable in a terminal (caelestia-storage status). Click a partition to browse it.")
+                text: qsTr("Each disk with its partitions in physical order, like GParted — also usable in a terminal (caelestia-storage status). Click a mounted partition to browse it.")
                 color: Colours.palette.m3outline
                 font: Tokens.font.body.small
                 wrapMode: Text.WordWrap
             }
 
+            // Um cartao por disco fisico (barra GParted + particoes na ordem do disco).
+            Repeater {
+                model: root.disks.length
+
+                DiskCard {
+                    required property int index
+
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: Tokens.spacing.medium
+                    disk: root.disks[index] ?? ({})
+                    fmt: root.fmt
+                    firstCard: index === 0
+                    onBrowse: path => root.browse(path)
+                }
+            }
+
+            // Reserva: caelestia-storage antigo, sem data.disks -> a lista de antes.
             SectionHeader {
+                visible: root.disks.length === 0
                 first: true
                 text: storage.loading ? qsTr("PARTITIONS  ·  refreshing…") : qsTr("PARTITIONS")
             }
 
             Repeater {
-                model: root.partitions.length
+                model: root.disks.length === 0 ? root.partitions.length : 0
 
                 ConnectedRect {
                     id: part
