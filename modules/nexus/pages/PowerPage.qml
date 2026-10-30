@@ -31,7 +31,7 @@ PageBase {
 
     // Filme do boot e despedida (01-pendencias "Bootsplash"): ~/.config/caelestia/boot.json,
     // lido pelo quickshell -c caelestia-boot e pelo caelestia-farewell
-    property var boot: ({ bootFilm: true, farewell: true, lidHibernate: true, hibernateLock: false })
+    property var boot: ({ bootFilm: true, farewell: true, hibernateLock: false })
 
     function duration(minutes: var): string {
         if (minutes === null || minutes === undefined)
@@ -79,12 +79,12 @@ PageBase {
             onLoaded: {
                 try {
                     const d = JSON.parse(text());
-                    root.boot = { bootFilm: d.bootFilm !== false, farewell: d.farewell !== false, lidHibernate: d.lidHibernate !== false, hibernateLock: d.hibernateLock === true };
+                    root.boot = { bootFilm: d.bootFilm !== false, farewell: d.farewell !== false, hibernateLock: d.hibernateLock === true };
                 } catch (e) {
-                    root.boot = { bootFilm: true, farewell: true, lidHibernate: true, hibernateLock: false };
+                    root.boot = { bootFilm: true, farewell: true, hibernateLock: false };
                 }
             }
-            onLoadFailed: root.boot = { bootFilm: true, farewell: true, lidHibernate: true, hibernateLock: false }
+            onLoadFailed: root.boot = { bootFilm: true, farewell: true, hibernateLock: false }
         }
     }
 
@@ -319,14 +319,12 @@ PageBase {
         }
 
         // Hibernacao pelo shell (services/Hibernation.qml): despedida, filme na volta
-        ToggleRow {
+        InfoRow {
             Layout.topMargin: Tokens.spacing.small
             first: true
-            enabled: root.hibernate.ready ?? false
-            text: qsTr("Hibernate when the lid closes")
-            subtext: qsTr("Not while an external monitor is connected — then closing the lid does nothing")
-            checked: root.boot.lidHibernate
-            onToggled: root.saveBoot("lidHibernate", checked)
+            icon: "laptop_chromebook"
+            label: qsTr("Closing the lid")
+            subtext: qsTr("Locks and suspends; after 15 minutes closed it hibernates, with or without an external monitor")
         }
 
         ToggleRow {

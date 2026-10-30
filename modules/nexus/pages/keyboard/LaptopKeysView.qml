@@ -174,6 +174,18 @@ ColumnLayout {
         }
     }
 
+    // Botao de energia: nao esta no diagrama (e fora do teclado), a escolha fica sempre aqui
+    ChipSelectRow {
+        first: true
+        last: true
+        label: Tr.tr("Power button does")
+        subtext: Tr.tr("Holding it for a few seconds always forces the laptop off")
+        options: (root.info.power_choices ?? []).filter(c => c.id !== "hibernate" || root.info.hibernate_available).map(c => ({ value: c.id, label: c.label }))
+        current: root.info.power_key ?? ""
+        busy: bridge.busyAction.startsWith("power-")
+        onPicked: v => bridge.run({ id: `power-${v}` })
+    }
+
     ChipSelectRow {
         first: true
         last: true

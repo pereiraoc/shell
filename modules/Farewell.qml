@@ -19,7 +19,7 @@ import qs.services
 // Hibernar (CF-13): o filme toca, o preto fica na tela enquanto a memoria e
 // gravada, e ao voltar (SessionManager.resumed) o filme toca ao contrario --
 // do preto para o desktop, como ao ligar. Hibernation.active avisa o
-// IdleMonitors para nao bloquear antes. Tampa: Hibernation.requested.
+// IdleMonitors para nao bloquear antes.
 //
 // Linha do tempo (s): fundo #282828 cobre as janelas, o logo do wallpaper
 // esquenta, implode num ponto, o ponto abre a linha ate as bordas, a linha sai
@@ -126,14 +126,6 @@ Scope {
         }
     }
 
-    Connections {
-        target: Hibernation
-
-        function onRequested(reason: string): void {
-            console.info(`farewell: hibernar (${reason})`);
-            root.play("hibernate");
-        }
-    }
 
     // O desligamento foi recusado (inibido por algum app, por ex.): em vez de
     // tela preta para sempre, o desktop volta.
