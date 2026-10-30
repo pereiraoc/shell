@@ -129,7 +129,7 @@ ColumnLayout {
             anchors.margins: Tokens.padding.medium
             anchors.leftMargin: Tokens.padding.largeIncreased
             anchors.rightMargin: Tokens.padding.largeIncreased
-            height: 34
+            height: 22
             spacing: 3
 
             Repeater {
@@ -146,36 +146,26 @@ ColumnLayout {
                     width: Math.max((bar.width - bar.spacing * (root.segs.length - 1)) * (root.fracs[index] ?? 0), 4)
                     height: bar.height
 
-                    // fundo: a particao inteira (tom claro); livre = so a borda
+                    // A particao inteira (tom claro); livre = so a borda. Sem texto: quem
+                    // diz o que e cada pedaco e a lista embaixo, na mesma cor. O usado e
+                    // recortado DENTRO do pedaco (clip + mesmo raio): nunca vaza nem vira bolinha.
                     StyledRect {
                         anchors.fill: parent
-                        radius: Tokens.rounding.small
-                        color: seg.data_.kind === "free" ? "transparent" : Qt.alpha(seg.tone, 0.28)
+                        radius: 4
+                        clip: true
+                        color: seg.data_.kind === "free" ? "transparent" : Qt.alpha(seg.tone, 0.3)
                         border.width: seg.data_.kind === "free" ? 1 : 0
                         border.color: seg.tone
-                    }
 
-                    // usado: preenche da esquerda, no tom cheio
-                    StyledRect {
-                        visible: seg.usedFrac >= 0
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: parent.width * Math.max(seg.usedFrac, 0)
-                        radius: Tokens.rounding.small
-                        color: seg.tone
-                    }
-
-                    // nome dentro do pedaco, so se couber
-                    Text {
-                        anchors.centerIn: parent
-                        width: parent.width - 8
-                        visible: parent.width > 64
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideRight
-                        text: seg.data_.kind === "free" ? qsTr("free") : (seg.data_.mount || seg.data_.label || seg.data_.name)
-                        color: seg.data_.kind === "free" ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface
-                        font: Tokens.font.label.small
+                        Rectangle {
+                            visible: seg.usedFrac > 0
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: parent.width * Math.max(seg.usedFrac, 0)
+                            radius: 4
+                            color: seg.tone
+                        }
                     }
 
                     MouseArea {
