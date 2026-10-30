@@ -31,7 +31,7 @@ PageBase {
 
     // Filme do boot e despedida (01-pendencias "Bootsplash"): ~/.config/caelestia/boot.json,
     // lido pelo quickshell -c caelestia-boot e pelo caelestia-farewell
-    property var boot: ({ bootFilm: true, farewell: true })
+    property var boot: ({ bootFilm: true, farewell: true, lidHibernate: true, hibernateLock: false })
 
     function duration(minutes: var): string {
         if (minutes === null || minutes === undefined)
@@ -79,12 +79,12 @@ PageBase {
             onLoaded: {
                 try {
                     const d = JSON.parse(text());
-                    root.boot = { bootFilm: d.bootFilm !== false, farewell: d.farewell !== false };
+                    root.boot = { bootFilm: d.bootFilm !== false, farewell: d.farewell !== false, lidHibernate: d.lidHibernate !== false, hibernateLock: d.hibernateLock === true };
                 } catch (e) {
-                    root.boot = { bootFilm: true, farewell: true };
+                    root.boot = { bootFilm: true, farewell: true, lidHibernate: true, hibernateLock: false };
                 }
             }
-            onLoadFailed: root.boot = { bootFilm: true, farewell: true }
+            onLoadFailed: root.boot = { bootFilm: true, farewell: true, lidHibernate: true, hibernateLock: false }
         }
     }
 
@@ -318,6 +318,26 @@ PageBase {
             }
         }
 
+        // Hibernacao pelo shell (services/Hibernation.qml): despedida, filme na volta
+        ToggleRow {
+            Layout.topMargin: Tokens.spacing.small
+            first: true
+            enabled: root.hibernate.ready ?? false
+            text: qsTr("Hibernate when the lid closes")
+            subtext: qsTr("Not while an external monitor is connected — then closing the lid does nothing")
+            checked: root.boot.lidHibernate
+            onToggled: root.saveBoot("lidHibernate", checked)
+        }
+
+        ToggleRow {
+            last: true
+            enabled: root.hibernate.ready ?? false
+            text: qsTr("Lock after waking from hibernation")
+            subtext: qsTr("The lock screen shows when you come back — never before hibernating")
+            checked: root.boot.hibernateLock
+            onToggled: root.saveBoot("hibernateLock", checked)
+        }
+
         // Ligar e desligar
         SectionHeader {
             text: qsTr("Start and shut down")
@@ -334,7 +354,7 @@ PageBase {
         ToggleRow {
             last: true
             text: qsTr("Farewell animation")
-            subtext: qsTr("The film in reverse before shutting down or restarting; off = shuts down at once")
+            subtext: qsTr("The film in reverse before shutting down, restarting or hibernating (and forward when waking from hibernation); off = at once")
             checked: root.boot.farewell
             onToggled: root.saveBoot("farewell", checked)
         }

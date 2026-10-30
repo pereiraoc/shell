@@ -50,7 +50,14 @@ Scope {
 
     Connections {
         function onAboutToSleep(): void {
-            if (GlobalConfig.general.idle.lockBeforeSleep)
+            // Hibernar pelo shell (Hibernation.active): sem tela de bloqueio ANTES -- a
+            // despedida esta na tela. Bloquear ao voltar e opcao (hibernateLock).
+            if (GlobalConfig.general.idle.lockBeforeSleep && !Hibernation.active)
+                root.lock.lock.locked = true;
+        }
+
+        function onResumed(): void {
+            if (Hibernation.active && Hibernation.hibernateLock)
                 root.lock.lock.locked = true;
         }
 

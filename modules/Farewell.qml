@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Caelestia.Services
 import qs.components.containers
 import qs.services
 
@@ -11,9 +12,14 @@ import qs.services
 // tudo, e so depois o systemctl. Comeca no desktop e termina no preto -- o
 // Plymouth de desligar so segura esse preto (configs/plymouth/caelestia-prism).
 //
-//   caelestia-farewell poweroff|reboot   (scripts/system/boot-splash; os
-//   comandos de sessao do Caelestia chamam esse script, que desliga sozinho se
-//   o shell nao responder)
+//   caelestia-farewell poweroff|reboot|hibernate   (scripts/system/boot-splash;
+//   os comandos de sessao do Caelestia chamam esse script, que desliga sozinho
+//   se o shell nao responder)
+//
+// Hibernar (CF-13): o filme toca, o preto fica na tela enquanto a memoria e
+// gravada, e ao voltar (SessionManager.resumed) o filme toca ao contrario --
+// do preto para o desktop, como ao ligar. Hibernation.active avisa o
+// IdleMonitors para nao bloquear antes. Tampa: Hibernation.requested.
 //
 // Linha do tempo (s): fundo #282828 cobre as janelas, o logo do wallpaper
 // esquenta, implode num ponto, o ponto abre a linha ate as bordas, a linha sai
@@ -37,6 +43,16 @@ Scope {
     function play(what: string): void {
         if (root.playing)
             return;
+        if (what === "hibernate") {
+            Hibernation.active = true;
+            if (!Hibernation.farewell) {          // despedida desligada: hiberna direto
+                root.action = what;
+                if (!root.dryRun)
+                    Quickshell.execDetached(["systemctl", "hibernate"]);
+                hibernateRefused.restart();
+                return;
+            }
+        }
         root.action = what;
         root.t = 0;
         root.playing = true;
@@ -54,7 +70,68 @@ Scope {
         onFinished: {
             if (!root.dryRun)
                 Quickshell.execDetached(["systemctl", root.action]);
-            giveUp.start();
+            if (root.action === "hibernate")
+                hibernateRefused.restart();       // fica no preto ate o resumed
+            else
+                giveUp.start();
+        }
+    }
+
+    // Volta da hibernacao: o mesmo filme ao contrario (preto -> desktop).
+    NumberAnimation {
+        id: wake
+
+        target: root
+        property: "t"
+        from: root.total
+        to: 0
+        duration: root.total * 1000
+        onFinished: root.finishHibernate()
+    }
+
+    function wakeUp(): void {
+        hibernateRefused.stop();
+        if (root.playing)
+            wake.start();
+        else
+            root.finishHibernate();               // despedida desligada: nada a tocar
+    }
+
+    function finishHibernate(): void {
+        root.playing = false;
+        root.action = "";
+        Hibernation.active = false;
+    }
+
+    // Hibernacao recusada (nem chegou a dormir: inibida, swap insuficiente...): sem o
+    // aboutToSleep em 20 s, o desktop volta. Se dormiu, quem volta e o resumed.
+    Timer {
+        id: hibernateRefused
+
+        interval: root.dryRun ? 1500 : 20000
+        onTriggered: root.wakeUp()
+    }
+
+    Connections {
+        target: SessionManager
+
+        function onAboutToSleep(): void {
+            if (Hibernation.active)
+                hibernateRefused.stop();
+        }
+
+        function onResumed(): void {
+            if (Hibernation.active)
+                root.wakeUp();
+        }
+    }
+
+    Connections {
+        target: Hibernation
+
+        function onRequested(reason: string): void {
+            console.info(`farewell: hibernar (${reason})`);
+            root.play("hibernate");
         }
     }
 
@@ -221,7 +298,7 @@ Scope {
 
     IpcHandler {
         function play(action: string): void {
-            if (action === "poweroff" || action === "reboot")
+            if (action === "poweroff" || action === "reboot" || action === "hibernate")
                 root.play(action);
         }
 
