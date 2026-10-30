@@ -155,10 +155,16 @@ Item {
 
                         Layout.alignment: Qt.AlignTop
 
+                        // Aba construida na 1a vez que aparece e MANTIDA enquanto o painel esta
+                        // aberto: destruir e refazer a cada troca travava a animacao. Ao fechar,
+                        // o Wrapper descarrega o painel inteiro.
+                        property bool visited: false
+
                         sourceComponent: modelData.component
+                        onActiveChanged: if (active) visited = true
 
                         Component.onCompleted: active = Qt.binding(() => {
-                            if (index === view.currentIndex)
+                            if (visited || index === view.currentIndex)
                                 return true;
                             const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
                             const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
