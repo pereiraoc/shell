@@ -19,7 +19,7 @@ Column {
     // Ordem dos botoes para a navegacao por teclado (a mesma da tela). Um botao sem
     // comando (lista vazia no shell.json, ex.: "hibernate": []) fica escondido e as
     // setas pulam por cima dele.
-    readonly property list<Item> buttons: [shutdown, hibernate, reboot, suspend, logout]
+    readonly property list<Item> buttons: [shutdown, hibernate, reboot, suspend, lock]
 
     function neighbour(item: Item, step: int): Item {
         let i = buttons.indexOf(item) + step;
@@ -33,7 +33,7 @@ Column {
 
     padding: Tokens.padding.large
     rightPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
-    // Grupos: desligar/hibernar · reiniciar · suspender/sair. Dentro do grupo, o
+    // Grupos: desligar/hibernar · reiniciar · suspender/bloquear. Dentro do grupo, o
     // espacamento normal; entre grupos, um pouco mais.
     spacing: Tokens.spacing.large + Tokens.spacing.small
 
@@ -81,19 +81,23 @@ Column {
         }
 
         SessionButton {
-            id: logout
+            id: lock
 
-            tooltip: Tr.tr("Log out")
-            icon: Config.session.icons.logout
-            command: Config.session.commands.logout
+            // Bloquear em vez de encerrar a sessao: com o autologin do SDDM (Relogin=true),
+            // sair so fecharia tudo e voltaria sem pedir senha. O menu fecha junto, para
+            // nao estar aberto ao desbloquear.
+            tooltip: Tr.tr("Lock")
+            icon: "lock"
+            command: ["loginctl", "lock-session"]
+            closeAfter: true
 
-            // O foco comeca aqui, nao no topo: Enter sem querer nao desliga o PC.
+            // O foco comeca aqui, nao no topo: Enter sem querer so bloqueia.
             Component.onCompleted: forceActiveFocus()
 
             Connections {
                 function onLauncherChanged(): void {
                     if (!root.screenState.launcher)
-                        logout.forceActiveFocus();
+                        lock.forceActiveFocus();
                 }
 
                 target: root.screenState
@@ -106,10 +110,13 @@ Column {
 
         required property list<string> command
         required property string tooltip
+        property bool closeAfter
 
         function exec(): void {
             if (!SessionManager.exec(command))
                 Quickshell.execDetached(command);
+            if (closeAfter)
+                root.screenState.session = false;
         }
 
         visible: command.length > 0
