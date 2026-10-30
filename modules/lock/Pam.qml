@@ -25,6 +25,7 @@ Scope {
     property bool pinEnabled: GlobalConfig.lock.enablePinAuth
     property int faceFailedAttempts: 0
     property int pinFailedAttempts: 0
+    readonly property bool passwdActive: passwd.active   // para o diagnostico do PasswordInput
     property int passwordFailedAttempts: 0
 
     signal flashMsg
@@ -104,9 +105,15 @@ Scope {
         if (passwd.active || state === "max")
             return;
 
-        // Face mode: sem digitação — usar o seletor p/ trocar p/ PIN/senha
-        if (currentMode === "face")
-            return;
+        // Modo rosto: digitar um NUMERO troca sozinho para o PIN, ja com esse digito (o
+        // rosto para, igual a escolher o PIN no seletor). So no modo rosto: no modo senha
+        // os numeros continuam indo para a senha. Outras teclas no rosto: nada.
+        if (currentMode === "face") {
+            if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9 && pinEnabled && GlobalConfig.lock.userPin)
+                currentMode = "pin";
+            else
+                return;
+        }
 
         // PIN mode: only digits, auto-submit on 4 digits
         if (currentMode === "pin" && !pinEnabled) {

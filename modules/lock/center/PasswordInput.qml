@@ -31,6 +31,10 @@ StyledRect {
     }
 
     Keys.onPressed: event => {
+        // Diagnostico (30/10): depois de hibernar, digitar o PIN nao aparecia. Registra
+        // SO o estado (nunca a tecla) para achar onde a tecla e descartada.
+        const pam = root.lock.pam;
+        console.info(`lock: tecla em ${root.Window.window?.screen?.name ?? "?"} modo=${pam.currentMode} unlocking=${root.lock.unlocking} passwdAtivo=${pam.passwdActive} estado=${pam.state} pin=${pam.pinEnabled}`);
         if (root.lock.unlocking)
             return;
 
