@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 import Caelestia.Config
+import Caelestia.Services
 
 Scope {
     id: root
@@ -25,6 +26,9 @@ Scope {
     property bool pinEnabled: GlobalConfig.lock.enablePinAuth
     property int faceFailedAttempts: 0
     property int pinFailedAttempts: 0
+    // Dormindo ou indo dormir: o rosto nao tenta (o howdy recusa com a tampa fechada, e cada
+    // recusa contava como falha: 3 falhas trocavam para o PIN antes mesmo de acordar).
+    property bool asleep: false
     readonly property bool passwdActive: passwd.active   // para o diagnostico do PasswordInput
     property int passwordFailedAttempts: 0
 
@@ -261,7 +265,7 @@ Scope {
         property int errorTries
 
         function checkAvail(): void {
-            if (!available || !GlobalConfig.lock.enableFaceAuth || !root.lock.secure) {
+            if (!available || !GlobalConfig.lock.enableFaceAuth || !root.lock.secure || root.asleep) {
                 abort();
                 return;
             }
@@ -278,7 +282,7 @@ Scope {
         configDirectory: Quickshell.shellDir + "/assets/pam.d"
 
         onCompleted: res => {
-            if (!available)
+            if (!available || root.asleep)
                 return;
 
             if (res === PamResult.Success) {
@@ -350,7 +354,7 @@ Scope {
         id: howdyRetry
         interval: 1500
         onTriggered: {
-            if (root.currentMode === "face" && root.faceEnabled)
+            if (root.currentMode === "face" && root.faceEnabled && !root.asleep)
                 howdy.start();
         }
     }
@@ -402,6 +406,40 @@ Scope {
         }
 
         target: root.lock
+    }
+
+    Connections {
+        function onAboutToSleep(): void {
+            root.asleep = true;
+            howdyRetry.stop();
+            howdyErrorRetry.stop();
+            howdyWake.stop();
+            howdy.abort();
+        }
+
+        function onResumed(): void {
+            // Acordou bloqueado: recomeca do metodo padrao, com o contador zerado. O modo muda
+            // ANTES de asleep = false: trocar o modo dispara o rosto na hora (onCurrentModeChanged),
+            // e aqui ele tem de esperar a camera (howdyWake).
+            if (root.lock.secure) {
+                root.faceFailedAttempts = 0;
+                root.howdyState = "";
+                root.buffer = "";
+                root.currentMode = GlobalConfig.lock.defaultMethod;
+                howdyWake.restart();
+            }
+            root.asleep = false;
+        }
+
+        target: SessionManager
+    }
+
+    // A camera IR leva uns segundos para abrir depois de acordar ("not possible to open camera").
+    Timer {
+        id: howdyWake
+
+        interval: 2500
+        onTriggered: howdy.checkAvail()
     }
 
     Connections {

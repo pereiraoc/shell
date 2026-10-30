@@ -17,6 +17,9 @@ Scope {
     WlSessionLock {
         id: lock
 
+        // Entrar sem animacao (bloqueio por suspensao; ver LockSurface)
+        property bool instant
+
         signal unlock
 
         LockSurface {

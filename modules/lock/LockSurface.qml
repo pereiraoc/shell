@@ -88,7 +88,13 @@ WlSessionLockSurface {
     ParallelAnimation {
         id: initAnim
 
-        running: true
+        // Bloqueio por suspensao: pula a animacao, para o PC nao dormir no meio dela e
+        // acordar com a tela escurecida e parada (lock.instant, ver IdleMonitors).
+        Component.onCompleted: {
+            start();
+            if (root.lock.instant)
+                complete();
+        }
 
         Anim {
             target: background
