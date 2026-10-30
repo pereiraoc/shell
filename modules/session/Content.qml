@@ -10,7 +10,6 @@ import Caelestia.Services
 import qs.components
 import qs.components.controls
 import qs.services
-import qs.utils
 
 Column {
     id: root
@@ -37,18 +36,6 @@ Column {
     // Grupos: desligar/hibernar · reiniciar · suspender/sair. Dentro do grupo, o
     // espacamento normal; entre grupos, um pouco mais.
     spacing: Tokens.spacing.large + Tokens.spacing.small
-
-    AnimatedImage {
-        width: Tokens.sizes.session.button
-        height: Tokens.sizes.session.button
-        sourceSize.width: width * ((QsWindow.window as QsWindow)?.devicePixelRatio ?? 1)
-
-        playing: visible
-        asynchronous: true
-        speed: Config.general.sessionGifSpeed
-        source: Paths.absolutePath(Config.paths.sessionGif)
-        fillMode: AnimatedImage.PreserveAspectFit
-    }
 
     Column {
         spacing: Tokens.spacing.large
