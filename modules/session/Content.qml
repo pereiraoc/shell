@@ -17,10 +17,10 @@ Column {
 
     required property ScreenState screenState
 
-    // Ordem dos botoes para a navegacao por teclado. Um botao sem comando
-    // (lista vazia no shell.json, ex.: "hibernate": []) fica escondido e as
+    // Ordem dos botoes para a navegacao por teclado (a mesma da tela). Um botao sem
+    // comando (lista vazia no shell.json, ex.: "hibernate": []) fica escondido e as
     // setas pulam por cima dele.
-    readonly property list<Item> buttons: [logout, shutdown, suspend, hibernate, reboot]
+    readonly property list<Item> buttons: [shutdown, reboot, hibernate, suspend, logout]
 
     function neighbour(item: Item, step: int): Item {
         let i = buttons.indexOf(item) + step;
@@ -34,34 +34,9 @@ Column {
 
     padding: Tokens.padding.large
     rightPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
-    spacing: Tokens.spacing.large
-
-    SessionButton {
-        id: logout
-
-        tooltip: Tr.tr("Log out")
-        icon: Config.session.icons.logout
-        command: Config.session.commands.logout
-
-        Component.onCompleted: forceActiveFocus()
-
-        Connections {
-            function onLauncherChanged(): void {
-                if (!root.screenState.launcher)
-                    logout.forceActiveFocus();
-            }
-
-            target: root.screenState
-        }
-    }
-
-    SessionButton {
-        id: shutdown
-
-        tooltip: Tr.tr("Shut down")
-        icon: Config.session.icons.shutdown
-        command: Config.session.commands.shutdown
-    }
+    // Grupos: desligar/reiniciar · hibernar · suspender/sair. Dentro do grupo, o
+    // espacamento normal; entre grupos, um pouco mais.
+    spacing: Tokens.spacing.large + Tokens.spacing.small
 
     AnimatedImage {
         width: Tokens.sizes.session.button
@@ -75,18 +50,30 @@ Column {
         fillMode: AnimatedImage.PreserveAspectFit
     }
 
+    Column {
+        spacing: Tokens.spacing.large
+
+        SessionButton {
+            id: shutdown
+
+            tooltip: Tr.tr("Shut down")
+            icon: Config.session.icons.shutdown
+            command: Config.session.commands.shutdown
+        }
+
+        SessionButton {
+            id: reboot
+
+            tooltip: Tr.tr("Reboot")
+            icon: Config.session.icons.reboot
+            command: Config.session.commands.reboot
+        }
+    }
+
     // Suspender (RAM, volta em segundos) e hibernar (disco, sobrevive a falta
     // de bateria) sao coisas diferentes: os dois botoes ficam. Hibernar so
     // volta a sessao com resume= configurado; sem isso, esconder o botao com
     // "hibernate": [] no shell.json.
-    SessionButton {
-        id: suspend
-
-        tooltip: Tr.tr("Suspend")
-        icon: Config.session.icons.suspend
-        command: Config.session.commands.suspend
-    }
-
     SessionButton {
         id: hibernate
 
@@ -95,12 +82,36 @@ Column {
         command: Config.session.commands.hibernate
     }
 
-    SessionButton {
-        id: reboot
+    Column {
+        spacing: Tokens.spacing.large
 
-        tooltip: Tr.tr("Reboot")
-        icon: Config.session.icons.reboot
-        command: Config.session.commands.reboot
+        SessionButton {
+            id: suspend
+
+            tooltip: Tr.tr("Suspend")
+            icon: Config.session.icons.suspend
+            command: Config.session.commands.suspend
+        }
+
+        SessionButton {
+            id: logout
+
+            tooltip: Tr.tr("Log out")
+            icon: Config.session.icons.logout
+            command: Config.session.commands.logout
+
+            // O foco comeca aqui, nao no topo: Enter sem querer nao desliga o PC.
+            Component.onCompleted: forceActiveFocus()
+
+            Connections {
+                function onLauncherChanged(): void {
+                    if (!root.screenState.launcher)
+                        logout.forceActiveFocus();
+                }
+
+                target: root.screenState
+            }
+        }
     }
 
     component SessionButton: IconButton {
