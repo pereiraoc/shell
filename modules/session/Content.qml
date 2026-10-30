@@ -20,7 +20,7 @@ Column {
     // Ordem dos botoes para a navegacao por teclado (a mesma da tela). Um botao sem
     // comando (lista vazia no shell.json, ex.: "hibernate": []) fica escondido e as
     // setas pulam por cima dele.
-    readonly property list<Item> buttons: [shutdown, reboot, hibernate, suspend, logout]
+    readonly property list<Item> buttons: [shutdown, hibernate, reboot, suspend, logout]
 
     function neighbour(item: Item, step: int): Item {
         let i = buttons.indexOf(item) + step;
@@ -34,7 +34,7 @@ Column {
 
     padding: Tokens.padding.large
     rightPadding: CUtils.clamp(padding - Config.border.thickness, 0, padding)
-    // Grupos: desligar/reiniciar · hibernar · suspender/sair. Dentro do grupo, o
+    // Grupos: desligar/hibernar · reiniciar · suspender/sair. Dentro do grupo, o
     // espacamento normal; entre grupos, um pouco mais.
     spacing: Tokens.spacing.large + Tokens.spacing.small
 
@@ -61,25 +61,25 @@ Column {
             command: Config.session.commands.shutdown
         }
 
+        // Suspender (RAM, volta em segundos) e hibernar (disco, sobrevive a falta
+        // de bateria) sao coisas diferentes: os dois botoes ficam. Hibernar so
+        // volta a sessao com resume= configurado; sem isso, esconder o botao com
+        // "hibernate": [] no shell.json.
         SessionButton {
-            id: reboot
+            id: hibernate
 
-            tooltip: Tr.tr("Reboot")
-            icon: Config.session.icons.reboot
-            command: Config.session.commands.reboot
+            tooltip: Tr.tr("Hibernate")
+            icon: Config.session.icons.hibernate
+            command: Config.session.commands.hibernate
         }
     }
 
-    // Suspender (RAM, volta em segundos) e hibernar (disco, sobrevive a falta
-    // de bateria) sao coisas diferentes: os dois botoes ficam. Hibernar so
-    // volta a sessao com resume= configurado; sem isso, esconder o botao com
-    // "hibernate": [] no shell.json.
     SessionButton {
-        id: hibernate
+        id: reboot
 
-        tooltip: Tr.tr("Hibernate")
-        icon: Config.session.icons.hibernate
-        command: Config.session.commands.hibernate
+        tooltip: Tr.tr("Reboot")
+        icon: Config.session.icons.reboot
+        command: Config.session.commands.reboot
     }
 
     Column {
