@@ -12,7 +12,7 @@ import qs.modules.nexus.pages.display
 // Telas, em abas: General (o arranjo dos monitores -- arrastar para mover,
 // clicar para escolher -- e, embaixo, o monitor escolhido: resolucao/taxa,
 // escala, brilho, lado da barra, liga/desliga; depois os monitores conhecidos
-// e o tamanho de texto dos apps X11) e Advanced. Logica no caelestia-display
+// e o tamanho de texto dos apps X11, o tablet no cabo). Logica no caelestia-display
 // (repositorio de setup): toda mudanca e aplicada SO ao vivo (try-*) e o
 // banner de 15 s pergunta se mantem -- sem resposta, volta ao monitors.conf.
 // O banner fica acima das abas, para aparecer em qualquer uma.
@@ -359,6 +359,19 @@ PageBase {
                 current: String(bridge.info.xft_dpi ?? "")
                 busy: bridge.busyAction.startsWith("dpi-")
                 onPicked: v => bridge.run({ id: `dpi-${v}` })
+            }
+
+            // Tablet Android como monitor pelo cabo USB. Logica no caelestia-tablet
+            // (repositorio de setup, CF-28): ao conectar o tablet pareado, saida virtual
+            // do Hyprland + wayvnc + porta pelo cabo (adb reverse) + AVNC aberto no
+            // tablet. Aqui so pareamento e liga/desliga; a saida "tablet" entra no
+            // arranjo acima como qualquer monitor.
+            ToolSection {
+                Layout.topMargin: Tokens.spacing.large
+                tool: "tablet"
+                title: qsTr("Tablet as a monitor")
+                icon: "tablet_android"
+                hint: qsTr("An Android tablet with USB debugging on becomes an extra display over the cable (AVNC app on the tablet). Pair it once; it connects on its own after that.")
             }
 
             AdvancedGroup {
