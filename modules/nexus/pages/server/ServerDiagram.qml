@@ -13,8 +13,10 @@ import "server.js" as S
 //                               faixa inferior: botao, LEDs LAN + DISK1-4, SD, USB-C, USB3.2
 //   tras    (400..760 x 0..360) grade quadrada da ventoinha; fileira HDMI, USB3.2, 2x USB2.0,
 //                               LAN 2, LAN 1, RESET, DC 19V; quatro parafusos
-//   fundo   (265..495 x 385..716) placa com os pes, a tampa de servico com 2x M.2 (vertical,
-//                               esquerda) e 2x memoria (horizontal, direita), e a etiqueta
+//   fundo   (0..360 x 384..903)  so com `bottomExpanded`: a placa de baixo NA MESMA LARGURA da frente
+//                               (178 x 257 mm reais, desenho do manual 555x800 -> 360x519), como desenho
+//                               tecnico: pes, tampa de servico com 2x M.2 (vertical, esquerda) e os 2
+//                               slots de memoria empilhados (direita, modulo instalado no slot 1), etiqueta
 // Pecas que o NAS reporta sao clicaveis e pintam o estado:
 //   bay-1..4   gavetas (porta SATA n = baia n)      -> disco, SMART, temperatura
 //   power      botao; led-net LED "LAN"
@@ -29,6 +31,8 @@ Item {
     required property var info
     property string selected
     property string hovered
+    // Mostra a vista de baixo (M.2 e memoria) embaixo da frente, em escala real
+    property bool bottomExpanded: false
 
     readonly property bool online: root.info.online === true
     readonly property var bays: S.bayMap(root.info.disks)
@@ -39,6 +43,9 @@ Item {
     readonly property var mem: root.info.mem ?? null
 
     readonly property real k: root.width / 760
+    // Rotulos miudos das portas (LAN, DISK1.., HDMI..) so quando o desenho e grande o bastante
+    // para serem legiveis; antes disso a legenda por hover faz o papel.
+    readonly property bool labels: root.k >= 1.1
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
     readonly property string family: Tokens.font.label.small.family
@@ -77,7 +84,7 @@ Item {
         return Math.max(5, px * root.k);
     }
 
-    implicitHeight: 720 * root.k
+    implicitHeight: (root.bottomExpanded ? 384 + 519 : 360) * root.k
 
     // ================================================================ FRENTE
     Rectangle {
@@ -145,8 +152,8 @@ Item {
                 text: `0${bay.n}`
                 color: bay.on ? root.stateColor(bay.spotId, bay.on, bay.bad) : root.ink
                 font.family: root.family
-                font.pixelSize: root.small(26)
-                font.weight: Font.DemiBold
+                font.pixelSize: root.small(30)
+                font.weight: Font.Black
                 renderType: Text.NativeRendering
             }
 
@@ -252,6 +259,7 @@ Item {
         Text {
             required property var modelData
 
+            visible: root.labels
             x: modelData.x * root.k
             y: 311 * root.k
             text: modelData.t
@@ -329,6 +337,7 @@ Item {
         Text {
             required property var modelData
 
+            visible: root.labels
             x: modelData.x * root.k
             y: 313 * root.k
             text: modelData.t
@@ -579,6 +588,7 @@ Item {
         Text {
             required property var modelData
 
+            visible: root.labels
             x: modelData.x * root.k
             y: 326 * root.k
             text: modelData.t
@@ -613,20 +623,35 @@ Item {
     Item {
         id: bottom
 
-        // 555 x 800 do desenho do manual -> 230 x 331 unidades
-        readonly property real s: 230 / 555
+        // 555 x 800 do desenho do manual -> 360 x 519 unidades (mesma largura da frente)
+        readonly property real s: 360 / 555
+        readonly property real u: bottom.s * root.k
 
-        x: 265 * root.k
-        y: 385 * root.k
-        width: 230 * root.k
-        height: 331 * root.k
+        visible: root.bottomExpanded
+        x: 0
+        y: 384 * root.k
+        width: 360 * root.k
+        height: 519 * root.k
 
         Rectangle {
             anchors.fill: bottom
-            radius: 4 * root.k
+            radius: 6 * root.k
             color: "transparent"
             border.width: 1
             border.color: root.ink
+        }
+
+        Text {
+            x: 0
+            y: -14 * root.k
+            width: bottom.width
+            horizontalAlignment: Text.AlignHCenter
+            text: "UNDERSIDE · 178 × 257 mm · M.2 × 2 · RAM × 2"
+            color: root.faint
+            font.family: root.family
+            font.pixelSize: root.small(7)
+            font.letterSpacing: 1 * root.k
+            renderType: Text.NativeRendering
         }
 
         // Pes (ovais) nos quatro cantos
@@ -636,10 +661,10 @@ Item {
             Rectangle {
                 required property var modelData
 
-                x: (modelData.x - 7) * bottom.s * root.k
-                y: (modelData.y - 22) * bottom.s * root.k
-                width: 14 * bottom.s * root.k
-                height: 44 * bottom.s * root.k
+                x: (modelData.x - 7) * bottom.u
+                y: (modelData.y - 22) * bottom.u
+                width: 14 * bottom.u
+                height: 44 * bottom.u
                 radius: width / 2
                 color: "transparent"
                 border.width: 1
@@ -649,11 +674,11 @@ Item {
 
         // Tampa de servico (com os 4 parafusos)
         Rectangle {
-            x: 70 * bottom.s * root.k
-            y: 205 * bottom.s * root.k
-            width: 415 * bottom.s * root.k
-            height: 285 * bottom.s * root.k
-            radius: 6 * bottom.s * root.k
+            x: 70 * bottom.u
+            y: 205 * bottom.u
+            width: 415 * bottom.u
+            height: 285 * bottom.u
+            radius: 8 * bottom.u
             color: "transparent"
             border.width: 1
             border.color: root.ink
@@ -665,10 +690,10 @@ Item {
             Rectangle {
                 required property var modelData
 
-                x: (modelData.x - 5) * bottom.s * root.k
-                y: (modelData.y - 5) * bottom.s * root.k
-                width: 10 * bottom.s * root.k
-                height: 10 * bottom.s * root.k
+                x: (modelData.x - 6) * bottom.u
+                y: (modelData.y - 6) * bottom.u
+                width: 12 * bottom.u
+                height: 12 * bottom.u
                 radius: width / 2
                 color: "transparent"
                 border.width: 1
@@ -676,7 +701,7 @@ Item {
             }
         }
 
-        // 2x M.2 na vertical (esquerda): slot 1 = sistema, slot 2 = Lexar
+        // 2x M.2 na vertical (esquerda): M.2 1 = sistema, M.2 2 = Lexar quando chegar
         Repeater {
             model: 2
 
@@ -689,34 +714,34 @@ Item {
                 readonly property bool on: root.diskOn(slot.disk)
                 readonly property bool bad: root.diskBad(slot.disk)
 
-                x: (85 + slot.index * 80) * bottom.s * root.k
-                y: 225 * bottom.s * root.k
-                width: 75 * bottom.s * root.k
-                height: 245 * bottom.s * root.k
+                x: (85 + slot.index * 80) * bottom.u
+                y: 225 * bottom.u
+                width: 75 * bottom.u
+                height: 245 * bottom.u
 
                 Rectangle {
                     anchors.fill: slot
-                    radius: 2 * root.k
+                    radius: 3 * root.k
                     color: root.fill(slot.spotId, slot.on, slot.bad)
                     border.width: 1
                     border.color: root.stateColor(slot.spotId, slot.on, slot.bad)
                 }
 
-                // Conector em cima e o parafuso de fixacao
+                // Conector em cima, parafuso no meio
                 Rectangle {
-                    x: 6 * bottom.s * root.k
+                    x: 6 * bottom.u
                     y: 0
-                    width: slot.width - 12 * bottom.s * root.k
-                    height: 10 * bottom.s * root.k
+                    width: slot.width - 12 * bottom.u
+                    height: 10 * bottom.u
                     color: slot.on ? root.stateColor(slot.spotId, slot.on, slot.bad) : root.faint
                     opacity: 0.6
                 }
 
                 Rectangle {
                     anchors.horizontalCenter: slot.horizontalCenter
-                    y: 115 * bottom.s * root.k
-                    width: 10 * bottom.s * root.k
-                    height: 10 * bottom.s * root.k
+                    y: 115 * bottom.u
+                    width: 12 * bottom.u
+                    height: 12 * bottom.u
                     radius: width / 2
                     color: "transparent"
                     border.width: 1
@@ -725,13 +750,26 @@ Item {
 
                 Text {
                     x: 0
-                    y: 160 * bottom.s * root.k
+                    y: 150 * bottom.u
                     width: slot.width
                     horizontalAlignment: Text.AlignHCenter
-                    text: slot.disk ? `${Math.round((slot.disk.size ?? 0) / 1e9)} GB` : "empty"
+                    text: `M.2 ${slot.index + 1}`
+                    color: slot.on ? root.stateColor(slot.spotId, slot.on, slot.bad) : root.ink
+                    font.family: root.family
+                    font.pixelSize: root.small(8)
+                    font.weight: Font.DemiBold
+                    renderType: Text.NativeRendering
+                }
+
+                Text {
+                    x: 0
+                    y: 175 * bottom.u
+                    width: slot.width
+                    horizontalAlignment: Text.AlignHCenter
+                    text: slot.disk ? `${Math.round((slot.disk.size ?? 0) / 1e9)} GB` : (slot.index === 1 ? "empty · Lexar" : "empty")
                     color: slot.on ? root.stateColor(slot.spotId, slot.on, slot.bad) : root.faint
                     font.family: root.family
-                    font.pixelSize: root.small(5)
+                    font.pixelSize: root.small(6)
                     renderType: Text.NativeRendering
                 }
 
@@ -742,64 +780,91 @@ Item {
             }
         }
 
-        // 2x memoria (direita, horizontal): slot 1 com o modulo, slot 2 vazio ate a ADATA chegar
-        Repeater {
-            model: 2
+        // Memoria: dois conectores empilhados (RAM 1 embaixo, com o modulo instalado; RAM 2 em cima, vazio)
+        Item {
+            id: ram2
 
-            Item {
-                id: ram
+            readonly property string spotId: "ram-2"
 
-                required property int index
-                readonly property string spotId: `ram-${ram.index + 1}`
-                readonly property bool populated: ram.index === 0
-                readonly property bool on: root.online && ram.populated
+            x: 250 * bottom.u
+            y: 235 * bottom.u
+            width: 210 * bottom.u
+            height: 22 * bottom.u
 
-                x: 250 * bottom.s * root.k
-                y: (235 + ram.index * 30) * bottom.s * root.k
-                width: 210 * bottom.s * root.k
-                height: 22 * bottom.s * root.k
-
-                Rectangle {
-                    anchors.fill: ram
-                    radius: 1 * root.k
-                    color: root.fill(ram.spotId, ram.on, false)
-                    border.width: 1
-                    border.color: root.stateColor(ram.spotId, ram.on, false)
-                }
-
-                Spot {
-                    anchors.fill: ram
-                    anchors.margins: -2
-                    spotId: ram.spotId
-                }
+            Rectangle {
+                anchors.fill: ram2
+                radius: 2 * root.k
+                color: root.fill(ram2.spotId, false, false)
+                border.width: 1
+                border.color: root.stateColor(ram2.spotId, false, false)
             }
-        }
-
-        // O modulo instalado (desenhado embaixo dos slots, como no manual) e os parafusos
-        Rectangle {
-            id: module
-
-            x: 255 * bottom.s * root.k
-            y: 288 * bottom.s * root.k
-            width: 200 * bottom.s * root.k
-            height: 66 * bottom.s * root.k
-            radius: 2 * root.k
-            color: root.fill("ram-1", root.online, false)
-            border.width: 1
-            border.color: root.stateColor("ram-1", root.online, false)
 
             Text {
-                anchors.centerIn: module
-                text: root.mem && root.mem.total ? `${Math.round(root.mem.total / 1024)} GB` : "RAM"
-                color: root.stateColor("ram-1", root.online, false)
+                anchors.centerIn: ram2
+                text: "RAM 2 · empty"
+                color: root.stateColor(ram2.spotId, false, false)
                 font.family: root.family
                 font.pixelSize: root.small(6)
                 renderType: Text.NativeRendering
             }
 
             Spot {
-                anchors.fill: module
-                spotId: "ram-1"
+                anchors.fill: ram2
+                anchors.margins: -2
+                spotId: ram2.spotId
+            }
+        }
+
+        Item {
+            id: ram1
+
+            readonly property string spotId: "ram-1"
+            readonly property bool on: root.online
+
+            x: 250 * bottom.u
+            y: 265 * bottom.u
+            width: 210 * bottom.u
+            height: 92 * bottom.u
+
+            // Conector
+            Rectangle {
+                x: 0
+                y: 0
+                width: ram1.width
+                height: 22 * bottom.u
+                radius: 2 * root.k
+                color: root.fill(ram1.spotId, ram1.on, false)
+                border.width: 1
+                border.color: root.stateColor(ram1.spotId, ram1.on, false)
+            }
+
+            // Modulo instalado
+            Rectangle {
+                id: module
+
+                x: 5 * bottom.u
+                y: 22 * bottom.u
+                width: ram1.width - 10 * bottom.u
+                height: 70 * bottom.u
+                radius: 2 * root.k
+                color: root.fill(ram1.spotId, ram1.on, false)
+                border.width: 1
+                border.color: root.stateColor(ram1.spotId, ram1.on, false)
+
+                Text {
+                    anchors.centerIn: module
+                    text: root.mem && root.mem.total ? `RAM 1 · ${Math.round(root.mem.total / 1024)} GB` : "RAM 1 · installed"
+                    color: root.stateColor(ram1.spotId, ram1.on, false)
+                    font.family: root.family
+                    font.pixelSize: root.small(7)
+                    font.weight: Font.DemiBold
+                    renderType: Text.NativeRendering
+                }
+            }
+
+            Spot {
+                anchors.fill: ram1
+                spotId: ram1.spotId
             }
         }
 
@@ -809,10 +874,10 @@ Item {
             Rectangle {
                 required property var modelData
 
-                x: (modelData.x - 5) * bottom.s * root.k
-                y: (modelData.y - 5) * bottom.s * root.k
-                width: 10 * bottom.s * root.k
-                height: 10 * bottom.s * root.k
+                x: (modelData.x - 6) * bottom.u
+                y: (modelData.y - 6) * bottom.u
+                width: 12 * bottom.u
+                height: 12 * bottom.u
                 radius: width / 2
                 color: "transparent"
                 border.width: 1
@@ -824,36 +889,23 @@ Item {
         Rectangle {
             id: label
 
-            x: 125 * bottom.s * root.k
-            y: 615 * bottom.s * root.k
-            width: 300 * bottom.s * root.k
-            height: 105 * bottom.s * root.k
-            radius: 4 * root.k
+            x: 125 * bottom.u
+            y: 615 * bottom.u
+            width: 300 * bottom.u
+            height: 105 * bottom.u
+            radius: 6 * root.k
             color: "transparent"
             border.width: 1
             border.color: root.faint
 
             Text {
                 anchors.centerIn: label
-                text: "SN EC752JJ042613F7C"
+                text: "DXP4800 Plus · SN EC752JJ042613F7C"
                 color: root.faint
                 font.family: root.family
-                font.pixelSize: root.small(4)
+                font.pixelSize: root.small(6)
                 renderType: Text.NativeRendering
             }
-        }
-
-        Text {
-            x: 0
-            y: -12 * root.k
-            width: bottom.width
-            horizontalAlignment: Text.AlignHCenter
-            text: "BOTTOM · M.2 × 2 · RAM × 2"
-            color: root.faint
-            font.family: root.family
-            font.pixelSize: root.small(5)
-            font.letterSpacing: 1 * root.k
-            renderType: Text.NativeRendering
         }
     }
 

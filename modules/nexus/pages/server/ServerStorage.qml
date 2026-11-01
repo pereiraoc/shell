@@ -50,6 +50,7 @@ ColumnLayout {
         Layout.topMargin: Tokens.spacing.small
         info: root.info
         selected: root.page.selectedSpot
+        bottomExpanded: true
         onPicked: id => root.page.selectedSpot = id
     }
 
@@ -61,6 +62,16 @@ ColumnLayout {
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.body.small
         wrapMode: Text.WordWrap
+    }
+
+    RowButton {
+        first: true
+        last: true
+        Layout.bottomMargin: Tokens.spacing.small
+        icon: diagram.bottomExpanded ? "expand_less" : "expand_more"
+        text: diagram.bottomExpanded ? Tr.tr("Hide the underside") : Tr.tr("Show the underside: M.2 slots and memory")
+        subtext: Tr.tr("Technical view at the front's width (178 × 257 mm)")
+        onClicked: diagram.bottomExpanded = !diagram.bottomExpanded
     }
 
     StyledText {
