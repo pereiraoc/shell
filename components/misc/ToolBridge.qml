@@ -41,6 +41,12 @@ Item {
     readonly property var actions: root.actionsDoc.actions ?? []
     readonly property bool loading: refreshProc.running
 
+    // Releitura periodica (ms; 0 = so ao abrir a pagina e quando o cache muda).
+    // A pagina e destruida ao trocar de menu, entao so roda enquanto ela esta
+    // na tela -- e o que faz um tablet ou um dongle plugado aparecer na Home
+    // sem sair e voltar.
+    property int autoRefresh: 0
+
     // Acao disparada e ainda sem last.json novo. Com sudo pode durar o tempo
     // que o usuario levar no terminal -- o teto so evita ficar preso para
     // sempre se o terminal for fechado sem rodar nada.
@@ -54,12 +60,6 @@ Item {
 
     // Ultima acao executada (de qualquer origem: Nexus ou terminal).
     readonly property var lastResult: root.last.result ?? null
-
-    // Releitura periodica (ms; 0 = so ao abrir a pagina e quando o cache muda).
-    // A pagina e destruida ao trocar de menu, entao so roda enquanto ela esta
-    // na tela -- e o que faz um tablet ou um dongle plugado aparecer na Home
-    // sem sair e voltar.
-    property int autoRefresh: 0
 
     function refresh(): void {
         if (refreshProc.running)
