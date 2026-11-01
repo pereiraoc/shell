@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -50 2850 1900" width="2850" height="1900">
+  <!-- Samsung Galaxy Tab S8+ de frente, paisagem, em 0,1 mm: corpo 285 x 185 mm,
+       tela 12,4" 16:10 (267 x 167 mm) com moldura uniforme de 9 mm, camera frontal
+       no centro da borda longa de cima, S Pen encostada na borda de cima (so a parte
+       que aparece acima do corpo). So linhas (Colouriser pinta com a tinta do tema). -->
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <!-- S Pen: deitada na borda de cima, do centro para a direita, como na foto -->
+    <path stroke-width="18" d="M1330 -12 H2300 a30 30 0 0 1 0 60 H1330" />
+    <path stroke-width="12" d="M1330 -12 L1250 18 L1330 48" />
+    <!-- corpo -->
+    <rect x="12" y="12" width="2826" height="1826" rx="92" ry="92" stroke-width="24" />
+    <!-- tela -->
+    <rect x="90" y="90" width="2670" height="1670" rx="40" ry="40" stroke-width="16" />
+    <!-- camera frontal -->
+    <circle cx="1425" cy="51" r="18" stroke-width="12" />
+  </g>
+</svg>

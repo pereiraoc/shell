@@ -54,6 +54,9 @@ PageBase {
     readonly property var setupControllers: Bluetooth.devices.values.filter(d => d.bonded && (/controller|gamepad/i.test(d.name ?? "") || (d.icon ?? "").includes("gaming"))).map(d => ({ name: d.name, connected: d.connected }))
     // NAS: ligado so quando responde; fora do alcance leva o "visto em" (MM-DD HH:MM)
     readonly property var setupNas: ({ online: nasBridge.info.online === true, lastSeen: nasBridge.info.last_seen ? String(nasBridge.info.last_seen).replace("T", " ").slice(5, 16) : "", info: nasBridge.info })
+    // Tablet no cabo USB (caelestia-tablet): a peca existe quando ha um pareado e
+    // e "ligada" enquanto e a saida virtual `tablet`; nome como o usuario o chama
+    readonly property var setupTablet: tabletBridge.info.paired ? ({ label: tabletBridge.info.paired.label || tabletBridge.info.paired.model || "", online: !!tabletBridge.info.monitor, output: tabletBridge.info.monitor?.name ?? "" }) : null
     property bool showOffline
     property bool editLayout
 
@@ -106,6 +109,12 @@ PageBase {
         id: nasBridge
 
         tool: "nas"
+    }
+
+    ToolBridge {
+        id: tabletBridge
+
+        tool: "tablet"
     }
 
     ToolBridge {
@@ -166,6 +175,7 @@ PageBase {
             headphones: root.setupHeadphones
             controllers: root.setupControllers
             nas: root.setupNas
+            tablet: root.setupTablet
             showOffline: root.showOffline || root.editLayout
             editing: root.editLayout
             highlightKey: pieceList.visible ? pieceList.rowHover : ""

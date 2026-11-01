@@ -47,6 +47,8 @@ Item {
     property var controllers: []
     // { online, lastSeen, info } do caelestia-nas, ou null
     property var nas: null
+    // { label, online, output } do caelestia-tablet (tablet pareado), ou null
+    property var tablet: null
     property bool showOffline
     property bool editing
     // Posicoes salvas: { key: { x, y } } em cm
@@ -93,7 +95,8 @@ Item {
 
     // Monitores externos conhecidos (ligados ou nao), da esquerda para a direita
     // como no Hyprland; `monitorOn` = ligado e conectado
-    readonly property var externals: root.monitors.filter(m => !m.internal).sort((a, b) => root.posX(a) - root.posX(b))
+    // (a saida virtual do tablet nao e um monitor de verdade: tem peca propria)
+    readonly property var externals: root.monitors.filter(m => !m.internal && !root.isVirtual(m)).sort((a, b) => root.posX(a) - root.posX(b))
     readonly property var laptop: root.monitors.find(m => m.internal) ?? null
     // Padrao: o notebook fica do lado em que esta no arranjo (a direita do LG, hoje)
     readonly property bool laptopRight: !root.laptop || root.externals.length === 0 || root.posX(root.laptop) >= Math.max(...root.externals.map(m => root.posX(m)))
@@ -109,6 +112,13 @@ Item {
 
     function posX(m: var): real {
         return Number((m.position ?? "0x0").split("x")[0]);
+    }
+
+    // Saida virtual (tablet pelo cabo: `tablet`, ou HEADLESS-N numa versao do
+    // Hyprland sem nome)
+    function isVirtual(m: var): bool {
+        const n = m?.name ?? "";
+        return n === "tablet" || n.startsWith("HEADLESS-");
     }
 
     function monitorOn(m: var): bool {
@@ -387,6 +397,45 @@ Item {
             source: Quickshell.shellPath("assets/devices/rog-g16-open.svg")
             fillMode: Image.PreserveAspectFit
             sourceSize.width: lapArt.width * root.dpr
+            smooth: true
+            asynchronous: true
+
+            layer.enabled: true
+            layer.effect: Colouriser {
+                colorizationColor: root.ink
+                brightness: 1
+            }
+        }
+    }
+
+    // --------------------------------------------------------------- tablet
+    // Galaxy Tab S8+ de frente (assets/devices/galaxy-tab-s8-plus.svg, pelas
+    // fotos: corpo 28,5 x 18,5 cm, moldura uniforme, camera no centro da borda
+    // de cima, S Pen encostada nela), em pe na mesa ao lado do notebook. Existe
+    // quando ha um tablet pareado no caelestia-tablet e so e "ligado" enquanto e
+    // a saida virtual `tablet`; clicar abre o Display nessa saida.
+    Piece {
+        id: tab
+
+        key: "tablet"
+        kind: "tablet"
+        defX: root.laptopRight ? 190 - 37.5 - 30.5 : 2 + 35.5 + 2
+        defY: root.deskY - 28.5 * 1900 / 2850
+        wCm: 28.5
+        hCm: 28.5 * 1900 / 2850
+        label: root.tablet?.label || Tr.tr("Tablet")
+        visible: !!root.tablet && (tab.online || root.showOffline)
+        online: !!root.tablet?.online
+        showOffline: root.showOffline
+        onClicked: root.open("display", root.tablet?.output ?? "")
+
+        Image {
+            id: tabArt
+
+            anchors.fill: parent
+            source: Quickshell.shellPath("assets/devices/galaxy-tab-s8-plus.svg")
+            fillMode: Image.PreserveAspectFit
+            sourceSize.width: tabArt.width * root.dpr
             smooth: true
             asynchronous: true
 

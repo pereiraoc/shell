@@ -57,8 +57,8 @@ TestCase {
     }
 
     function test_orderPieces() {
-        const got = L.orderPieces([{ key: "mousepad", kind: "mousepad" }, { key: "mouse:naga", kind: "mouse" }, { key: "laptop", kind: "laptop" }, { key: "nas", kind: "nas" }, { key: "monitor:HDMI-A-1", kind: "monitor" }, { key: "shelf", kind: "shelf" }, { key: "keyboard", kind: "keyboard" }, { key: "headphones:WH", kind: "headphones" }, { key: "controller:0", kind: "controller" }]);
-        compare(got.map(p => p.key).join(","), "monitor:HDMI-A-1,laptop,nas,shelf,mousepad,keyboard,mouse:naga,headphones:WH,controller:0");
+        const got = L.orderPieces([{ key: "mousepad", kind: "mousepad" }, { key: "mouse:naga", kind: "mouse" }, { key: "laptop", kind: "laptop" }, { key: "nas", kind: "nas" }, { key: "tablet", kind: "tablet" }, { key: "monitor:HDMI-A-1", kind: "monitor" }, { key: "shelf", kind: "shelf" }, { key: "keyboard", kind: "keyboard" }, { key: "headphones:WH", kind: "headphones" }, { key: "controller:0", kind: "controller" }]);
+        compare(got.map(p => p.key).join(","), "monitor:HDMI-A-1,laptop,tablet,nas,shelf,mousepad,keyboard,mouse:naga,headphones:WH,controller:0");
     }
 
     // O layout salvo do usuario (cm): teclado e mouses dentro do mousepad,
@@ -101,6 +101,7 @@ TestCase {
         compare(L.kindIcon("monitor"), "monitor");
         compare(L.kindIcon("laptop"), "laptop_mac");
         compare(L.kindIcon("nas"), "dns");
+        compare(L.kindIcon("tablet"), "tablet_android");
         compare(L.kindIcon("keyboard"), "keyboard");
         compare(L.kindIcon("mouse"), "mouse");
         compare(L.kindIcon("headphones"), "headphones");

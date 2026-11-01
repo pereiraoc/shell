@@ -52,7 +52,7 @@ function partAt(parts, fx, fy) {
     return hit;
 }
 
-const KIND_ORDER = ["monitor", "laptop", "nas", "shelf", "mousepad", "keyboard", "mouse", "headphones", "controller"];
+const KIND_ORDER = ["monitor", "laptop", "tablet", "nas", "shelf", "mousepad", "keyboard", "mouse", "headphones", "controller"];
 
 function rank(p) {
     const i = KIND_ORDER.indexOf(p.kind);
@@ -60,7 +60,7 @@ function rank(p) {
 }
 
 // Pecas na ordem do tipo (estavel dentro do tipo): telas, notebook, NAS,
-// mesinha, mousepad, teclado, mouses, fones, controles.
+// (tablet depois dele), mesinha, mousepad, teclado, mouses, fones, controles.
 function orderPieces(pieces) {
     return pieces.map((p, i) => ({ p: p, i: i })).sort((a, b) => rank(a.p) - rank(b.p) || a.i - b.i).map(e => e.p);
 }
@@ -132,6 +132,7 @@ function splitColumns(rows, n) {
 const KIND_ICON = {
     monitor: "monitor",
     laptop: "laptop_mac",
+    tablet: "tablet_android",
     nas: "dns",
     keyboard: "keyboard",
     mouse: "mouse",
