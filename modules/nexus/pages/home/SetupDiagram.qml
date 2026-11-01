@@ -64,11 +64,13 @@ Item {
     // senao a pagina abria no mundo inteiro e "dava zoom" ate o conteudo
     property bool ready
 
-    // Mundo em cm: 190 de largura; a linha da mesa (deskY) e a borda de tras
-    // do tampo -- monitor, suporte do fone, NAS e notebook apoiam nela, e o
-    // mousepad fica a frente (abaixo da linha). Na edicao aparece o mundo
-    // inteiro; fora dela o conteudo (caixa de todas as pecas visiveis) e
-    // encaixado na largura e centrado, sem vazio sobrando.
+    // Mundo em cm: de worldX0 (-20, a folga a esquerda onde o NAS nasce) ate
+    // 190; a linha da mesa (deskY) e a borda de tras do tampo -- monitor,
+    // suporte do fone, NAS e notebook apoiam nela, e o mousepad fica a frente
+    // (abaixo da linha). Na edicao aparece o mundo inteiro; fora dela o
+    // conteudo (caixa de todas as pecas visiveis) e encaixado na largura e
+    // centrado, sem vazio sobrando.
+    readonly property real worldX0: -20
     readonly property real worldW: 190
     readonly property real deskY: 50
     readonly property real worldH: 90
@@ -76,8 +78,8 @@ Item {
     readonly property real pad: 2
     readonly property real snapCm: 2.5
     property rect fit: Qt.rect(0, 0, 190, 90)
-    readonly property real cm: root.editing ? root.width / root.worldW : root.width / Math.max(40, root.fit.width + root.pad * 2)
-    readonly property real ox: root.editing ? 0 : root.pad - root.fit.x
+    readonly property real cm: root.editing ? root.width / (root.worldW - root.worldX0) : root.width / Math.max(40, root.fit.width + root.pad * 2)
+    readonly property real ox: root.editing ? -root.worldX0 : root.pad - root.fit.x
     readonly property real oy: root.editing ? 0 : root.pad - root.fit.y
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
@@ -231,8 +233,8 @@ Item {
     Canvas {
         id: grid
 
-        readonly property color minor: Qt.alpha(root.faint, 0.35)
-        readonly property color major: Qt.alpha(root.faint, 0.85)
+        readonly property color minor: Qt.alpha(root.faint, 0.25)
+        readonly property color major: Qt.alpha(root.faint, 0.7)
 
         anchors.fill: parent
         visible: root.editing
@@ -248,7 +250,7 @@ Item {
             const steps = L.gridSteps(root.cm);
             const isMajor = v => Math.abs(v / steps.major - Math.round(v / steps.major)) < 1e-6;
             ctx.lineWidth = 1;
-            for (let x = 0; x <= root.worldW + 1e-6; x += steps.minor) {
+            for (let x = root.worldX0; x <= root.worldW + 1e-6; x += steps.minor) {
                 const px = Math.round((x + root.ox) * root.cm) + 0.5;
                 ctx.strokeStyle = isMajor(x) ? grid.major : grid.minor;
                 ctx.beginPath();
@@ -366,14 +368,15 @@ Item {
     }
 
     // ------------------------------------------------------------------ NAS
-    // Frente do DXP4800 Plus apoiada na mesa, a esquerda do monitor; existe
-    // sempre que ha um NAS configurado, mas so e "ligado" quando responde
+    // Frente do DXP4800 Plus apoiada na mesa, na folga a esquerda de tudo
+    // (worldX0); existe sempre que ha um NAS configurado, mas so e "ligado"
+    // quando responde
     Piece {
         id: nasPiece
 
         key: "nas"
         kind: "nas"
-        defX: root.zoneX + 2
+        defX: root.worldX0 + 1
         defY: root.deskY - 17.8
         wCm: 17.8
         hCm: 17.8

@@ -62,10 +62,11 @@ PageBase {
         return d > 0 ? qsTr("up %1 d %2 h").arg(d).arg(h) : qsTr("up %1 h %2 min").arg(h).arg(Math.floor((s % 3600) / 60));
     }
 
-    // Deep link `edit` (IPC `nexus openPage home 0 edit`): abre ja na edicao do layout
+    // Deep links (IPC `nexus openPage home 0 edit|view`): entra/sai da edicao do layout
     function pickRequested(): void {
-        if (root.nState.requestedTab === "edit") {
-            root.editLayout = true;
+        const want = root.nState.requestedTab;
+        if (want === "edit" || want === "view") {
+            root.editLayout = want === "edit";
             root.nState.requestedTab = "";
         }
     }
@@ -167,7 +168,10 @@ PageBase {
                 property string rowHover
 
                 visible: root.editLayout
-                Layout.preferredWidth: 200
+                // Layout filho de layout nasce com fillWidth = true (engolia a largura toda)
+                Layout.fillWidth: false
+                Layout.preferredWidth: 240
+                Layout.maximumWidth: 240
                 Layout.alignment: Qt.AlignTop
                 pieces: setup.pieces
                 hoverKey: setup.hoverKey
