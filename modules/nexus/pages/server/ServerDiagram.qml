@@ -48,7 +48,15 @@ Item {
     readonly property bool labels: root.k >= 1.1
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
+    // Materiais da foto, no traco do tema: metal claro (gavetas, painel de
+    // baixo) e o preto recuado do gaveteiro
+    readonly property color metal: Qt.alpha(root.ink, 0.1)
+    readonly property color tray: Qt.alpha(root.ink, 0.14)
+    readonly property color face: Qt.alpha("#000000", 0.16)
+    readonly property color dark: Qt.alpha("#000000", 0.34)
     readonly property string family: Tokens.font.label.small.family
+    // Numeros das gavetas: condensada alta e pesada, como a serigrafia
+    readonly property string numFamily: "Nimbus Sans Narrow"
 
     signal picked(id: string)
 
@@ -87,30 +95,27 @@ Item {
     implicitHeight: (root.bottomExpanded ? 384 + 519 : 360) * root.k
 
     // ================================================================ FRENTE
-    Rectangle {
+    // Carcaca: moldura externa clara e a face preta recuada (a faixa entre as
+    // duas e o que se ve nos cantos da foto)
+    Chassis {
         x: 0
-        y: 0
-        width: 360 * root.k
-        height: 360 * root.k
-        radius: 18 * root.k
-        color: "transparent"
-        border.width: 1
-        border.color: root.ink
     }
 
-    // Moldura escura das gavetas
+    // Gaveteiro: caixa preta recuada com a barra grossa em cima; as gavetas
+    // comecam 16 un abaixo do topo dela
     Rectangle {
-        x: 30 * root.k
-        y: 30 * root.k
-        width: 300 * root.k
+        x: 36 * root.k
+        y: 28 * root.k
+        width: 288 * root.k
         height: 240 * root.k
-        radius: 10 * root.k
-        color: "transparent"
+        radius: 12 * root.k
+        color: root.dark
         border.width: 1
         border.color: root.faint
     }
 
-    // As 4 gavetas: parte de cima cinza com o numero, parte de baixo preta com a trava
+    // As 4 gavetas: tampa escura em cima, face clara com o numero e a
+    // capacidade, base preta com a trava redonda
     Repeater {
         model: 4
 
@@ -123,43 +128,47 @@ Item {
             readonly property var disk: root.bays[bay.n] ?? null
             readonly property bool on: root.diskOn(bay.disk)
             readonly property bool bad: root.diskBad(bay.disk)
+            readonly property bool lit: root.selected === bay.spotId || root.hovered === bay.spotId
 
             x: (44 + bay.index * 72) * root.k
             y: 44 * root.k
-            width: 64 * root.k
-            height: 213 * root.k
+            width: 60 * root.k
+            height: 216 * root.k
 
+            // Contorno da gaveta inteira
             Rectangle {
-                anchors.fill: parent
+                anchors.fill: bay
                 radius: 7 * root.k
-                color: root.fill(bay.spotId, bay.on, bay.bad)
+                color: "transparent"
                 border.width: root.selected === bay.spotId ? Math.max(1, 1.6 * root.k) : 1
                 border.color: root.stateColor(bay.spotId, bay.on, bay.bad)
             }
 
-            // Divisa entre a face cinza e a base preta da gaveta
+            // Face clara (metal): da tampa ate a divisa
             Rectangle {
-                x: 0
-                y: 160 * root.k
-                width: bay.width
-                height: 1
-                color: root.faint
+                x: 1
+                y: 7 * root.k
+                width: bay.width - 2
+                height: 155 * root.k
+                radius: 4 * root.k
+                color: bay.lit || bay.on || bay.bad ? root.fill(bay.spotId, bay.on, bay.bad) : root.tray
             }
 
+            // Numero, em condensada alta como a impressa
             Text {
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 48 * root.k
+                y: 59 * root.k - height / 2
                 text: `0${bay.n}`
                 color: bay.on ? root.stateColor(bay.spotId, bay.on, bay.bad) : root.ink
-                font.family: root.family
-                font.pixelSize: root.small(30)
-                font.weight: Font.Black
+                font.family: root.numFamily
+                font.pixelSize: root.small(38)
+                font.weight: Font.Bold
                 renderType: Text.NativeRendering
             }
 
             Text {
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 112 * root.k
+                y: 136 * root.k
                 visible: !!bay.disk
                 text: bay.disk ? `${Math.round((bay.disk.size ?? 0) / 1e12)} TB` : ""
                 color: root.stateColor(bay.spotId, bay.on, bay.bad)
@@ -168,12 +177,21 @@ Item {
                 renderType: Text.NativeRendering
             }
 
+            // Divisa entre a face clara e a base preta
+            Rectangle {
+                x: 0
+                y: 162 * root.k
+                width: bay.width
+                height: 1
+                color: root.faint
+            }
+
             // Trava (disco com fenda) na base
             Rectangle {
                 id: lock
 
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 176 * root.k
+                y: 178 * root.k
                 width: 20 * root.k
                 height: 20 * root.k
                 radius: width / 2
@@ -196,12 +214,42 @@ Item {
         }
     }
 
-    // Faixa inferior: botao de energia (pilula com LED)
+    // Painel inferior (metal claro) e, abaixo dele, a barra escura com o nome
+    Rectangle {
+        x: 8 * root.k
+        y: 272 * root.k
+        width: 344 * root.k
+        height: 54 * root.k
+        color: root.metal
+    }
+
+    Rectangle {
+        x: 8 * root.k
+        y: 326 * root.k
+        width: 344 * root.k
+        height: 1
+        color: root.faint
+    }
+
+    Text {
+        x: 0
+        y: 335 * root.k - height / 2
+        width: 360 * root.k
+        horizontalAlignment: Text.AlignHCenter
+        text: "DXP4800 Plus"
+        color: root.faint
+        font.family: root.family
+        font.pixelSize: root.small(8)
+        font.letterSpacing: 0.5 * root.k
+        renderType: Text.NativeRendering
+    }
+
+    // Botao de energia (pilula com o traco)
     Rectangle {
         id: power
 
         x: 49 * root.k
-        y: 300 * root.k
+        y: 301 * root.k
         width: 28 * root.k
         height: 11 * root.k
         radius: height / 2
@@ -223,11 +271,11 @@ Item {
         }
     }
 
-    // LEDs: LAN, DISK1..DISK4
+    // LEDs: LAN, DISK1..DISK4 (passo de 12 un como na foto), rotulo sob cada um
     Repeater {
         model: 5
 
-        Rectangle {
+        Item {
             id: led
 
             required property int index
@@ -236,37 +284,37 @@ Item {
             readonly property bool bad: led.index >= 1 && root.diskBad(led.disk)
             readonly property string spotId: led.index === 0 ? "led-net" : `bay-${led.index}`
 
-            x: (96 + led.index * 11) * root.k
-            y: 302 * root.k
-            width: 5 * root.k
-            height: 5 * root.k
-            radius: width / 2
-            color: led.on || led.bad ? root.stateColor(led.spotId, led.on, led.bad) : "transparent"
-            border.width: 1
-            border.color: root.stateColor(led.spotId, led.on, led.bad)
+            x: (92 + led.index * 12.2) * root.k
+            y: 300 * root.k
+            width: 12.2 * root.k
+            height: 20 * root.k
+
+            Rectangle {
+                anchors.horizontalCenter: led.horizontalCenter
+                y: 4 * root.k
+                width: 5 * root.k
+                height: 5 * root.k
+                radius: width / 2
+                color: led.on || led.bad ? root.stateColor(led.spotId, led.on, led.bad) : "transparent"
+                border.width: 1
+                border.color: root.stateColor(led.spotId, led.on, led.bad)
+            }
+
+            Text {
+                anchors.horizontalCenter: led.horizontalCenter
+                y: 12 * root.k
+                visible: root.labels
+                text: led.index === 0 ? "LAN" : `DISK${led.index}`
+                color: root.faint
+                font.family: root.family
+                font.pixelSize: root.small(3.2)
+                renderType: Text.NativeRendering
+            }
 
             Spot {
                 anchors.fill: led
-                anchors.margins: -4
                 spotId: led.spotId
             }
-        }
-    }
-
-    Repeater {
-        model: [{ x: 89, t: "LAN" }, { x: 100, t: "DISK1" }, { x: 111, t: "DISK2" }, { x: 122, t: "DISK3" }, { x: 133, t: "DISK4" }]
-
-        Text {
-            required property var modelData
-
-            visible: root.labels
-            x: modelData.x * root.k
-            y: 311 * root.k
-            text: modelData.t
-            color: root.faint
-            font.family: root.family
-            font.pixelSize: root.small(4)
-            renderType: Text.NativeRendering
         }
     }
 
@@ -275,8 +323,8 @@ Item {
         id: sd
 
         x: 188 * root.k
-        y: 302 * root.k
-        width: 51 * root.k
+        y: 303 * root.k
+        width: 50 * root.k
         height: 7 * root.k
         radius: 2 * root.k
         color: "transparent"
@@ -301,9 +349,9 @@ Item {
     Rectangle {
         x: 255 * root.k
         y: 303 * root.k
-        width: 12 * root.k
-        height: 5 * root.k
-        radius: 2.5 * root.k
+        width: 15 * root.k
+        height: 7 * root.k
+        radius: 3.5 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.faint
@@ -314,25 +362,25 @@ Item {
 
         x: 288 * root.k
         y: 301 * root.k
-        width: 19 * root.k
-        height: 9 * root.k
+        width: 23 * root.k
+        height: 11 * root.k
         radius: 1 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.faint
 
         Rectangle {
-            x: 3 * root.k
+            x: 4 * root.k
             y: 3 * root.k
-            width: 13 * root.k
-            height: 3 * root.k
+            width: 15 * root.k
+            height: 4 * root.k
             color: root.faint
             opacity: 0.6
         }
     }
 
     Repeater {
-        model: [{ x: 207, t: "SD" }, { x: 251, t: "USB-C" }, { x: 286, t: "USB3.2" }]
+        model: [{ x: 188, w: 50, t: "SD" }, { x: 255, w: 15, t: "USB-C" }, { x: 288, w: 23, t: "USB3.2" }]
 
         Text {
             required property var modelData
@@ -340,40 +388,22 @@ Item {
             visible: root.labels
             x: modelData.x * root.k
             y: 313 * root.k
+            width: modelData.w * root.k
+            horizontalAlignment: Text.AlignHCenter
             text: modelData.t
             color: root.faint
             font.family: root.family
-            font.pixelSize: root.small(4)
+            font.pixelSize: root.small(3.2)
             renderType: Text.NativeRendering
         }
     }
 
-    Text {
-        x: 0
-        y: 330 * root.k
-        width: 360 * root.k
-        horizontalAlignment: Text.AlignHCenter
-        text: "DXP4800 Plus"
-        color: root.faint
-        font.family: root.family
-        font.pixelSize: root.small(8)
-        font.letterSpacing: 1 * root.k
-        renderType: Text.NativeRendering
-    }
-
     // ================================================================= TRAS
-    Rectangle {
+    Chassis {
         x: 400 * root.k
-        y: 0
-        width: 360 * root.k
-        height: 360 * root.k
-        radius: 18 * root.k
-        color: "transparent"
-        border.width: 1
-        border.color: root.ink
     }
 
-    // Parafusos dos cantos
+    // Parafusos dos cantos da face
     Repeater {
         model: [{ x: 424, y: 24 }, { x: 736, y: 24 }, { x: 424, y: 336 }, { x: 736, y: 336 }]
 
@@ -391,32 +421,66 @@ Item {
         }
     }
 
-    // Grade quadrada da ventoinha: moldura, aneis concentricos e o nome no meio
+    // Grade quadrada da ventoinha: malha de furos (pontos), aneis concentricos
+    // e o UGREEN grande no meio
     Item {
         id: fan
 
         readonly property bool on: root.online && !!(root.fans?.case_rpm)
 
-        x: 436 * root.k
-        y: 36 * root.k
-        width: 288 * root.k
-        height: 252 * root.k
+        x: 448 * root.k
+        y: 32 * root.k
+        width: 264 * root.k
+        height: 250 * root.k
 
         Rectangle {
             anchors.fill: fan
-            radius: 14 * root.k
+            radius: 22 * root.k
             color: root.fill("fan", fan.on, false)
             border.width: Math.max(1, 1.4 * root.k)
             border.color: root.stateColor("fan", fan.on, false)
         }
 
+        Canvas {
+            id: mesh
+
+            readonly property color dot: Qt.alpha(root.faint, 0.45)
+
+            anchors.fill: fan
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onDotChanged: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.reset();
+                const r = 22 * root.k, w = mesh.width, h = mesh.height;
+                ctx.beginPath();
+                ctx.moveTo(r, 1);
+                ctx.arcTo(w - 1, 1, w - 1, h - 1, r);
+                ctx.arcTo(w - 1, h - 1, 1, h - 1, r);
+                ctx.arcTo(1, h - 1, 1, 1, r);
+                ctx.arcTo(1, 1, w - 1, 1, r);
+                ctx.closePath();
+                ctx.clip();
+                ctx.fillStyle = mesh.dot;
+                const step = 6 * root.k, rad = Math.max(0.6, 1.1 * root.k);
+                for (let row = 0, y = step; y < h; y += step * 0.87, row++) {
+                    for (let x = (row % 2 ? step / 2 : 0) + step / 2; x < w; x += step) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, rad, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
         Repeater {
-            model: 7
+            model: 9
 
             Rectangle {
                 required property int index
 
-                readonly property real d: (34 + index * 36) * root.k
+                readonly property real d: (40 + index * 25) * root.k
 
                 x: (fan.width - d) / 2
                 y: (fan.height - d) / 2
@@ -425,25 +489,25 @@ Item {
                 radius: d / 2
                 color: "transparent"
                 border.width: 1
-                border.color: index === 0 ? root.stateColor("fan", fan.on, false) : root.faint
-                opacity: index === 0 ? 1 : 0.7
+                border.color: root.faint
+                opacity: 0.6
             }
         }
 
         Text {
             anchors.centerIn: fan
             text: "UGREEN"
-            color: root.faint
+            color: root.ink
             font.family: root.family
-            font.pixelSize: root.small(14)
+            font.pixelSize: root.small(24)
             font.weight: Font.Bold
-            font.letterSpacing: 2 * root.k
+            font.letterSpacing: 3 * root.k
             renderType: Text.NativeRendering
         }
 
         Text {
             anchors.horizontalCenter: fan.horizontalCenter
-            y: fan.height - 24 * root.k
+            y: fan.height - 22 * root.k
             text: fan.on ? `${Math.round(root.fans.case_rpm)} rpm` : ""
             color: root.stateColor("fan", fan.on, false)
             font.family: root.family
@@ -459,10 +523,10 @@ Item {
 
     // Fileira de portas: HDMI, USB3.2, USB2.0 x2, LAN 2, LAN 1, RESET, DC 19V
     Rectangle {
-        x: 454 * root.k
-        y: 310 * root.k
-        width: 24 * root.k
-        height: 9 * root.k
+        x: 451 * root.k
+        y: 303 * root.k
+        width: 26 * root.k
+        height: 10 * root.k
         radius: 3 * root.k
         color: "transparent"
         border.width: 1
@@ -471,25 +535,34 @@ Item {
 
     Rectangle {
         x: 498 * root.k
-        y: 310 * root.k
-        width: 13 * root.k
-        height: 9 * root.k
+        y: 302 * root.k
+        width: 18 * root.k
+        height: 12 * root.k
         radius: 1 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.faint
+
+        Rectangle {
+            x: 3 * root.k
+            y: 3 * root.k
+            width: 12 * root.k
+            height: 4 * root.k
+            color: root.faint
+            opacity: 0.6
+        }
     }
 
     Repeater {
-        model: [300, 313]
+        model: [292, 307]
 
         Rectangle {
             required property int modelData
 
             x: 547 * root.k
             y: modelData * root.k
-            width: 18 * root.k
-            height: 8 * root.k
+            width: 20 * root.k
+            height: 10 * root.k
             radius: 1 * root.k
             color: "transparent"
             border.width: 1
@@ -499,7 +572,7 @@ Item {
 
     // LAN 2 (10 GbE, atlantic) e LAN 1 (2,5 GbE, igc): ordem fisica a confirmar com o cabo
     Repeater {
-        model: [{ id: "lan-10g", x: 588, port: root.lan10 }, { id: "lan-2g5", x: 634, port: root.lan25 }]
+        model: [{ id: "lan-10g", x: 588, port: root.lan10 }, { id: "lan-2g5", x: 632, port: root.lan25 }]
 
         Item {
             id: rj
@@ -508,9 +581,9 @@ Item {
             readonly property bool on: root.online && !!(rj.modelData.port?.up)
 
             x: rj.modelData.x * root.k
-            y: 304 * root.k
-            width: 22 * root.k
-            height: 20 * root.k
+            y: 298 * root.k
+            width: 30 * root.k
+            height: 23 * root.k
 
             Rectangle {
                 anchors.fill: rj
@@ -522,18 +595,18 @@ Item {
 
             // Trava do RJ45 e o LED de link
             Rectangle {
-                x: 7 * root.k
-                y: 14 * root.k
-                width: 8 * root.k
-                height: 5 * root.k
+                x: 10 * root.k
+                y: 16 * root.k
+                width: 10 * root.k
+                height: 6 * root.k
                 color: "transparent"
                 border.width: 1
                 border.color: root.faint
             }
 
             Rectangle {
-                x: 2 * root.k
-                y: 2 * root.k
+                x: 3 * root.k
+                y: 3 * root.k
                 width: 3 * root.k
                 height: 3 * root.k
                 radius: width / 2
@@ -552,7 +625,7 @@ Item {
 
     Rectangle {
         x: 676 * root.k
-        y: 312 * root.k
+        y: 308 * root.k
         width: 4 * root.k
         height: 4 * root.k
         radius: width / 2
@@ -565,9 +638,9 @@ Item {
         id: dc
 
         x: 696 * root.k
-        y: 307 * root.k
-        width: 14 * root.k
-        height: 14 * root.k
+        y: 301 * root.k
+        width: 18 * root.k
+        height: 18 * root.k
         radius: width / 2
         color: "transparent"
         border.width: 1
@@ -575,40 +648,42 @@ Item {
 
         Rectangle {
             anchors.centerIn: dc
-            width: 4 * root.k
-            height: 4 * root.k
+            width: 5 * root.k
+            height: 5 * root.k
             radius: width / 2
             color: root.faint
         }
     }
 
     Repeater {
-        model: [{ x: 456, t: "HDMI" }, { x: 495, t: "USB3.2" }, { x: 546, t: "USB2.0" }, { x: 589, t: "LAN 2" }, { x: 635, t: "LAN 1" }, { x: 670, t: "RESET" }, { x: 695, t: "DC 19V" }]
+        model: [{ x: 451, w: 26, t: "HDMI" }, { x: 498, w: 18, t: "USB3.2" }, { x: 547, w: 20, t: "USB2.0" }, { x: 588, w: 30, t: "LAN 2" }, { x: 632, w: 30, t: "LAN 1" }, { x: 668, w: 20, t: "RESET" }, { x: 696, w: 18, t: "DC 19V" }]
 
         Text {
             required property var modelData
 
             visible: root.labels
             x: modelData.x * root.k
-            y: 326 * root.k
+            y: 325 * root.k
+            width: modelData.w * root.k
+            horizontalAlignment: Text.AlignHCenter
             text: modelData.t
             color: root.faint
             font.family: root.family
-            font.pixelSize: root.small(4)
+            font.pixelSize: root.small(3.2)
             renderType: Text.NativeRendering
         }
     }
 
     // Velocidade da porta com cabo (vem do nas-status)
     Repeater {
-        model: [{ x: 588, port: root.lan10, id: "lan-10g" }, { x: 634, port: root.lan25, id: "lan-2g5" }]
+        model: [{ x: 588, port: root.lan10, id: "lan-10g" }, { x: 632, port: root.lan25, id: "lan-2g5" }]
 
         Text {
             required property var modelData
 
             visible: root.online && !!(modelData.port?.up)
-            x: (modelData.x - 6) * root.k
-            y: 294 * root.k
+            x: (modelData.x - 2) * root.k
+            y: 288 * root.k
             width: 34 * root.k
             horizontalAlignment: Text.AlignHCenter
             text: modelData.port?.speed_mbps ? (modelData.port.speed_mbps >= 1000 ? `${modelData.port.speed_mbps / 1000}G` : `${modelData.port.speed_mbps}M`) : ""
@@ -906,6 +981,31 @@ Item {
                 font.pixelSize: root.small(6)
                 renderType: Text.NativeRendering
             }
+        }
+    }
+
+    // Carcaca de 360 x 360: moldura externa de metal claro e a face preta
+    // recuada 8 un, com raio menor -- a faixa clara entre as duas e o que se
+    // ve nos cantos da foto
+    component Chassis: Item {
+        width: 360 * root.k
+        height: 360 * root.k
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 24 * root.k
+            color: root.metal
+            border.width: 1
+            border.color: root.ink
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 8 * root.k
+            radius: 18 * root.k
+            color: root.face
+            border.width: 1
+            border.color: root.faint
         }
     }
 
