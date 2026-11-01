@@ -560,7 +560,7 @@ Item {
             label: root.nameFor(`router:${rt.dev.key}`, [rt.dev.name, rt.dev.ip].filter(x => x).join(" · "))
             online: !!rt.dev.online
             showOffline: root.showOffline
-            onClicked: root.open("network", "")
+            onClicked: root.open("lan", "")
 
             Image {
                 id: rtArt

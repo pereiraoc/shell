@@ -18,7 +18,9 @@ QtObject {
 
         // Network
         { page: "network", sub: 0, title: qsTr("Wi-Fi"), subtitle: qsTr("Turn on, connect to a network"), keywords: "wireless wlan internet ssid" },
-        { page: "network", sub: 7, title: qsTr("Devices on this network"), subtitle: qsTr("Who is connected, names by MAC, open ports, router page, SSH to the Raspberry Pi"), keywords: "lan devices network scan router switch raspberry retropie ssh ports ip mac" },
+        { page: "lan", sub: 1, title: qsTr("Devices on this network"), subtitle: qsTr("Who is connected, names by MAC, open ports, router page, SSH to the Raspberry Pi"), keywords: "lan devices network scan router switch raspberry retropie ssh ports ip mac" },
+        { page: "lan", sub: 0, title: qsTr("Network map"), subtitle: qsTr("Internet, router, this PC, VPN; the home network on the NAS"), keywords: "network map diagram topology router gateway home nas monitor" },
+        { page: "lan", sub: 0, title: qsTr("Use this PC from your phone or tablet"), subtitle: qsTr("Sunshine + Moonlight: pair with a PIN, stream the screen"), keywords: "remote desktop sunshine moonlight stream phone tablet pin pair control" },
         { page: "network", sub: 0, title: qsTr("Ethernet"), subtitle: qsTr("Wired connection, IP address"), keywords: "cable lan wired ip" },
         { page: "network", sub: 0, title: qsTr("VPN"), subtitle: qsTr("Providers, connect"), keywords: "tunnel wireguard netbird tailscale proxy" },
         { page: "network", sub: 5, title: qsTr("All networks"), subtitle: qsTr("Every Wi-Fi network in range"), keywords: "scan list wifi" },

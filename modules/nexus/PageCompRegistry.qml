@@ -57,6 +57,14 @@ QtObject {
             Component {
                 SavedNetworksPage {}
             }
+        }
+    }
+
+    readonly property Component lanComp: Component {
+        StackPage {
+            Component {
+                LanPage {}
+            }
             Component {
                 LanDevicesPage {}
             }

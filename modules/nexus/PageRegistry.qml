@@ -25,9 +25,16 @@ QtObject {
 
         {
             id: "network",
-            label: qsTr("Network"),
+            label: qsTr("Internet"),
             icon: "wifi",
             description: qsTr("Wi-Fi, ethernet, VPN"),
+            group: qsTr("Connectivity")
+        },
+        {
+            id: "lan",
+            label: qsTr("Network"),
+            icon: "lan",
+            description: qsTr("This network, home, remote access"),
             group: qsTr("Connectivity")
         },
         {

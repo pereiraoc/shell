@@ -13,7 +13,7 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    title: Tr.tr("Network")
+    title: Tr.tr("Internet")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -120,25 +120,6 @@ PageBase {
             text: Tr.tr("Add network")
             disabled: !Nmcli.wifiEnabled
             onClicked: root.nState.openSubPage(2) // Add network sub-page
-        }
-
-        // Aparelhos da rede de casa (caelestia-lan)
-        RowButton {
-            icon: "devices"
-            text: Tr.tr("Devices on this network")
-            subtext: Tr.tr("Who is connected, names, open ports, router page, SSH")
-            trailingIcon: "chevron_right"
-            onClicked: root.nState.openSubPage(7) // LanDevicesPage
-        }
-
-        // Monitor 24 h no NAS (NetAlertX): novos, conhecidos, historico, mapa
-        RowButton {
-            last: true
-            icon: "lan"
-            text: Tr.tr("Home network monitor (on the NAS)")
-            subtext: Tr.tr("New and unknown devices, alerts on the phone, network map")
-            trailingIcon: "chevron_right"
-            onClicked: root.nState.openPage("server", 0, "network")
         }
 
         // ---- VPN -------------------------------------------------------------
