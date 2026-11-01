@@ -39,6 +39,30 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: Tokens.spacing.extraSmall / 2
 
+    // Mesma silhueta da Overview; aqui o clique so escolhe a peca (baia ou M.2)
+    // e a legenda diz o disco que esta nela.
+    ServerDiagram {
+        id: diagram
+
+        Layout.fillWidth: true
+        Layout.maximumWidth: 760
+        Layout.alignment: Qt.AlignHCenter
+        Layout.topMargin: Tokens.spacing.small
+        info: root.info
+        selected: root.page.selectedSpot
+        onPicked: id => root.page.selectedSpot = id
+    }
+
+    StyledText {
+        Layout.fillWidth: true
+        Layout.leftMargin: Tokens.padding.small
+        Layout.bottomMargin: Tokens.spacing.small
+        text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.selectedSpot !== "" ? S.spotLegend(root.page.selectedSpot, root.info) : Tr.tr("Click a bay or an M.2 slot to read its disk.")
+        color: Colours.palette.m3onSurfaceVariant
+        font: Tokens.font.body.small
+        wrapMode: Text.WordWrap
+    }
+
     StyledText {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.small

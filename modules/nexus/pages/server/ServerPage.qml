@@ -22,6 +22,8 @@ PageBase {
 
     property string armed: ""
     property string logsUnit: ""
+    // Peca da silhueta escolhida (bay-1..4, m2-1/2, power, fan, lan-10g, lan-2g5)
+    property string selectedSpot: ""
 
     readonly property var info: nas.info
     readonly property bool online: root.info.online === true

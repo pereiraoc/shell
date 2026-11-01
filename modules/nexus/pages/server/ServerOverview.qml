@@ -44,6 +44,33 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: Tokens.spacing.extraSmall / 2
 
+    // A silhueta do aparelho, como nas paginas de teclado e mouse: cada peca
+    // pinta o estado, o mouse em cima mostra a legenda, o clique abre a aba dela.
+    ServerDiagram {
+        id: diagram
+
+        Layout.fillWidth: true
+        Layout.maximumWidth: 760
+        Layout.alignment: Qt.AlignHCenter
+        Layout.topMargin: Tokens.spacing.small
+        info: root.info
+        selected: root.page.selectedSpot
+        onPicked: id => {
+            root.page.selectedSpot = id;
+            root.page.nState.openPage("server", 0, S.spotTab(id));
+        }
+    }
+
+    StyledText {
+        Layout.fillWidth: true
+        Layout.leftMargin: Tokens.padding.small
+        Layout.bottomMargin: Tokens.spacing.small
+        text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.selectedSpot !== "" ? S.spotLegend(root.page.selectedSpot, root.info) : Tr.tr("Hover a bay, the fan or a port to read it; click to open its tab.")
+        color: Colours.palette.m3onSurfaceVariant
+        font: Tokens.font.body.small
+        wrapMode: Text.WordWrap
+    }
+
     StyledText {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.small

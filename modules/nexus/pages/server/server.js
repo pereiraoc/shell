@@ -126,3 +126,69 @@ function backupLevel(b, now) {
         return "warn";
     return "ok";
 }
+
+// ---------------------------------------------------------------- silhueta
+// Baia n (1-4) -> disco SATA na porta n (nas-status.bay). Sem `bay` (nas-status
+// antigo): os HDs na ordem em que aparecem.
+function bayMap(disks) {
+    const out = {};
+    const sata = (disks ?? []).filter(d => d.bus === "ata" || (d.bus === undefined && d.kind === "hdd"));
+    let next = 1;
+    for (const d of sata) {
+        const n = d.bay ?? next;
+        if (n >= 1 && n <= 4 && !out[n])
+            out[n] = d;
+        next = Math.max(next, n + 1);
+    }
+    return out;
+}
+
+// Slots M.2 de baixo: [sistema, Lexar] = os NVMe na ordem (nvme0n1 = sistema).
+function m2Slots(disks) {
+    return (disks ?? []).filter(d => d.bus === "nvme" || (d.bus === undefined && d.kind === "ssd")).sort((a, b) => String(a.dev).localeCompare(String(b.dev))).slice(0, 2);
+}
+
+// Porta de rede pelo driver (atlantic = 10 GbE, igc = 2,5 GbE), ou null.
+function lanPort(net, driver) {
+    return (net ?? []).find(n => n.driver === driver) ?? null;
+}
+
+// Legenda de uma peca da silhueta.
+function spotLegend(id, info) {
+    const d = info ?? {};
+    if (/^bay-\d$/.test(id)) {
+        const n = Number(id.split("-")[1]);
+        const disk = bayMap(d.disks)[n];
+        if (!disk)
+            return `Bay ${n} · empty`;
+        return `Bay ${n} · ${disk.dev} ${disk.model ?? ""} · ${fmtBytes(disk.size)} · SMART ${disk.smart ?? "?"}${disk.temp != null ? ` · ${disk.temp} °C` : ""}`;
+    }
+    if (/^m2-\d$/.test(id)) {
+        const n = Number(id.split("-")[1]);
+        const disk = m2Slots(d.disks)[n - 1];
+        if (!disk)
+            return n === 2 ? "M.2 slot 2 · empty (Lexar NM790 pending)" : "M.2 slot 1 · empty";
+        return `M.2 slot ${n} · ${disk.dev} ${disk.model ?? ""} · ${fmtBytes(disk.size)} · SMART ${disk.smart ?? "?"}${disk.temp != null ? ` · ${disk.temp} °C` : ""}${n === 1 ? " · system" : ""}`;
+    }
+    if (id === "power")
+        return d.online === true ? `Power · on, up for ${fmtUptime(d.uptime_s)}` : "Power · out of reach";
+    if (id === "fan") {
+        const f = d.fans ?? {};
+        return f.case_rpm != null ? `Fan · case ${Math.round(f.case_rpm)} rpm (${f.case_mode ?? "?"}) · CPU ${Math.round(f.cpu_rpm ?? 0)} rpm (${f.cpu_mode ?? "?"})` : "Fan · no reading";
+    }
+    if (id === "lan-10g" || id === "lan-2g5" || id === "led-net") {
+        const p = id === "lan-2g5" ? lanPort(d.net, "igc") : lanPort(d.net, "atlantic");
+        const name = id === "lan-2g5" ? "2.5 GbE" : "10 GbE";
+        if (!p)
+            return `${name} · unknown`;
+        return `${name} (${p.iface}) · ${p.up ? `link ${p.speed_mbps ?? "?"} Mb/s` : "no cable"}${p.ip ? ` · ${p.ip}` : ""}`;
+    }
+    return "";
+}
+
+// Aba que cada peca abre.
+function spotTab(id) {
+    if (/^(bay|m2)-/.test(id))
+        return "storage";
+    return "system";
+}
