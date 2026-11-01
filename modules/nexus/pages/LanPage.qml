@@ -203,6 +203,8 @@ PageBase {
             hint: Tr.tr("Sunshine streams the screen (HEVC on the GPU) with touch, keyboard, mouse and controller. On the device, install Moonlight, pick this PC and type the PIN it shows below. On the home network now; over the VPN once Tailscale is logged in.")
         }
 
+        // PIN do Moonlight: campo curto, nome do aparelho, botao. Sem texto de apoio
+        // nos campos (sobrepunha um ao outro); o que falta dizer esta no resumo acima.
         ConnectedRect {
             Layout.fillWidth: true
             Layout.topMargin: Tokens.spacing.small
@@ -222,9 +224,8 @@ PageBase {
                 StyledTextField {
                     id: pinField
 
-                    Layout.preferredWidth: Tokens.padding.extraExtraLarge * 4
-                    placeholderText: Tr.tr("PIN")
-                    supportingText: root.pending.length > 0 ? Tr.tr("%1 waiting").arg(root.pending[0].name || root.pending[0].id.slice(0, 8)) : Tr.tr("4 digits from Moonlight")
+                    Layout.preferredWidth: Tokens.padding.extraExtraLarge * 5
+                    placeholderText: Tr.tr("PIN from Moonlight")
                     leadingIcon: "pin"
                     inputMethodHints: Qt.ImhDigitsOnly
                     onTextChanged: root.pinText = text
@@ -235,8 +236,7 @@ PageBase {
                     id: nameField
 
                     Layout.fillWidth: true
-                    placeholderText: Tr.tr("Device name")
-                    supportingText: Tr.tr("e.g. OP's Tablet")
+                    placeholderText: Tr.tr("Device name (e.g. OP's Phone)")
                     leadingIcon: "devices"
                     onTextChanged: root.pinName = text
                     onAccepted: pairButton.clicked()
@@ -245,8 +245,10 @@ PageBase {
                 TextButton {
                     id: pairButton
 
+                    Layout.preferredWidth: Tokens.padding.extraExtraLarge * 3
                     text: remote.busyAction.startsWith("pair") ? Tr.tr("Pairing…") : Tr.tr("Pair")
                     enabled: /^\d{4}$/.test(root.pinText) && remote.busyAction === ""
+                    opacity: enabled ? 1 : 0.5
                     onClicked: {
                         remote.run({ id: `pair~${root.pinText}~${root.pinName.trim() || "device"}` });
                         pinField.text = "";

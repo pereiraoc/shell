@@ -604,9 +604,10 @@ Item {
         Text {
             // na foto o nome ocupa 140 x 23 un, em fonte pontilhada (o texto solido
             // basta: o perfurado em Canvas nao rende fora do shell)
+            // um pouco mais claro que a malha, sem saltar (pedido do usuario)
             anchors.centerIn: meshEdge
             text: "UGREEN"
-            color: root.ink
+            color: Qt.alpha(root.ink, 0.6)
             font.family: root.family
             font.pixelSize: root.small(26)
             font.weight: Font.Bold
