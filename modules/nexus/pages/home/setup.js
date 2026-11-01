@@ -106,13 +106,21 @@ function autoLayout(s) {
         g.place(x);
         x += g.w + gap;
     }
+    // Mousemat em duas metades: teclado centrado na esquerda; mouses (e controles)
+    // lado a lado centrados na direita; tudo centrado na altura do mousemat
     const mat = s.mousepad || { w: 90, h: 25 };
-    const mx = -mat.w / 2;
-    pos["mousepad"] = { x: mx, y: deskY + 2 };
+    const mx = -mat.w / 2, my = deskY + 2, half = mat.w / 2;
+    pos["mousepad"] = { x: mx, y: my };
+    const mid = h => my + (mat.h - h) / 2;
     if (s.keyboard)
-        pos["keyboard"] = { x: mx + 5, y: deskY + 6 };
-    (s.mice || []).forEach((m, i) => { pos[m.key] = { x: mx + 41 + i * 10, y: deskY + 5 }; });
-    (s.controllers || []).forEach((c, i) => { pos[c.key] = { x: mx + mat.w - 5 - (i + 1) * c.w - i * 2, y: deskY + 6 }; });
+        pos["keyboard"] = { x: mx + (half - s.keyboard.w) / 2, y: mid(s.keyboard.h) };
+    const right = (s.mice || []).concat(s.controllers || []);
+    const rightW = right.reduce((a, d) => a + d.w, 0) + 3 * Math.max(0, right.length - 1);
+    let rx = mx + half + (half - rightW) / 2;
+    for (const d of right) {
+        pos[d.key] = { x: rx, y: mid(d.h) };
+        rx += d.w + 3;
+    }
     return { pos: pos, shelf: shelf, width: width };
 }
 

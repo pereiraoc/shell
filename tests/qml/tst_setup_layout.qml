@@ -117,9 +117,14 @@ TestCase {
         fuzzyCompare(a.pos["nas"].x, -a.width / 2, 0.001);
         fuzzyCompare(a.pos["laptop"].x + 35.5, a.width / 2, 0.001);
         compare(a.pos["mousepad"].x, -45);
-        compare(a.pos["keyboard"].x, -40);
-        compare(a.pos["mouse:atheris"].x, -45 + 51);
-        fuzzyCompare(a.pos["controller:0"].x, 45 - 5 - 15.3, 0.001);
+        // teclado centrado na metade esquerda; mouses + controle lado a lado centrados na direita
+        fuzzyCompare(a.pos["keyboard"].x + 32.6 / 2, -45 + 22.5, 0.001);
+        fuzzyCompare(a.pos["keyboard"].y, 52 + (25 - 13.8) / 2, 0.001);
+        const rightW = 7.5 + 3 + 7.1 + 3 + 15.3;
+        fuzzyCompare(a.pos["mouse:naga"].x, 22.5 - rightW / 2, 0.001);
+        fuzzyCompare(a.pos["mouse:atheris"].x, a.pos["mouse:naga"].x + 7.5 + 3, 0.001);
+        fuzzyCompare(a.pos["controller:0"].x + 15.3, 22.5 + rightW / 2, 0.001);
+        fuzzyCompare(a.pos["mouse:naga"].y, 52 + (25 - 12) / 2, 0.001);
         // estojos e NAS na mesa
         compare(a.pos["headphones:WF"].y, 50 - 6.1);
         compare(a.pos["nas"].y, 50 - 17.8);
