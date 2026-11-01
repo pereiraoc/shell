@@ -170,6 +170,12 @@ function spotLegend(id, info) {
             return n === 2 ? "M.2 slot 2 · empty (Lexar NM790 pending)" : "M.2 slot 1 · empty";
         return `M.2 slot ${n} · ${disk.dev} ${disk.model ?? ""} · ${fmtBytes(disk.size)} · SMART ${disk.smart ?? "?"}${disk.temp != null ? ` · ${disk.temp} °C` : ""}${n === 1 ? " · system" : ""}`;
     }
+    if (/^ram-\d$/.test(id)) {
+        const n = Number(id.split("-")[1]);
+        if (n === 1)
+            return d.mem?.total ? `Memory slot 1 · ${Math.round(d.mem.total / 1024)} GB installed` : "Memory slot 1 · installed module";
+        return "Memory slot 2 · empty (ADATA 16 GB pending)";
+    }
     if (id === "power")
         return d.online === true ? `Power · on, up for ${fmtUptime(d.uptime_s)}` : "Power · out of reach";
     if (id === "fan") {
@@ -178,7 +184,7 @@ function spotLegend(id, info) {
     }
     if (id === "lan-10g" || id === "lan-2g5" || id === "led-net") {
         const p = id === "lan-2g5" ? lanPort(d.net, "igc") : lanPort(d.net, "atlantic");
-        const name = id === "lan-2g5" ? "2.5 GbE" : "10 GbE";
+        const name = id === "lan-2g5" ? "LAN 1 · 2.5 GbE" : "LAN 2 · 10 GbE";
         if (!p)
             return `${name} · unknown`;
         return `${name} (${p.iface}) · ${p.up ? `link ${p.speed_mbps ?? "?"} Mb/s` : "no cable"}${p.ip ? ` · ${p.ip}` : ""}`;
@@ -190,5 +196,7 @@ function spotLegend(id, info) {
 function spotTab(id) {
     if (/^(bay|m2)-/.test(id))
         return "storage";
+    if (/^ram-/.test(id))
+        return "system";
     return "system";
 }

@@ -86,8 +86,11 @@ TestCase {
         compare(S.spotLegend("power", info), "Power · on, up for 2 h 0 min");
         compare(S.spotLegend("power", { online: false }), "Power · out of reach");
         compare(S.spotLegend("fan", info), "Fan · case 655 rpm (manual) · CPU 867 rpm (auto)");
-        compare(S.spotLegend("lan-10g", info), "10 GbE (enp1s0) · link 1000 Mb/s · 192.168.15.129");
-        compare(S.spotLegend("lan-2g5", info), "2.5 GbE (enp4s0) · no cable");
+        compare(S.spotLegend("lan-10g", info), "LAN 2 · 10 GbE (enp1s0) · link 1000 Mb/s · 192.168.15.129");
+        compare(S.spotLegend("lan-2g5", info), "LAN 1 · 2.5 GbE (enp4s0) · no cable");
+        compare(S.spotLegend("ram-1", { mem: { total: 7887 } }), "Memory slot 1 · 8 GB installed");
+        compare(S.spotLegend("ram-2", {}), "Memory slot 2 · empty (ADATA 16 GB pending)");
+        compare(S.spotTab("ram-2"), "system");
         compare(S.spotTab("bay-2"), "storage");
         compare(S.spotTab("m2-1"), "storage");
         compare(S.spotTab("fan"), "system");
