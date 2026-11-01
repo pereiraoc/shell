@@ -29,7 +29,7 @@ Item {
     // Moldura e a face recuada
     Rectangle {
         anchors.fill: parent
-        radius: 24 * root.k
+        radius: 23 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.ink
@@ -37,26 +37,27 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        anchors.margins: 8 * root.k
-        radius: 18 * root.k
+        anchors.margins: 7 * root.k
+        anchors.bottomMargin: 18 * root.k
+        radius: 16 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.faint
     }
 
-    // Gaveteiro (com a barra grossa em cima)
+    // Gaveteiro (com a barra grossa em cima; a base e o topo do painel)
     Rectangle {
-        x: 36 * root.k
-        y: 28 * root.k
-        width: 288 * root.k
-        height: 240 * root.k
+        x: 32 * root.k
+        y: 22 * root.k
+        width: 296 * root.k
+        height: 250 * root.k
         radius: 12 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.faint
     }
 
-    // As 4 gavetas: contorno, linha da tampa, tom de estado so com disco, divisa, trava
+    // As 4 gavetas: moldura, face interna de topo arredondado ate a divisa (tom so com disco), trava
     Repeater {
         model: 4
 
@@ -67,10 +68,10 @@ Item {
             readonly property var disk: root.bays[bay.index + 1] ?? null
             readonly property bool on: root.online && !!bay.disk
 
-            x: (44 + bay.index * 72) * root.k
-            y: 44 * root.k
-            width: 60 * root.k
-            height: 216 * root.k
+            x: (41 + bay.index * 72.5) * root.k
+            y: 40 * root.k
+            width: 62 * root.k
+            height: 220 * root.k
 
             Rectangle {
                 anchors.fill: bay
@@ -80,27 +81,26 @@ Item {
                 border.color: bay.on ? root.lit : root.faint
             }
 
-            Rectangle {
-                x: 1
-                y: 7 * root.k
-                width: bay.width - 2
-                height: 155 * root.k
-                radius: 4 * root.k
-                visible: bay.on
-                color: Qt.alpha(root.lit, 0.16)
+            Item {
+                x: 2.5 * root.k
+                y: 2.5 * root.k
+                width: bay.width - 5 * root.k
+                height: 163.5 * root.k
+                clip: true
+
+                Rectangle {
+                    width: parent.width
+                    height: parent.height + 10 * root.k
+                    radius: 5 * root.k
+                    color: bay.on ? Qt.alpha(root.lit, 0.16) : "transparent"
+                    border.width: 1
+                    border.color: root.faint
+                }
             }
 
             Rectangle {
                 x: 0
-                y: 7 * root.k
-                width: bay.width
-                height: 1
-                color: root.faint
-            }
-
-            Rectangle {
-                x: 0
-                y: 162 * root.k
+                y: 166 * root.k
                 width: bay.width
                 height: 1
                 color: root.faint
@@ -108,8 +108,8 @@ Item {
 
             Rectangle {
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 178 * root.k
-                width: Math.max(3, 20 * root.k)
+                y: 181 * root.k
+                width: Math.max(3, 22 * root.k)
                 height: width
                 radius: width / 2
                 color: "transparent"
@@ -119,16 +119,16 @@ Item {
         }
     }
 
-    // Painel de baixo e a barra do nome: duas linhas na largura da face
+    // Topo do painel de baixo (272) e da barra do nome (326), na largura da face
     Repeater {
         model: [272, 326]
 
         Rectangle {
             required property int modelData
 
-            x: 8 * root.k
+            x: 7 * root.k
             y: modelData * root.k
-            width: 344 * root.k
+            width: 346 * root.k
             height: 1
             color: root.faint
         }

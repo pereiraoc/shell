@@ -96,21 +96,22 @@ Item {
     }
 
     // Gaveteiro: caixa recuada com a barra grossa em cima (as gavetas comecam
-    // 16 un abaixo do topo dela)
+    // 18 un abaixo do topo dela); a base dele e o topo do painel inferior
     Rectangle {
-        x: 36 * root.k
-        y: 28 * root.k
-        width: 288 * root.k
-        height: 240 * root.k
+        x: 32 * root.k
+        y: 22 * root.k
+        width: 296 * root.k
+        height: 250 * root.k
         radius: 12 * root.k
         color: "transparent"
         border.width: 1
         border.color: root.faint
     }
 
-    // As 4 gavetas: tampa em cima (linha), face com o numero e a capacidade,
-    // divisa e a base com a trava redonda; so a gaveta com disco/escolhida tem
-    // tom (cor de estado)
+    // As 4 gavetas (80..200 px de passo 141 na foto -> 41 + 72,5 i, 62 x 220 un):
+    // moldura fina em volta, face interna com o topo arredondado ate a divisa
+    // (com o numero e a capacidade), base com a trava redonda; so a gaveta com
+    // disco/escolhida tem tom (cor de estado)
     Repeater {
         model: 4
 
@@ -125,10 +126,10 @@ Item {
             readonly property bool bad: root.diskBad(bay.disk)
             readonly property bool lit: root.selected === bay.spotId || root.hovered === bay.spotId
 
-            x: (44 + bay.index * 72) * root.k
-            y: 44 * root.k
-            width: 60 * root.k
-            height: 216 * root.k
+            x: (41 + bay.index * 72.5) * root.k
+            y: 40 * root.k
+            width: 62 * root.k
+            height: 220 * root.k
 
             // Contorno da gaveta inteira
             Rectangle {
@@ -139,30 +140,30 @@ Item {
                 border.color: root.stateColor(bay.spotId, bay.on, bay.bad)
             }
 
-            // Tom de estado (disco presente, escolhida, falha) na face da gaveta
-            Rectangle {
-                x: 1
-                y: 7 * root.k
-                width: bay.width - 2
-                height: 155 * root.k
-                radius: 4 * root.k
-                visible: bay.lit || bay.on || bay.bad
-                color: root.fill(bay.spotId, bay.on, bay.bad)
-            }
+            // Face interna: moldura fina (2,5 un) em volta, topo arredondado,
+            // descendo reta ate a divisa (o clip corta os cantos de baixo); leva
+            // o tom de estado (disco presente, escolhida, falha)
+            Item {
+                x: 2.5 * root.k
+                y: 2.5 * root.k
+                width: bay.width - 5 * root.k
+                height: 163.5 * root.k
+                clip: true
 
-            // Tampa: a linha onde a face comeca
-            Rectangle {
-                x: 0
-                y: 7 * root.k
-                width: bay.width
-                height: 1
-                color: root.faint
+                Rectangle {
+                    width: parent.width
+                    height: parent.height + 10 * root.k
+                    radius: 5 * root.k
+                    color: bay.lit || bay.on || bay.bad ? root.fill(bay.spotId, bay.on, bay.bad) : "transparent"
+                    border.width: 1
+                    border.color: root.faint
+                }
             }
 
             // Numero, em condensada alta como a impressa
             Text {
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 59 * root.k - height / 2
+                y: 63 * root.k - height / 2
                 text: `0${bay.n}`
                 color: bay.on ? root.stateColor(bay.spotId, bay.on, bay.bad) : root.ink
                 font.family: root.numFamily
@@ -173,7 +174,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 136 * root.k
+                y: 140 * root.k
                 visible: !!bay.disk
                 text: bay.disk ? `${Math.round((bay.disk.size ?? 0) / 1e12)} TB` : ""
                 color: root.stateColor(bay.spotId, bay.on, bay.bad)
@@ -182,10 +183,10 @@ Item {
                 renderType: Text.NativeRendering
             }
 
-            // Divisa entre a face clara e a base preta
+            // Divisa entre a face e a base
             Rectangle {
                 x: 0
-                y: 162 * root.k
+                y: 166 * root.k
                 width: bay.width
                 height: 1
                 color: root.faint
@@ -196,9 +197,9 @@ Item {
                 id: lock
 
                 anchors.horizontalCenter: bay.horizontalCenter
-                y: 178 * root.k
-                width: 20 * root.k
-                height: 20 * root.k
+                y: 181 * root.k
+                width: 22 * root.k
+                height: 22 * root.k
                 radius: width / 2
                 color: "transparent"
                 border.width: 1
@@ -219,17 +220,17 @@ Item {
         }
     }
 
-    // Painel inferior e, abaixo dele, a barra com o nome: duas linhas na
-    // largura da face
+    // Painel inferior (272, na largura da face, rente a base do gaveteiro) e o
+    // topo da barra do nome (326); a barra vai ate a base da face (342)
     Repeater {
         model: [272, 326]
 
         Rectangle {
             required property int modelData
 
-            x: 8 * root.k
+            x: 7 * root.k
             y: modelData * root.k
-            width: 344 * root.k
+            width: 346 * root.k
             height: 1
             color: root.faint
         }
@@ -237,7 +238,7 @@ Item {
 
     Text {
         x: 0
-        y: 335 * root.k - height / 2
+        y: 334 * root.k - height / 2
         width: 360 * root.k
         horizontalAlignment: Text.AlignHCenter
         text: "DXP4800 Plus"
@@ -954,15 +955,16 @@ Item {
         }
     }
 
-    // Carcaca de 360 x 360: moldura externa e a face recuada 8 un, com raio
-    // menor -- a faixa entre as duas e o que se ve nos cantos da foto
+    // Carcaca de 360 x 360: moldura externa (raio 23) e a face recuada 7 un
+    // nos lados e em cima e 18 embaixo (o rodape grosso da foto), raio 16 --
+    // a faixa entre as duas e o que se ve nos cantos
     component Chassis: Item {
         width: 360 * root.k
         height: 360 * root.k
 
         Rectangle {
             anchors.fill: parent
-            radius: 24 * root.k
+            radius: 23 * root.k
             color: "transparent"
             border.width: 1
             border.color: root.ink
@@ -970,8 +972,9 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            anchors.margins: 8 * root.k
-            radius: 18 * root.k
+            anchors.margins: 7 * root.k
+            anchors.bottomMargin: 18 * root.k
+            radius: 16 * root.k
             color: "transparent"
             border.width: 1
             border.color: root.faint
