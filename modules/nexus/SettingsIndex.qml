@@ -90,6 +90,7 @@ QtObject {
         { page: "storage", sub: 1, title: qsTr("Browse disk usage"), subtitle: qsTr("Folder tree, largest first"), keywords: "tree browse folders files baobab du size explore" },
         { page: "server", sub: 0, tab: "overview", title: Tr.tr("Server overview"), subtitle: Tr.tr("NAS health; open photos, cloud, movies, music"), keywords: "nas server home immich nextcloud jellyfin navidrome photos cloud movies music open" },
         { page: "server", sub: 0, tab: "services", title: Tr.tr("Server services"), subtitle: Tr.tr("Start, stop and restart the Docker stacks"), keywords: "nas docker stack start stop restart immich nextcloud jellyfin navidrome" },
+        { page: "server", sub: 0, tab: "network", title: Tr.tr("Home network monitor"), subtitle: Tr.tr("Who is on the network, new devices, mark as known"), keywords: "nas network monitor netalertx new unknown devices known alert ntfy intruder wifi" },
         { page: "server", sub: 0, tab: "storage", title: Tr.tr("Server storage"), subtitle: Tr.tr("HDs in RAID1, SMART, scrub, shared folders"), keywords: "nas disks hdd raid btrfs smart scrub samba smb nextcloud folders thunar" },
         { page: "server", sub: 0, tab: "system", title: Tr.tr("Server system"), subtitle: Tr.tr("NixOS, watchdog, fans, rebuild, reboot"), keywords: "nas nixos flake rebuild reboot poweroff watchdog fans tailscale netbird vpn" },
         { page: "server", sub: 0, tab: "logs", title: Tr.tr("Server logs"), subtitle: Tr.tr("Journal of a unit on the NAS"), keywords: "nas logs journal journalctl docker containers" },

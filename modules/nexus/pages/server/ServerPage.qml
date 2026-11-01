@@ -72,6 +72,7 @@ PageBase {
     tabs: [
         { id: "overview", label: Tr.tr("Overview") },
         { id: "services", label: Tr.tr("Services") },
+        { id: "network", label: Tr.tr("Network") },
         { id: "storage", label: Tr.tr("Storage") },
         { id: "system", label: Tr.tr("System") },
         { id: "logs", label: Tr.tr("Logs") }
@@ -130,6 +131,22 @@ PageBase {
             ServerServices {
                 page: root
                 bridge: nas
+            }
+        }
+
+        TabPane {
+            id: networkPane
+
+            active: root.tab === "network"
+
+            // So nasce na primeira abertura (lista os aparelhos pela CLI a cada 30 s enquanto visivel).
+            Loader {
+                Layout.fillWidth: true
+                active: networkPane.opened
+                sourceComponent: ServerNetwork {
+                    page: root
+                    bridge: nas
+                }
             }
         }
 
