@@ -345,8 +345,9 @@ Item {
             Rectangle {
                 required property int index
 
-                anchors.centerIn: parent
-                width: parent.width * 0.92
+                // `parent` ainda e null quando o delegate nasce (TypeError no log); o id e estavel
+                anchors.centerIn: fan
+                width: fan.width * 0.92
                 height: 1
                 color: root.faint
                 rotation: index * 45
