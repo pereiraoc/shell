@@ -61,6 +61,9 @@ PageBase {
     // Tablet no cabo USB (caelestia-tablet): a peca existe quando ha um pareado e
     // e "ligada" enquanto e a saida virtual `tablet`; nome como o usuario o chama
     readonly property var setupTablet: tabletBridge.info.paired ? ({ label: tabletBridge.info.paired.label || tabletBridge.info.paired.model || "", online: !!tabletBridge.info.monitor, output: tabletBridge.info.monitor?.name ?? "" }) : null
+    // Roteadores: o gateway desta rede e os aparelhos marcados como "router" em
+    // Network > Devices (caelestia-lan); chave = MAC (ou IP sem MAC)
+    readonly property var setupRouters: (lanBridge.info.devices ?? []).filter(d => d.type === "router").map(d => ({ key: d.mac || d.ip, name: d.name || d.hostname || d.vendor || "", ip: d.ip ?? "", online: !!d.online }))
     property bool showOffline
     property bool editLayout
 
@@ -122,6 +125,13 @@ PageBase {
         id: tabletBridge
 
         tool: "tablet"
+        autoRefresh: 20000
+    }
+
+    ToolBridge {
+        id: lanBridge
+
+        tool: "lan"
         autoRefresh: 20000
     }
 
@@ -188,6 +198,7 @@ PageBase {
             controllers: root.setupControllers
             nas: root.setupNas
             tablet: root.setupTablet
+            routers: root.setupRouters
             showOffline: root.showOffline || root.editLayout
             editing: root.editLayout
             highlightKey: pieceList.visible ? pieceList.rowHover : ""

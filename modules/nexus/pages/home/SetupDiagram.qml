@@ -49,6 +49,9 @@ Item {
     property var nas: null
     // { label, online, output } do caelestia-tablet (tablet pareado), ou null
     property var tablet: null
+    // [{ key, name, ip, online }] roteadores (caelestia-lan: gateway e os marcados
+    // como "router"); silhueta generica ate haver foto do modelo
+    property var routers: []
     property bool showOffline
     property bool editing
     // Posicoes salvas: { key: { x, y } } em cm
@@ -105,6 +108,7 @@ Item {
     readonly property var auto: L.autoLayout({
         deskY: root.deskY, shelfH: root.shelfH, laptopRight: root.laptopRight,
         nas: root.nas && (root.nas.online || root.showOffline) ? { w: 17.8, h: 17.8 } : null,
+        routers: root.routers.filter(r => r.online || root.showOffline).map(r => ({ key: `router:${r.key}`, w: 20, h: 14 })),
         stand: root.headphones.some(h => h.model === "WH-1000XM5" && (h.connected || root.showOffline)) ? { w: 21.7, h: 28 } : null,
         buds: root.headphones.filter(h => h.model !== "WH-1000XM5" && (h.connected || root.showOffline)).map(h => ({ key: `headphones:${h.model}`, w: root.budW(h.model), h: root.budH(h.model) })),
         monitors: root.externals.filter(m => root.monitorOn(m) || root.showOffline).map(m => ({ key: `monitor:${m.name}`, w: 59, h: root.monitorH(m) })),
@@ -509,6 +513,48 @@ Item {
         }
     }
 
+    // ----------------------------------------------------------- roteadores
+    // Um por roteador (gateway desta rede e os marcados como roteador em Network >
+    // Devices), ao lado do NAS; caixa com antenas ate haver foto do modelo
+    Repeater {
+        model: root.routers.length
+
+        Piece {
+            id: rt
+
+            required property int index
+            readonly property var dev: root.routers[index] ?? ({})
+
+            key: `router:${rt.dev.key}`
+            kind: "router"
+            defX: root.autoX(`router:${rt.dev.key}`)
+            defY: root.autoY(`router:${rt.dev.key}`)
+            wCm: 20
+            hCm: 14
+            label: [rt.dev.name, rt.dev.ip].filter(x => x).join(" · ")
+            online: !!rt.dev.online
+            showOffline: root.showOffline
+            onClicked: root.open("network", "")
+
+            Image {
+                id: rtArt
+
+                anchors.fill: parent
+                source: Quickshell.shellPath("assets/devices/router-generic.svg")
+                fillMode: Image.PreserveAspectFit
+                sourceSize.width: rtArt.width * root.dpr
+                smooth: true
+                asynchronous: true
+
+                layer.enabled: true
+                layer.effect: Colouriser {
+                    colorizationColor: root.ink
+                    brightness: 1
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------- mesinha
     // Apoio horizontal das telas: tao larga quanto os monitores externos (e o
     // tablet) em cima dela, do pe deles ate a linha da mesa; sem monitor
@@ -692,7 +738,7 @@ Item {
             readonly property real standH: 28
 
             key: `headphones:${hp.dev.model}`
-            kind: "headphones"
+            kind: hp.big ? "headphones" : "buds"
             defX: root.autoX(`headphones:${hp.dev.model}`)
             defY: root.autoY(`headphones:${hp.dev.model}`)
             wCm: hp.big ? 21.7 : root.budW(hp.dev.model)

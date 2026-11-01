@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 1400" width="2000" height="1400">
+  <!-- Roteador generico (ate haver foto do modelo): caixa baixa de frente, 20 x 4 cm, tres
+       antenas de 10 cm em pe, LEDs. So linhas. -->
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="20" y="1000" width="1960" height="380" rx="90" ry="90" stroke-width="24" />
+    <path stroke-width="16" d="M330 1000 V100 a40 40 0 0 1 80 0 V1000" />
+    <path stroke-width="16" d="M960 1000 V100 a40 40 0 0 1 80 0 V1000" />
+    <path stroke-width="16" d="M1590 1000 V100 a40 40 0 0 1 80 0 V1000" />
+    <circle cx="200" cy="1190" r="22" stroke-width="12" />
+    <circle cx="300" cy="1190" r="22" stroke-width="12" />
+    <circle cx="400" cy="1190" r="22" stroke-width="12" />
+    <circle cx="500" cy="1190" r="22" stroke-width="12" />
+  </g>
+</svg>

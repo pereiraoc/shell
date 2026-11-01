@@ -52,7 +52,7 @@ function partAt(parts, fx, fy) {
     return hit;
 }
 
-// Arranjo automatico (cm, eixo x = 0 no centro): o grupo de cima -- NAS, fones
+// Arranjo automatico (cm, eixo x = 0 no centro): o grupo de cima -- NAS, roteadores, fones
 // (suporte do WH com os estojos dos buds lado a lado ao pe dele), mesinha
 // (monitores externos + tablet; so existe com monitor externo) ou o tablet
 // sozinho na mesa, notebook (do lado em que esta no arranjo das telas) -- e o
@@ -65,6 +65,17 @@ function autoLayout(s) {
     let shelf = null;
     if (s.nas)
         groups.push({ w: s.nas.w, place: x => { pos["nas"] = { x: x, y: deskY - s.nas.h }; } });
+    const routers = s.routers || [];
+    if (routers.length) {
+        const w = routers.reduce((a, r) => a + r.w, 0) + 2 * (routers.length - 1);
+        groups.push({ w: w, place: x => {
+            let cx = x;
+            for (const r of routers) {
+                pos[r.key] = { x: cx, y: deskY - r.h };
+                cx += r.w + 2;
+            }
+        } });
+    }
     const buds = s.buds || [];
     if (s.stand || buds.length) {
         let w = s.stand ? s.stand.w : 0;
@@ -124,7 +135,42 @@ function autoLayout(s) {
     return { pos: pos, shelf: shelf, width: width };
 }
 
-const KIND_ORDER = ["monitor", "laptop", "tablet", "nas", "shelf", "mousepad", "keyboard", "mouse", "headphones", "controller"];
+const KIND_ORDER = ["monitor", "laptop", "tablet", "nas", "router", "shelf", "mousepad", "keyboard", "mouse", "headphones", "buds", "controller"];
+
+// Grupos fixos da lista da edicao (pedido de 01/11): notebook sozinho (e o que e
+// constante); teclado e mouse (mousemat, teclados, mouses, controles); telas
+// (monitores externos, tablet, mesinha); fones (suporte + WH); buds (estojos);
+// armazenamento (NAS); roteadores.
+const GROUPS = [
+    { id: "laptop", kinds: ["laptop"] },
+    { id: "keyboard-mouse", kinds: ["mousepad", "keyboard", "mouse", "controller"] },
+    { id: "monitors", kinds: ["monitor", "tablet", "shelf"] },
+    { id: "headphones", kinds: ["headphones"] },
+    { id: "buds", kinds: ["buds"] },
+    { id: "storage", kinds: ["nas"] },
+    { id: "routers", kinds: ["router"] }
+];
+
+// Linhas da lista: cabecalho de grupo (depth 0, header) seguido das pecas dele
+// (depth 1), na ordem dos tipos; grupo sem peca nao aparece; tipo fora dos
+// grupos vai para um "outros" no fim.
+function groupPieces(pieces) {
+    const ordered = orderPieces(pieces);
+    const rows = [];
+    const taken = new Set();
+    const groups = GROUPS.concat([{ id: "other", kinds: null }]);
+    for (const g of groups) {
+        const kids = ordered.filter(p => !taken.has(p.key) && (g.kinds === null || g.kinds.includes(p.kind)));
+        if (!kids.length)
+            continue;
+        rows.push({ key: `group:${g.id}`, group: g.id, header: true, depth: 0 });
+        for (const k of kids) {
+            taken.add(k.key);
+            rows.push(Object.assign({ depth: 1 }, k));
+        }
+    }
+    return rows;
+}
 
 function rank(p) {
     const i = KIND_ORDER.indexOf(p.kind);
@@ -206,6 +252,8 @@ const KIND_ICON = {
     laptop: "laptop_mac",
     tablet: "tablet_android",
     nas: "dns",
+    router: "router",
+    buds: "earbuds",
     keyboard: "keyboard",
     mouse: "mouse",
     headphones: "headphones",

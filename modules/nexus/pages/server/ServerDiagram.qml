@@ -451,6 +451,56 @@ Item {
             border.color: root.stateColor("fan", fan.on, false)
         }
 
+        // Estrias do chanfro (a faixa do relevo e escovada em diagonal na foto):
+        // linhas a 60 graus a cada 4 un, so entre a borda externa e a interna
+        Canvas {
+            id: bevel
+
+            readonly property color c: root.stateColor("fan", fan.on, false)
+            readonly property real k: root.k
+
+            anchors.fill: fan
+            onCChanged: requestPaint()
+            onKChanged: requestPaint()
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d");
+                const w = width, h = height, k = bevel.k;
+                ctx.reset();
+                ctx.clearRect(0, 0, w, h);
+                const rr = (x, y, ww, hh, r) => {
+                    ctx.moveTo(x + r, y);
+                    ctx.lineTo(x + ww - r, y);
+                    ctx.arcTo(x + ww, y, x + ww, y + r, r);
+                    ctx.lineTo(x + ww, y + hh - r);
+                    ctx.arcTo(x + ww, y + hh, x + ww - r, y + hh, r);
+                    ctx.lineTo(x + r, y + hh);
+                    ctx.arcTo(x, y + hh, x, y + hh - r, r);
+                    ctx.lineTo(x, y + r);
+                    ctx.arcTo(x, y, x + r, y, r);
+                    ctx.closePath();
+                };
+                ctx.beginPath();
+                rr(1, 1, w - 2, h - 2, 22 * k);
+                ctx.clip();
+                ctx.strokeStyle = Qt.alpha(bevel.c, 0.3);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                const dx = h / Math.tan(Math.PI / 3);
+                for (let x = -dx; x < w + dx; x += 4 * k) {
+                    ctx.moveTo(x, h);
+                    ctx.lineTo(x + dx, 0);
+                }
+                ctx.stroke();
+                // tira a area da malha (fica so a faixa do relevo)
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.beginPath();
+                rr(19 * k, 14 * k, w - 42 * k, h - 25 * k, 14 * k);
+                ctx.fill();
+            }
+        }
+
         Rectangle {
             id: meshEdge
 
@@ -511,6 +561,17 @@ Item {
                     ctx.arc(cx, cy, rad, 0, Math.PI * 2);
                     ctx.stroke();
                 }
+                // malha fina em losangos por cima: duas familias de diagonais a 45 graus,
+                // a cada 5 un, bem apagadas (e textura, nao estrutura)
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.13);
+                ctx.beginPath();
+                for (let d = -h; d < w + h; d += 5 * k) {
+                    ctx.moveTo(d, 0);
+                    ctx.lineTo(d + h, h);
+                    ctx.moveTo(d, h);
+                    ctx.lineTo(d + h, 0);
+                }
+                ctx.stroke();
                 // quatro espinhas retas pelo centro, do cubo a borda
                 ctx.strokeStyle = Qt.alpha(mesh.c, 0.7);
                 ctx.beginPath();

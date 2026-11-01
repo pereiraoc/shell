@@ -149,11 +149,33 @@ TestCase {
         fuzzyCompare(a.pos["laptop"].x, -a.width / 2, 0.001);
     }
 
+    function test_groupPieces() {
+        const rows = L.groupPieces([{ key: "mousepad", kind: "mousepad" }, { key: "mouse:naga", kind: "mouse" }, { key: "laptop", kind: "laptop" },
+            { key: "nas", kind: "nas" }, { key: "tablet", kind: "tablet" }, { key: "monitor:HDMI-A-1", kind: "monitor" }, { key: "shelf", kind: "shelf" },
+            { key: "keyboard", kind: "keyboard" }, { key: "headphones:WH-1000XM5", kind: "headphones" }, { key: "headphones:WF", kind: "buds" },
+            { key: "router:aa", kind: "router" }, { key: "controller:0", kind: "controller" }]);
+        compare(rows.map(r => `${r.depth}:${r.header ? "group:" + r.group : r.key}`).join(","),
+            "0:group:laptop,1:laptop,0:group:keyboard-mouse,1:shelf,1:mousepad,1:keyboard,1:mouse:naga,1:controller:0,0:group:monitors,1:monitor:HDMI-A-1,1:tablet,0:group:headphones,1:headphones:WH-1000XM5,0:group:buds,1:headphones:WF,0:group:storage,1:nas,0:group:routers,1:router:aa".replace("1:shelf,1:mousepad", "1:mousepad").replace("1:monitor:HDMI-A-1,1:tablet", "1:monitor:HDMI-A-1,1:tablet,1:shelf"));
+        // grupo sem peca nao aparece
+        compare(L.groupPieces([{ key: "laptop", kind: "laptop" }]).length, 2);
+    }
+
+    function test_autoLayout_roteadores_ao_lado_do_nas() {
+        const a = L.autoLayout({ deskY: 50, shelfH: 8.3, laptopRight: true, nas: { w: 17.8, h: 17.8 }, routers: [{ key: "router:a", w: 20, h: 14 }, { key: "router:b", w: 20, h: 14 }],
+            stand: null, buds: [], monitors: [], tablet: null, laptop: { w: 35.5, h: 48 }, mousepad: { w: 90, h: 25 }, keyboard: null, mice: [], controllers: [] });
+        fuzzyCompare(a.pos["router:a"].x, a.pos["nas"].x + 17.8 + 4, 0.001);
+        fuzzyCompare(a.pos["router:b"].x, a.pos["router:a"].x + 22, 0.001);
+        compare(a.pos["router:a"].y, 50 - 14);
+        verify(a.pos["router:b"].x + 20 < a.pos["laptop"].x);
+    }
+
     function test_kindIcon() {
         compare(L.kindIcon("monitor"), "monitor");
         compare(L.kindIcon("laptop"), "laptop_mac");
         compare(L.kindIcon("nas"), "dns");
         compare(L.kindIcon("tablet"), "tablet_android");
+        compare(L.kindIcon("router"), "router");
+        compare(L.kindIcon("buds"), "earbuds");
         compare(L.kindIcon("keyboard"), "keyboard");
         compare(L.kindIcon("mouse"), "mouse");
         compare(L.kindIcon("headphones"), "headphones");
