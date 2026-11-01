@@ -465,11 +465,12 @@ Item {
             border.color: Qt.alpha(root.stateColor("fan", fan.on, false), 0.8)
         }
 
-        // A ventoinha vista pela malha (foto da traseira): sete pas curvas saindo do
-        // cubo do motor e varrendo ate a borda, a malha de furos em aneis finos e
-        // densos (a cada 6 un) por cima, o cubo cheio no meio -- tudo so em linhas,
-        // recortado na borda interna do relevo. Canvas: Repeater nao serve para
-        // ShapePath e sao dezenas de tracos.
+        // O vazado da grade (foto da traseira com a iluminacao removida): um protetor
+        // de aneis concentricos a cada 14 un, com quatro espinhas retas pelo centro
+        // (vertical e horizontal) e o cubo cheio de 36 un com a tampa, por baixo de
+        // uma malha fina em losangos (que nao se desenha: viraria um cinza). Tudo so
+        // em linhas, recortado na borda interna do relevo. Canvas: sao dezenas de
+        // tracos e Repeater nao serve para ShapePath.
         Canvas {
             id: mesh
 
@@ -501,33 +502,27 @@ Item {
                 ctx.arcTo(0, 0, r, 0, r);
                 ctx.closePath();
                 ctx.clip();
-                const cx = w / 2, cy = h / 2;
-                const hub = 23 * k, out = 128 * k;
-                const polar = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+                const cx = w / 2, cy = h / 2, hub = 18 * k;
+                // aneis do protetor, do cubo ate alem dos cantos (cortados pela borda)
                 ctx.lineWidth = 1;
-                // pas: bordo de ataque e bordo de fuga em curvas, do cubo ate alem da borda
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.55);
-                // 7 pas; cada uma varre 0,75 rad do cubo a borda e tem 0,4 rad de
-                // largura no cubo -- menos que o passo (0,9 rad), para as pas vizinhas
-                // nao se cruzarem no desenho
-                for (let i = 0; i < 7; i++) {
-                    const a = i * Math.PI * 2 / 7 + 0.3;
-                    const p0 = polar(hub, a), c0 = polar((hub + out) / 2, a + 0.18), p1 = polar(out, a + 0.75);
-                    const p2 = polar(out, a + 1.08), c2 = polar((hub + out) / 2, a + 0.62), p3 = polar(hub, a + 0.4);
-                    ctx.beginPath();
-                    ctx.moveTo(p0[0], p0[1]);
-                    ctx.quadraticCurveTo(c0[0], c0[1], p1[0], p1[1]);
-                    ctx.lineTo(p2[0], p2[1]);
-                    ctx.quadraticCurveTo(c2[0], c2[1], p3[0], p3[1]);
-                    ctx.stroke();
-                }
-                // malha: aneis finos e densos de furos
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.22);
-                for (let rad = hub + 6 * k; rad < Math.hypot(w, h) / 2; rad += 6 * k) {
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.5);
+                for (let rad = hub + 14 * k; rad < Math.hypot(w, h) / 2; rad += 14 * k) {
                     ctx.beginPath();
                     ctx.arc(cx, cy, rad, 0, Math.PI * 2);
                     ctx.stroke();
                 }
+                // quatro espinhas retas pelo centro, do cubo a borda
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.7);
+                ctx.beginPath();
+                ctx.moveTo(cx, 0);
+                ctx.lineTo(cx, cy - hub);
+                ctx.moveTo(cx, cy + hub);
+                ctx.lineTo(cx, h);
+                ctx.moveTo(0, cy);
+                ctx.lineTo(cx - hub, cy);
+                ctx.moveTo(cx + hub, cy);
+                ctx.lineTo(w, cy);
+                ctx.stroke();
                 // cubo do motor: disco cheio (sem furos) e a tampa
                 ctx.strokeStyle = mesh.c;
                 ctx.lineWidth = Math.max(1, 1.2 * k);
@@ -536,19 +531,20 @@ Item {
                 ctx.stroke();
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(cx, cy, 10 * k, 0, Math.PI * 2);
+                ctx.arc(cx, cy, 7 * k, 0, Math.PI * 2);
                 ctx.stroke();
             }
         }
 
         Text {
+            // na foto o nome ocupa 140 x 23 un, em fonte pontilhada
             anchors.centerIn: meshEdge
             text: "UGREEN"
             color: root.ink
             font.family: root.family
-            font.pixelSize: root.small(24)
+            font.pixelSize: root.small(26)
             font.weight: Font.Bold
-            font.letterSpacing: 3 * root.k
+            font.letterSpacing: 6 * root.k
             renderType: Text.NativeRendering
         }
 
@@ -570,9 +566,9 @@ Item {
 
     // Fileira de portas: HDMI, USB3.2, USB2.0 x2, LAN 2, LAN 1, RESET, DC 19V
     Rectangle {
-        x: 451 * root.k
-        y: 303 * root.k
-        width: 26 * root.k
+        x: 454 * root.k
+        y: 307 * root.k
+        width: 24 * root.k
         height: 10 * root.k
         radius: 3 * root.k
         color: "transparent"
@@ -581,10 +577,10 @@ Item {
     }
 
     Rectangle {
-        x: 498 * root.k
-        y: 302 * root.k
-        width: 18 * root.k
-        height: 12 * root.k
+        x: 499 * root.k
+        y: 311 * root.k
+        width: 22 * root.k
+        height: 10 * root.k
         radius: 1 * root.k
         color: "transparent"
         border.width: 1
@@ -593,7 +589,7 @@ Item {
         Rectangle {
             x: 3 * root.k
             y: 3 * root.k
-            width: 12 * root.k
+            width: 16 * root.k
             height: 4 * root.k
             color: root.faint
             opacity: 0.6
@@ -601,14 +597,14 @@ Item {
     }
 
     Repeater {
-        model: [292, 307]
+        model: [294, 311]
 
         Rectangle {
             required property int modelData
 
-            x: 547 * root.k
+            x: 545 * root.k
             y: modelData * root.k
-            width: 20 * root.k
+            width: 23 * root.k
             height: 10 * root.k
             radius: 1 * root.k
             color: "transparent"
@@ -619,7 +615,7 @@ Item {
 
     // LAN 2 (10 GbE, atlantic) e LAN 1 (2,5 GbE, igc): ordem fisica a confirmar com o cabo
     Repeater {
-        model: [{ id: "lan-10g", x: 588, port: root.lan10 }, { id: "lan-2g5", x: 632, port: root.lan25 }]
+        model: [{ id: "lan-10g", x: 588, port: root.lan10 }, { id: "lan-2g5", x: 634, port: root.lan25 }]
 
         Item {
             id: rj
@@ -628,9 +624,9 @@ Item {
             readonly property bool on: root.online && !!(rj.modelData.port?.up)
 
             x: rj.modelData.x * root.k
-            y: 298 * root.k
-            width: 30 * root.k
-            height: 23 * root.k
+            y: 301 * root.k
+            width: 31 * root.k
+            height: 20 * root.k
 
             Rectangle {
                 anchors.fill: rj
@@ -672,7 +668,7 @@ Item {
 
     Rectangle {
         x: 676 * root.k
-        y: 308 * root.k
+        y: 304 * root.k
         width: 4 * root.k
         height: 4 * root.k
         radius: width / 2
@@ -685,9 +681,9 @@ Item {
         id: dc
 
         x: 696 * root.k
-        y: 301 * root.k
-        width: 18 * root.k
-        height: 18 * root.k
+        y: 305 * root.k
+        width: 16 * root.k
+        height: 16 * root.k
         radius: width / 2
         color: "transparent"
         border.width: 1
@@ -703,7 +699,7 @@ Item {
     }
 
     Repeater {
-        model: [{ x: 451, w: 26, t: "HDMI" }, { x: 498, w: 18, t: "USB3.2" }, { x: 547, w: 20, t: "USB2.0" }, { x: 588, w: 30, t: "LAN 2" }, { x: 632, w: 30, t: "LAN 1" }, { x: 668, w: 20, t: "RESET" }, { x: 696, w: 18, t: "DC 19V" }]
+        model: [{ x: 454, w: 24, t: "HDMI" }, { x: 499, w: 22, t: "USB3.2" }, { x: 545, w: 23, t: "USB2.0" }, { x: 588, w: 31, t: "LAN 2" }, { x: 634, w: 31, t: "LAN 1" }, { x: 668, w: 20, t: "RESET" }, { x: 696, w: 16, t: "DC 19V" }]
 
         Text {
             required property var modelData
@@ -723,7 +719,7 @@ Item {
 
     // Velocidade da porta com cabo (vem do nas-status)
     Repeater {
-        model: [{ x: 588, port: root.lan10, id: "lan-10g" }, { x: 632, port: root.lan25, id: "lan-2g5" }]
+        model: [{ x: 588, port: root.lan10, id: "lan-10g" }, { x: 634, port: root.lan25, id: "lan-2g5" }]
 
         Text {
             required property var modelData
