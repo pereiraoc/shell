@@ -27,10 +27,11 @@ import "setup.js" as L
 // `editing` mostra a grade (2,5 cm, 10 cm mais forte) e deixa arrastar; a
 // posicao (cm, encaixada na grade) fica em ~/.config/caelestia/setup-layout.json
 // por peca; `reset()` apaga tudo e volta ao padrao. Na edicao as pecas nao tem
-// nome escrito: `pieces` alimenta a lista ao lado (PieceList), e `hoverKey`
-// (mouse na peca) / `highlightKey` (mouse na lista) / `selectedKey` (clique)
-// acendem peca e linha juntas. Clique fora da edicao abre a pagina da peca
-// (`open(page, tab)`); o que esta desligado so aparece com `showOffline`.
+// nome escrito: `pieces` (com a geometria) alimenta a lista embaixo
+// (PieceList), e `hoverKey` (mouse na peca) / `highlightKey` (mouse na lista) /
+// `selectedKey` (clique) acendem peca e linha juntas. Clique fora da edicao
+// abre a pagina da peca (`open(page, tab)`); o que esta desligado (mouse fora,
+// NAS sem resposta, tela conhecida mas nao ligada) so aparece com `showOffline`.
 Item {
     id: root
 
@@ -57,36 +58,42 @@ Item {
     property string hoverKey
     property string highlightKey
     property string selectedKey
-    // Pecas visiveis, na ordem da lista: [{ key, label, kind, online, device }]
+    // Pecas visiveis: [{ key, label, kind, online, device, x, y, w, h }] (cm)
     property var pieces: []
     readonly property string legend: root.editing ? root.pieceLabel(root.hoverKey || root.highlightKey || root.selectedKey) : root.hoverLabel
     // So aparece (e so anima) depois do layout salvo carregar e do encaixe:
     // senao a pagina abria no mundo inteiro e "dava zoom" ate o conteudo
     property bool ready
 
-    // Mundo em cm: de worldX0 (-20, a folga a esquerda onde o NAS nasce) ate
-    // 190; a linha da mesa (deskY) e a borda de tras do tampo -- monitor,
-    // suporte do fone, NAS e notebook apoiam nela, e o mousepad fica a frente
-    // (abaixo da linha). Na edicao aparece o mundo inteiro; fora dela o
+    // Mundo em cm, sem borda fixa: a linha da mesa (deskY) e a borda de tras do
+    // tampo -- monitor, suporte do fone, NAS e notebook apoiam nela, e o
+    // mousepad fica a frente (abaixo da linha); x = 0 e a esquerda do arranjo
+    // padrao e o NAS nasce em worldX0 + 1, antes de tudo. Nos dois modos o
     // conteudo (caixa de todas as pecas visiveis) e encaixado na largura e
-    // centrado, sem vazio sobrando.
+    // centrado: fora da edicao com 2 cm de folga; na edicao com folga maior
+    // (editPad) para haver mesa livre onde soltar, e a caixa recalcula a cada
+    // peca solta (um mundo de 210 cm fixo deixava tudo pequeno demais).
     readonly property real worldX0: -20
     readonly property real worldW: 190
     readonly property real deskY: 50
-    readonly property real worldH: 90
     readonly property real shelfH: 8.3
     readonly property real pad: 2
+    readonly property real editPadX: 12
+    readonly property real editPadY: 8
     readonly property real snapCm: 2.5
     property rect fit: Qt.rect(0, 0, 190, 90)
-    readonly property real cm: root.editing ? root.width / (root.worldW - root.worldX0) : root.width / Math.max(40, root.fit.width + root.pad * 2)
-    readonly property real ox: root.editing ? -root.worldX0 : root.pad - root.fit.x
-    readonly property real oy: root.editing ? 0 : root.pad - root.fit.y
+    readonly property real padX: root.editing ? root.editPadX : root.pad
+    readonly property real padY: root.editing ? root.editPadY : root.pad
+    readonly property real cm: root.width / Math.max(40, root.fit.width + root.padX * 2)
+    readonly property real ox: root.padX - root.fit.x
+    readonly property real oy: root.padY - root.fit.y
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
     readonly property real dpr: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
 
-    // Monitores externos ligados, da esquerda para a direita como no Hyprland
-    readonly property var externals: root.monitors.filter(m => !m.internal && m.enabled).sort((a, b) => root.posX(a) - root.posX(b))
+    // Monitores externos conhecidos (ligados ou nao), da esquerda para a direita
+    // como no Hyprland; `monitorOn` = ligado e conectado
+    readonly property var externals: root.monitors.filter(m => !m.internal).sort((a, b) => root.posX(a) - root.posX(b))
     readonly property var laptop: root.monitors.find(m => m.internal) ?? null
     // Padrao: o notebook fica do lado em que esta no arranjo (a direita do LG, hoje)
     readonly property bool laptopRight: !root.laptop || root.externals.length === 0 || root.posX(root.laptop) >= Math.max(...root.externals.map(m => root.posX(m)))
@@ -102,6 +109,10 @@ Item {
 
     function posX(m: var): real {
         return Number((m.position ?? "0x0").split("x")[0]);
+    }
+
+    function monitorOn(m: var): bool {
+        return !!m && !!m.enabled && m.connected !== false;
     }
 
     function place(key: string, x: real, y: real): void {
@@ -166,7 +177,7 @@ Item {
         for (const c of root.children) {
             if (c.key === undefined || !c.visible)
                 continue;
-            list.push({ key: c.key, label: c.label, kind: c.kind, online: c.online, device: c.device });
+            list.push({ key: c.key, label: c.label, kind: c.kind, online: c.online, device: c.device, x: c.xCm, y: c.yCm, w: c.wCm, h: c.hCm });
             x0 = Math.min(x0, c.xCm);
             y0 = Math.min(y0, c.yCm);
             x1 = Math.max(x1, c.xCm + c.wCm);
@@ -174,13 +185,13 @@ Item {
         }
         root.pieces = L.orderPieces(list);
         if (x0 === Infinity) {
-            root.fit = Qt.rect(0, 0, root.worldW, root.worldH);
+            root.fit = Qt.rect(0, 0, root.worldW, root.deskY + 40);
             return;
         }
         root.fit = Qt.rect(x0, y0, x1 - x0, y1 - y0);
     }
 
-    implicitHeight: root.editing ? root.worldH * root.cm : (root.fit.height + root.pad * 2) * root.cm
+    implicitHeight: (root.fit.height + root.padY * 2) * root.cm
     opacity: root.ready ? 1 : 0
 
     onLayoutChanged: Qt.callLater(root.refit)
@@ -242,6 +253,7 @@ Item {
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
         onMinorChanged: requestPaint()
+
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
@@ -249,8 +261,13 @@ Item {
                 return;
             const steps = L.gridSteps(root.cm);
             const isMajor = v => Math.abs(v / steps.major - Math.round(v / steps.major)) < 1e-6;
+            // so as linhas que caem no trecho visivel do mundo (multiplos do passo)
+            const x0 = Math.floor(-root.ox / steps.minor) * steps.minor;
+            const x1 = grid.width / root.cm - root.ox;
+            const y0 = Math.floor(-root.oy / steps.minor) * steps.minor;
+            const y1 = grid.height / root.cm - root.oy;
             ctx.lineWidth = 1;
-            for (let x = root.worldX0; x <= root.worldW + 1e-6; x += steps.minor) {
+            for (let x = x0; x <= x1 + 1e-6; x += steps.minor) {
                 const px = Math.round((x + root.ox) * root.cm) + 0.5;
                 ctx.strokeStyle = isMajor(x) ? grid.major : grid.minor;
                 ctx.beginPath();
@@ -258,7 +275,7 @@ Item {
                 ctx.lineTo(px, grid.height);
                 ctx.stroke();
             }
-            for (let y = 0; y <= root.worldH + 1e-6; y += steps.minor) {
+            for (let y = y0; y <= y1 + 1e-6; y += steps.minor) {
                 const py = Math.round((y + root.oy) * root.cm) + 0.5;
                 ctx.strokeStyle = isMajor(y) ? grid.major : grid.minor;
                 ctx.beginPath();
@@ -266,6 +283,18 @@ Item {
                 ctx.lineTo(grid.width, py);
                 ctx.stroke();
             }
+        }
+
+        Connections {
+            function onOxChanged(): void {
+                grid.requestPaint();
+            }
+
+            function onOyChanged(): void {
+                grid.requestPaint();
+            }
+
+            target: root
         }
     }
 
@@ -295,7 +324,9 @@ Item {
             defY: root.deskY - root.shelfH - (ext.lg ? 59 * 754 / 1285 : 33)
             wCm: 59
             hCm: ext.lg ? 59 * 754 / 1285 : 33
-            label: (ext.mon.description ?? ext.mon.name ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
+            label: ((ext.mon.description || ext.mon.name) ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
+            online: root.monitorOn(ext.mon)
+            showOffline: root.showOffline
             onClicked: root.open("display", ext.mon.name)
 
             Image {
@@ -368,9 +399,9 @@ Item {
     }
 
     // ------------------------------------------------------------------ NAS
-    // Frente do DXP4800 Plus apoiada na mesa, na folga a esquerda de tudo
-    // (worldX0); existe sempre que ha um NAS configurado, mas so e "ligado"
-    // quando responde
+    // Frente do DXP4800 Plus apoiada na mesa, antes de tudo (worldX0 + 1, a
+    // esquerda do suporte do fone e do monitor); existe sempre que ha um NAS
+    // configurado, mas so e "ligado" quando responde
     Piece {
         id: nasPiece
 

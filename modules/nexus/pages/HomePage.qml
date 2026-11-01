@@ -31,7 +31,17 @@ PageBase {
     readonly property var system: systemBridge.info
     readonly property var peripherals: peripheralBridge.info.devices ?? []
     readonly property var periph: periphBridge.info
-    // Aparelhos do desenho
+    // Aparelhos do desenho. Telas: as do caelestia-display (ligadas, desligadas
+    // e as so do monitors.conf, sem descricao); a descricao de uma tela
+    // desconectada vem do registro do app-monitor (pelo conector, ou a unica
+    // externa conhecida) -- assim a LG aparece "off" em viagem, nao some
+    readonly property var knownExternals: (appmonBridge.info.monitors ?? []).filter(m => !m.internal && !m.connected)
+    readonly property var setupMonitors: (root.display.monitors ?? []).map(m => {
+        if (m.connected !== false || m.description)
+            return m;
+        const k = root.knownExternals.find(x => x.connector === m.name) ?? (root.knownExternals.length === 1 ? root.knownExternals[0] : null);
+        return k ? Object.assign({}, m, { description: k.description }) : m;
+    })
     readonly property var setupMice: [...(root.periph.mice ?? []).map(m => ({ model: m.model, name: m.name, online: true })), ...(root.periph.mice_offline ?? []).map(m => ({ model: m.model, name: m.name, online: false }))]
     readonly property var setupKeyboard: {
         const k = (root.periph.rgb ?? []).find(d => d.backend === "hid");
@@ -122,6 +132,12 @@ PageBase {
         tool: "headphones"
     }
 
+    ToolBridge {
+        id: appmonBridge
+
+        tool: "app-monitor"
+    }
+
     Item {
         Component.onCompleted: root.pickRequested()
 
@@ -140,50 +156,20 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.medium
 
-        // O desenho e, na edicao, a lista das pecas ao lado (mouse num acende o outro)
-        RowLayout {
+        SetupDiagram {
+            id: setup
+
             Layout.fillWidth: true
-            spacing: Tokens.spacing.medium
-
-            SetupDiagram {
-                id: setup
-
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignTop
-                monitors: root.display.monitors ?? []
-                mice: root.setupMice
-                keyboard: root.setupKeyboard
-                headphones: root.setupHeadphones
-                controllers: root.setupControllers
-                nas: root.setupNas
-                showOffline: root.showOffline || root.editLayout
-                editing: root.editLayout
-                highlightKey: pieceList.visible ? pieceList.rowHover : ""
-                onOpen: (page, tab) => root.nState.openPage(page, 0, tab)
-            }
-
-            PieceList {
-                id: pieceList
-
-                property string rowHover
-
-                visible: root.editLayout
-                // Layout filho de layout nasce com fillWidth = true (engolia a largura toda)
-                Layout.fillWidth: false
-                Layout.preferredWidth: 240
-                Layout.maximumWidth: 240
-                Layout.alignment: Qt.AlignTop
-                pieces: setup.pieces
-                hoverKey: setup.hoverKey
-                selectedKey: setup.selectedKey
-                onHovered: (key, on) => {
-                    if (on)
-                        pieceList.rowHover = key;
-                    else if (pieceList.rowHover === key)
-                        pieceList.rowHover = "";
-                }
-                onPicked: key => setup.selectedKey = key
-            }
+            monitors: root.setupMonitors
+            mice: root.setupMice
+            keyboard: root.setupKeyboard
+            headphones: root.setupHeadphones
+            controllers: root.setupControllers
+            nas: root.setupNas
+            showOffline: root.showOffline || root.editLayout
+            editing: root.editLayout
+            highlightKey: pieceList.visible ? pieceList.rowHover : ""
+            onOpen: (page, tab) => root.nState.openPage(page, 0, tab)
         }
 
         // Nome da peca sob o mouse (linha propria, sempre reservada)
@@ -202,7 +188,7 @@ PageBase {
 
             StyledText {
                 Layout.fillWidth: true
-                text: root.editLayout ? Tr.tr("Drag a piece to where it sits on your desk — it snaps to the 2.5 cm grid; the list finds it") : Tr.tr("Tap a device to open its settings")
+                text: root.editLayout ? Tr.tr("Drag a piece to its place on the desk · 2.5 cm grid · hover the list to find one") : Tr.tr("Tap a device to open its settings")
                 color: Colours.palette.m3outline
                 font: Tokens.font.label.small
                 elide: Text.ElideRight
@@ -227,6 +213,26 @@ PageBase {
                 type: root.editLayout ? TextButton.Filled : TextButton.Tonal
                 onClicked: root.editLayout = !root.editLayout
             }
+        }
+
+        // Na edicao: a lista das pecas embaixo do desenho (mouse num acende o outro)
+        PieceList {
+            id: pieceList
+
+            property string rowHover
+
+            visible: root.editLayout
+            Layout.fillWidth: true
+            pieces: setup.pieces
+            hoverKey: setup.hoverKey
+            selectedKey: setup.selectedKey
+            onHovered: (key, on) => {
+                if (on)
+                    pieceList.rowHover = key;
+                else if (pieceList.rowHover === key)
+                    pieceList.rowHover = "";
+            }
+            onPicked: key => setup.selectedKey = key
         }
 
         GridLayout {

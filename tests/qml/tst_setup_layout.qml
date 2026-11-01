@@ -58,7 +58,43 @@ TestCase {
 
     function test_orderPieces() {
         const got = L.orderPieces([{ key: "mousepad", kind: "mousepad" }, { key: "mouse:naga", kind: "mouse" }, { key: "laptop", kind: "laptop" }, { key: "nas", kind: "nas" }, { key: "monitor:HDMI-A-1", kind: "monitor" }, { key: "shelf", kind: "shelf" }, { key: "keyboard", kind: "keyboard" }, { key: "headphones:WH", kind: "headphones" }, { key: "controller:0", kind: "controller" }]);
-        compare(got.map(p => p.key).join(","), "monitor:HDMI-A-1,laptop,nas,keyboard,mouse:naga,headphones:WH,controller:0,shelf,mousepad");
+        compare(got.map(p => p.key).join(","), "monitor:HDMI-A-1,laptop,nas,shelf,mousepad,keyboard,mouse:naga,headphones:WH,controller:0");
+    }
+
+    // O layout salvo do usuario (cm): teclado e mouses dentro do mousepad,
+    // estojos dos fones apoiados na mesinha, headphone no suporte solto
+    readonly property var desk: [{ key: "mousepad", kind: "mousepad", device: false, x: 24, y: 51.5, w: 90, h: 25 }, { key: "keyboard", kind: "keyboard", device: true, x: 38.5, y: 54, w: 32.6, h: 13.8 }, { key: "mouse:naga", kind: "mouse", device: true, x: 93.5, y: 55, w: 7.5, h: 12 }, { key: "mouse:atheris", kind: "mouse", device: true, x: 105, y: 56, w: 7.1, h: 10 }, { key: "shelf", kind: "shelf", device: false, x: 25, y: 37, w: 59, h: 13 }, { key: "headphones:WF", kind: "headphones", device: true, x: 68.5, y: 33, w: 6.5, h: 4 }, { key: "headphones:FC", kind: "headphones", device: true, x: 77, y: 32, w: 5, h: 5 }, { key: "headphones:WH", kind: "headphones", device: true, x: 1.5, y: 22, w: 21.7, h: 28 }, { key: "laptop", kind: "laptop", device: true, x: 85, y: 1.9, w: 35.5, h: 48 }, { key: "monitor:HDMI-A-1", kind: "monitor", device: true, x: 24, y: 2.5, w: 59, h: 34.6 }, { key: "nas", kind: "nas", device: true, x: -19, y: 32.2, w: 17.8, h: 17.8 }]
+
+    function test_childOf() {
+        const pad = desk[0], shelf = desk[4];
+        verify(L.childOf(desk[1], pad));
+        verify(L.childOf(desk[2], pad));
+        verify(L.childOf(desk[3], pad));
+        verify(!L.childOf(desk[7], pad));
+        verify(L.childOf(desk[5], shelf));
+        verify(L.childOf(desk[6], shelf));
+        verify(!L.childOf(desk[9], shelf));
+        // mesa nao e filha de mesa; sem geometria nao e filho
+        verify(!L.childOf(shelf, pad));
+        verify(!L.childOf({ key: "x", kind: "mouse", device: true }, pad));
+    }
+
+    function test_treePieces() {
+        const rows = L.treePieces(desk);
+        compare(rows.map(r => `${r.depth}:${r.key}`).join(","), "0:monitor:HDMI-A-1,0:laptop,0:nas,0:shelf,1:headphones:WF,1:headphones:FC,0:mousepad,1:keyboard,1:mouse:naga,1:mouse:atheris,0:headphones:WH");
+    }
+
+    function test_splitColumns() {
+        const rows = L.treePieces(desk);
+        const cols = L.splitColumns(rows, 2);
+        compare(cols.length, 2);
+        compare(cols[0].map(r => r.key).join(","), "monitor:HDMI-A-1,laptop,nas,shelf,headphones:WF,headphones:FC");
+        compare(cols[1].map(r => r.key).join(","), "mousepad,keyboard,mouse:naga,mouse:atheris,headphones:WH");
+        // uma coluna = tudo; grupo nunca se parte
+        compare(L.splitColumns(rows, 1)[0].length, rows.length);
+        const three = L.splitColumns(rows, 3);
+        verify(three.every(c => c.length === 0 || c[0].depth === 0));
+        compare(three.reduce((n, c) => n + c.length, 0), rows.length);
     }
 
     function test_kindIcon() {
