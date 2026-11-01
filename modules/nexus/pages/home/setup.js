@@ -138,15 +138,16 @@ function autoLayout(s) {
 const KIND_ORDER = ["monitor", "laptop", "tablet", "nas", "router", "shelf", "mousepad", "keyboard", "mouse", "headphones", "buds", "controller"];
 
 // Grupos fixos da lista da edicao (pedido de 01/11): notebook sozinho (e o que e
-// constante); teclado e mouse (mousemat, teclados, mouses, controles); telas
-// (monitores externos, tablet, mesinha); fones (suporte + WH); buds (estojos);
-// armazenamento (NAS); roteadores.
+// constante); teclado e mouse (mousemat, teclados, mouses); telas (monitores
+// externos, tablet, mesinha); fones (suporte + WH); buds (estojos); controles
+// (Bluetooth, quando pareados); armazenamento (NAS); roteadores.
 const GROUPS = [
     { id: "laptop", kinds: ["laptop"] },
-    { id: "keyboard-mouse", kinds: ["mousepad", "keyboard", "mouse", "controller"] },
+    { id: "keyboard-mouse", kinds: ["mousepad", "keyboard", "mouse"] },
     { id: "monitors", kinds: ["monitor", "tablet", "shelf"] },
     { id: "headphones", kinds: ["headphones"] },
     { id: "buds", kinds: ["buds"] },
+    { id: "controllers", kinds: ["controller"] },
     { id: "storage", kinds: ["nas"] },
     { id: "routers", kinds: ["router"] }
 ];

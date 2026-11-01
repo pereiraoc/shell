@@ -39,6 +39,7 @@ ColumnLayout {
         case "monitors": return Tr.tr("Monitors");
         case "headphones": return Tr.tr("Headphones");
         case "buds": return Tr.tr("Buds");
+        case "controllers": return Tr.tr("Controllers");
         case "storage": return Tr.tr("Storage");
         case "routers": return Tr.tr("Routers");
         default: return Tr.tr("Other");

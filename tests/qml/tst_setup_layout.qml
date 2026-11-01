@@ -155,7 +155,7 @@ TestCase {
             { key: "keyboard", kind: "keyboard" }, { key: "headphones:WH-1000XM5", kind: "headphones" }, { key: "headphones:WF", kind: "buds" },
             { key: "router:aa", kind: "router" }, { key: "controller:0", kind: "controller" }]);
         compare(rows.map(r => `${r.depth}:${r.header ? "group:" + r.group : r.key}`).join(","),
-            "0:group:laptop,1:laptop,0:group:keyboard-mouse,1:shelf,1:mousepad,1:keyboard,1:mouse:naga,1:controller:0,0:group:monitors,1:monitor:HDMI-A-1,1:tablet,0:group:headphones,1:headphones:WH-1000XM5,0:group:buds,1:headphones:WF,0:group:storage,1:nas,0:group:routers,1:router:aa".replace("1:shelf,1:mousepad", "1:mousepad").replace("1:monitor:HDMI-A-1,1:tablet", "1:monitor:HDMI-A-1,1:tablet,1:shelf"));
+            "0:group:laptop,1:laptop,0:group:keyboard-mouse,1:mousepad,1:keyboard,1:mouse:naga,0:group:monitors,1:monitor:HDMI-A-1,1:tablet,1:shelf,0:group:headphones,1:headphones:WH-1000XM5,0:group:buds,1:headphones:WF,0:group:controllers,1:controller:0,0:group:storage,1:nas,0:group:routers,1:router:aa");
         // grupo sem peca nao aparece
         compare(L.groupPieces([{ key: "laptop", kind: "laptop" }]).length, 2);
     }
