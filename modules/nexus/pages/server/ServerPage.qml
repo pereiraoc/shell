@@ -73,6 +73,7 @@ PageBase {
         { id: "overview", label: Tr.tr("Overview") },
         { id: "services", label: Tr.tr("Services") },
         { id: "network", label: Tr.tr("Network") },
+        { id: "home", label: Tr.tr("Home") },
         { id: "storage", label: Tr.tr("Storage") },
         { id: "system", label: Tr.tr("System") },
         { id: "logs", label: Tr.tr("Logs") }
@@ -147,6 +148,15 @@ PageBase {
                     page: root
                     bridge: nas
                 }
+            }
+        }
+
+        TabPane {
+            active: root.tab === "home"
+
+            ServerHome {
+                page: root
+                bridge: nas
             }
         }
 
