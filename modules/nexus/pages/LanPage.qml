@@ -273,7 +273,7 @@ PageBase {
             Layout.alignment: Qt.AlignHCenter
             implicitWidth: Tokens.padding.extraExtraLarge * 2
             implicitHeight: implicitWidth
-            radius: Tokens.rounding.normal
+            radius: Tokens.rounding.medium
             color: "transparent"
             border.width: 1
             border.color: node.dim ? Colours.palette.m3outlineVariant : Colours.palette.m3outline
