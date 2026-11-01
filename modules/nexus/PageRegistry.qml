@@ -96,6 +96,13 @@ QtObject {
             group: qsTr("System")
         },
         {
+            id: "server",
+            label: Tr.tr("Server"),
+            icon: "dns",
+            description: Tr.tr("The NAS at home: services, storage, health"),
+            group: qsTr("System")
+        },
+        {
             id: "security",
             label: qsTr("Security"),
             icon: "security",

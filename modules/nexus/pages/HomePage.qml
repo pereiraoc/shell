@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.misc
 import qs.components.controls
@@ -76,6 +77,12 @@ PageBase {
         id: storageBridge
 
         tool: "storage"
+    }
+
+    ToolBridge {
+        id: nasBridge
+
+        tool: "nas"
     }
 
     ToolBridge {
@@ -236,6 +243,17 @@ PageBase {
                 detail: root.worstDisk ? qsTr("%1 is %2% full").arg(root.worstDisk.mount).arg(root.worstDisk.pct) : ""
                 level: root.worstDisk?.level ?? "ok"
                 onClicked: root.nState.openPage("storage", 0, "")
+            }
+
+            StatusCard {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                icon: "dns"
+                title: Tr.tr("Server")
+                value: nasBridge.info.online === true ? nasBridge.summary : nasBridge.loading ? Tr.tr("Reaching…") : Tr.tr("Out of reach")
+                detail: nasBridge.info.online === true ? (nasBridge.info.host ?? "") : nasBridge.info.last_seen ? Tr.tr("Last seen %1").arg(String(nasBridge.info.last_seen).replace("T", " ")) : Tr.tr("NAS at home")
+                level: nasBridge.info.online === true ? nasBridge.level : "warn"
+                onClicked: root.nState.openPage("server", 0, "")
             }
 
             StatusCard {

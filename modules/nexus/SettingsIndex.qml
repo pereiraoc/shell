@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import Caelestia.I18n
 
 // Indice da busca do Nexus: uma entrada por linha/grupo que alguem procuraria
 // pelo nome. `keywords` sao sinonimos (o que o usuario digita, nao o nome
@@ -87,6 +88,11 @@ QtObject {
         { page: "storage", sub: 0, tab: "cleanup", title: qsTr("Safe cleanups"), subtitle: qsTr("Package cache, journal, trash"), keywords: "clean cache trash free space pacman flatpak" },
         { page: "storage", sub: 0, tab: "largest", title: qsTr("Largest folders"), subtitle: qsTr("What takes the most space"), keywords: "big folders baobab size" },
         { page: "storage", sub: 1, title: qsTr("Browse disk usage"), subtitle: qsTr("Folder tree, largest first"), keywords: "tree browse folders files baobab du size explore" },
+        { page: "server", sub: 0, tab: "overview", title: Tr.tr("Server overview"), subtitle: Tr.tr("NAS health; open photos, cloud, movies, music"), keywords: "nas server home immich nextcloud jellyfin navidrome photos cloud movies music open" },
+        { page: "server", sub: 0, tab: "services", title: Tr.tr("Server services"), subtitle: Tr.tr("Start, stop and restart the Docker stacks"), keywords: "nas docker stack start stop restart immich nextcloud jellyfin navidrome" },
+        { page: "server", sub: 0, tab: "storage", title: Tr.tr("Server storage"), subtitle: Tr.tr("HDs in RAID1, SMART, scrub, shared folders"), keywords: "nas disks hdd raid btrfs smart scrub samba smb nextcloud folders thunar" },
+        { page: "server", sub: 0, tab: "system", title: Tr.tr("Server system"), subtitle: Tr.tr("NixOS, watchdog, fans, rebuild, reboot"), keywords: "nas nixos flake rebuild reboot poweroff watchdog fans tailscale netbird vpn" },
+        { page: "server", sub: 0, tab: "logs", title: Tr.tr("Server logs"), subtitle: Tr.tr("Journal of a unit on the NAS"), keywords: "nas logs journal journalctl docker containers" },
 
         // Security
         { page: "security", sub: 0, tab: "unlock", title: qsTr("Face recognition"), subtitle: qsTr("Howdy models, turn off"), keywords: "face howdy unlock camera biometric login" },
