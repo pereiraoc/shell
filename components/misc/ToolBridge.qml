@@ -55,6 +55,12 @@ Item {
     // Ultima acao executada (de qualquer origem: Nexus ou terminal).
     readonly property var lastResult: root.last.result ?? null
 
+    // Releitura periodica (ms; 0 = so ao abrir a pagina e quando o cache muda).
+    // A pagina e destruida ao trocar de menu, entao so roda enquanto ela esta
+    // na tela -- e o que faz um tablet ou um dongle plugado aparecer na Home
+    // sem sair e voltar.
+    property int autoRefresh: 0
+
     function refresh(): void {
         if (refreshProc.running)
             return;
@@ -179,6 +185,18 @@ Item {
             refreshProc.timedOut = true;
             refreshProc.running = false;
             root.error = qsTr("%1: timed out after 15 s").arg(root.tool);
+        }
+    }
+
+    Timer {
+        id: autoTimer
+
+        interval: Math.max(5000, root.autoRefresh)
+        running: root.autoRefresh > 0
+        repeat: true
+        onTriggered: {
+            if (!refreshProc.running && root.busyAction === "")
+                root.refresh();
         }
     }
 

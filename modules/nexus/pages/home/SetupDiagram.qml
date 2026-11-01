@@ -251,6 +251,7 @@ Item {
     onHeadphonesChanged: Qt.callLater(root.refit)
     onControllersChanged: Qt.callLater(root.refit)
     onNasChanged: Qt.callLater(root.refit)
+    onTabletChanged: Qt.callLater(root.refit)
     Component.onCompleted: Qt.callLater(root.refit)
 
     Behavior on opacity {

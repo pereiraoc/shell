@@ -95,12 +95,14 @@ PageBase {
         id: powerBridge
 
         tool: "power"
+        autoRefresh: 30000
     }
 
     ToolBridge {
         id: displayBridge
 
         tool: "display"
+        autoRefresh: 20000
     }
 
     ToolBridge {
@@ -113,36 +115,42 @@ PageBase {
         id: nasBridge
 
         tool: "nas"
+        autoRefresh: 60000
     }
 
     ToolBridge {
         id: tabletBridge
 
         tool: "tablet"
+        autoRefresh: 20000
     }
 
     ToolBridge {
         id: systemBridge
 
         tool: "system"
+        autoRefresh: 30000
     }
 
     ToolBridge {
         id: peripheralBridge
 
         tool: "peripheral-battery"
+        autoRefresh: 20000
     }
 
     ToolBridge {
         id: periphBridge
 
         tool: "peripherals"
+        autoRefresh: 20000
     }
 
     ToolBridge {
         id: headphonesBridge
 
         tool: "headphones"
+        autoRefresh: 20000
     }
 
     ToolBridge {
