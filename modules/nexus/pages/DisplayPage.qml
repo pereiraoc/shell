@@ -76,8 +76,7 @@ PageBase {
     title: qsTr("Display")
     description: qsTr("Resolution, refresh rate, scale and brightness for each screen")
     tabs: [
-        { id: "general", label: qsTr("General") },
-        { id: "advanced", label: qsTr("Advanced") }
+        { id: "general", label: qsTr("General") }
     ]
 
     // Deep link com o nome do monitor (busca, Home, IPC): escolhe-o no
@@ -361,13 +360,9 @@ PageBase {
                 busy: bridge.busyAction.startsWith("dpi-")
                 onPicked: v => bridge.run({ id: `dpi-${v}` })
             }
-        }
-
-        // ---------------------------------------------------------- Advanced
-        TabPane {
-            active: root.tab === "advanced"
 
             AdvancedGroup {
+                Layout.topMargin: Tokens.spacing.large
                 apps: [
                     { id: "nwg-displays", text: qsTr("Arrange displays"), subtext: qsTr("Position screens side by side, mirror (nwg-displays)") }
                 ]

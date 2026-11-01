@@ -76,7 +76,6 @@ PageBase {
             t.push({ id: root.tabId(m), label: root.tabLabel(m) });
         for (const m of root.miceOffline)
             t.push({ id: root.tabId(m), label: root.tabLabel(m) });
-        t.push({ id: "advanced", label: qsTr("Advanced") });
         return t;
     }
 
@@ -178,6 +177,14 @@ PageBase {
 
             ActionErrorRow {
                 bridge: inputBridge
+            }
+
+            AdvancedGroup {
+                Layout.topMargin: Tokens.spacing.large
+                apps: [
+                    // So o app do mesmo backend (OpenRazer); Piper saiu em 01/11: nao conversa com o caelestia-peripherals
+                    { id: "app.polychromatic.controller", alt: ["polychromatic"], text: qsTr("Razer devices"), subtext: qsTr("Buttons, DPI and lighting (Polychromatic)") }
+                ]
             }
         }
 
@@ -339,18 +346,6 @@ PageBase {
                     buttons: []
                     opacity: 0.45
                 }
-            }
-        }
-
-        // ---------------------------------------------------------- Advanced
-        TabPane {
-            active: root.tab === "advanced"
-
-            AdvancedGroup {
-                apps: [
-                    { id: "app.polychromatic.controller", alt: ["polychromatic"], text: qsTr("Razer devices"), subtext: qsTr("Buttons, DPI and lighting (Polychromatic)") },
-                    { id: "org.freedesktop.Piper", text: qsTr("Gaming mouse"), subtext: qsTr("Buttons and DPI profiles (Piper)") }
-                ]
             }
         }
     }

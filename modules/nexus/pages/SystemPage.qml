@@ -65,8 +65,7 @@ PageBase {
         { id: "processes", label: qsTr("Processes") },
         { id: "boot", label: qsTr("Boot") },
         { id: "logs", label: qsTr("Logs") },
-        { id: "health", label: qsTr("Health") },
-        { id: "advanced", label: qsTr("Advanced") }
+        { id: "health", label: qsTr("Health") }
     ]
 
     ToolBridge {
@@ -164,6 +163,14 @@ PageBase {
                 icon: "schedule"
                 label: qsTr("Up for %1").arg(root.uptimeText(root.info.uptime_s ?? 0))
                 value: root.info.load ? qsTr("Load %1").arg(root.info.load[0].toFixed(2)) : ""
+            }
+
+            AdvancedGroup {
+                Layout.topMargin: Tokens.spacing.large
+                apps: [
+                    { id: "gnome-system-monitor-kde", text: qsTr("System Monitor"), subtext: qsTr("Every process, per-core graphs, file systems") },
+                    { id: "org.gnome.Logs", text: qsTr("Logs"), subtext: qsTr("Search the full system log") }
+                ]
             }
         }
 
@@ -357,18 +364,6 @@ PageBase {
 
             ActionErrorRow {
                 bridge: bridge
-            }
-        }
-
-        // ---------------------------------------------------------- Advanced
-        TabPane {
-            active: root.tab === "advanced"
-
-            AdvancedGroup {
-                apps: [
-                    { id: "gnome-system-monitor-kde", text: qsTr("System Monitor"), subtext: qsTr("Every process, per-core graphs, file systems") },
-                    { id: "org.gnome.Logs", text: qsTr("Logs"), subtext: qsTr("Search the full system log") }
-                ]
             }
         }
     }

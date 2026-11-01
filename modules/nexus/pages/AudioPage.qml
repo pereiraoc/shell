@@ -48,8 +48,7 @@ PageBase {
     tabs: [
         { id: "output", label: qsTr("Output") },
         { id: "input", label: qsTr("Input") },
-        { id: "effects", label: qsTr("Effects") },
-        { id: "advanced", label: qsTr("Advanced") }
+        { id: "effects", label: qsTr("Effects") }
     ]
 
     ToolBridge {
@@ -247,6 +246,14 @@ PageBase {
             ActionErrorRow {
                 bridge: soundBridge
             }
+
+            AdvancedGroup {
+                Layout.topMargin: Tokens.spacing.large
+                apps: [
+                    { id: "org.rncbc.qpwgraph", text: qsTr("Audio routing graph"), subtext: qsTr("Connect any app to any device by hand (qpwgraph)") },
+                    { id: "com.github.wwmm.easyeffects", text: qsTr("EasyEffects"), subtext: qsTr("Edit equalizer, compressor and noise presets") }
+                ]
+            }
         }
 
         // ------------------------------------------------------------- Input
@@ -443,19 +450,6 @@ PageBase {
 
             ActionErrorRow {
                 bridge: soundBridge
-            }
-        }
-
-        // ---------------------------------------------------------- Advanced
-        TabPane {
-            active: root.tab === "advanced"
-
-            AdvancedGroup {
-                apps: [
-                    { id: "org.rncbc.qpwgraph", text: qsTr("Audio routing graph"), subtext: qsTr("Connect any app to any device by hand (qpwgraph)") },
-                    { id: "com.github.wwmm.easyeffects", text: qsTr("EasyEffects"), subtext: qsTr("Edit equalizer, compressor and noise presets") },
-                    { id: "pavucontrol", alt: ["org.pulseaudio.pavucontrol"], text: qsTr("Volume control"), subtext: qsTr("Card profiles and per-device settings (pavucontrol)") }
-                ]
             }
         }
     }

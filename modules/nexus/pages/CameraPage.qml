@@ -105,8 +105,7 @@ PageBase {
     description: qsTr("Preview, privacy and picture settings")
     tabs: [
         { id: "general", label: qsTr("General") },
-        { id: "laptop", label: qsTr("Laptop") },
-        { id: "advanced", label: qsTr("Advanced") }
+        { id: "laptop", label: qsTr("Laptop") }
     ]
 
     onVisibleChanged: {
@@ -521,19 +520,6 @@ PageBase {
                 subtext: qsTr("Resolution, scale, brightness and the bar side")
                 trailingIcon: "chevron_right"
                 onClicked: root.nState.openPage("display", 0, "general")
-            }
-        }
-
-        // ---------------------------------------------------------- Advanced
-        TabPane {
-            active: root.tab === "advanced"
-
-            AdvancedGroup {
-                apps: [
-                    { id: "org.gnome.Cheese", alt: ["cheese"], text: qsTr("Cheese"), subtext: qsTr("Take photos and videos with the webcam") },
-                    { id: "io.github.webcamoid.Webcamoid", alt: ["webcamoid"], text: qsTr("Webcamoid"), subtext: qsTr("Virtual camera, effects and recording") },
-                    { id: "guvcview", text: qsTr("guvcview"), subtext: qsTr("Every V4L2 control the driver exposes") }
-                ]
             }
         }
     }
