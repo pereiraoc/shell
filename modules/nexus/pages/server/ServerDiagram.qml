@@ -432,9 +432,10 @@ Item {
 
         readonly property bool on: root.online && !!(root.fans?.case_rpm)
 
-        // Medido na foto (1 un = 1,94 px): relevo de x 40..323, y 20..287; a malha,
-        // quadrada, de x 59..300, y 34..276 -- o chanfro e mais largo nos lados
-        // (19 e 23 un) que em cima (14) e embaixo (11)
+        // Medido na foto (1 un = 1,94 px): relevo de x 40..323, y 20..287; a malha
+        // quadrada de 241 un centrada nele (na foto os chanfros laterais parecem
+        // mais largos por perspectiva; o desenho e simetrico: 21 un nos lados,
+        // 12,5 em cima e embaixo)
         x: 440 * root.k
         y: 20 * root.k
         width: 283 * root.k
@@ -496,7 +497,7 @@ Item {
                 // tira a area da malha (fica so a faixa do relevo)
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.beginPath();
-                rr(19 * k, 14 * k, w - 42 * k, h - 25 * k, 14 * k);
+                rr(21 * k, 12.5 * k, w - 42 * k, h - 25 * k, 16 * k);
                 ctx.fill();
             }
         }
@@ -505,11 +506,11 @@ Item {
             id: meshEdge
 
             anchors.fill: fan
-            anchors.leftMargin: 19 * root.k
-            anchors.rightMargin: 23 * root.k
-            anchors.topMargin: 14 * root.k
-            anchors.bottomMargin: 11 * root.k
-            radius: 14 * root.k
+            anchors.leftMargin: 21 * root.k
+            anchors.rightMargin: 21 * root.k
+            anchors.topMargin: 12.5 * root.k
+            anchors.bottomMargin: 12.5 * root.k
+            radius: 16 * root.k
             color: "transparent"
             border.width: 1
             border.color: Qt.alpha(root.stateColor("fan", fan.on, false), 0.8)
@@ -537,8 +538,8 @@ Item {
                 const w = width, h = height, k = mesh.k;
                 ctx.reset();
                 ctx.clearRect(0, 0, w, h);
-                // recorte na borda interna do relevo (cantos de 14 un)
-                const r = 13 * k;
+                // recorte na borda interna do relevo (cantos de 16 un)
+                const r = 15 * k;
                 ctx.beginPath();
                 ctx.moveTo(r, 0);
                 ctx.lineTo(w - r, 0);
@@ -558,26 +559,25 @@ Item {
                 ctx.lineWidth = 1;
                 ctx.strokeStyle = Qt.alpha(mesh.c, 0.32);
                 ctx.beginPath();
-                for (let d = -h; d < w + h; d += 3.5 * k) {
+                for (let d = -h; d < w + h; d += 3 * k) {
                     ctx.moveTo(d, 0);
                     ctx.lineTo(d + h, h);
                     ctx.moveTo(d, h);
                     ctx.lineTo(d + h, 0);
                 }
                 ctx.stroke();
-                // aneis do protetor: faixas largas (4 un) a cada 13 un, do cubo ate os
-                // cantos, por tras da malha
-                ctx.lineWidth = 4 * k;
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.28);
-                for (let rad = hub + 13 * k; rad < Math.hypot(w, h) / 2; rad += 13 * k) {
+                // aneis do protetor: faixas de 3 un a cada 12 un, do cubo ate os cantos
+                ctx.lineWidth = 3 * k;
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.32);
+                for (let rad = hub + 12 * k; rad < Math.hypot(w, h) / 2; rad += 12 * k) {
                     ctx.beginPath();
                     ctx.arc(cx, cy, rad, 0, Math.PI * 2);
                     ctx.stroke();
                 }
                 // espinhas retas do protetor: vertical, horizontal e as quatro para os
-                // cantos, discretas como na foto
-                ctx.lineWidth = Math.max(1, 1.5 * k);
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.22);
+                // cantos, tao visiveis quanto os aneis, encostadas no cubo
+                ctx.lineWidth = Math.max(1, 2 * k);
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.4);
                 ctx.beginPath();
                 for (let i = 0; i < 8; i++) {
                     const a = i * Math.PI / 4;
@@ -586,9 +586,9 @@ Item {
                     ctx.lineTo(p1[0], p1[1]);
                 }
                 ctx.stroke();
-                // cubo do motor: disco escuro de 45 un, borda discreta
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.45);
+                // cubo do motor: disco escuro de 44 un; as espinhas nascem na borda dele
+                ctx.lineWidth = Math.max(1, 2 * k);
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.5);
                 ctx.beginPath();
                 ctx.arc(cx, cy, hub, 0, Math.PI * 2);
                 ctx.stroke();
