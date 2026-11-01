@@ -52,8 +52,9 @@ Item {
     // [{ key, name, ip, online }] roteadores (caelestia-lan: gateway e os marcados
     // como "router"); silhueta generica ate haver foto do modelo
     property var routers: []
-    // { chave da peca: nome } dado pelo usuario (device-names.json); vence o
-    // nome do aparelho no rotulo
+    // { chave da peca: nome } dado pelo usuario (~/.config/caelestia/device-names.json,
+    // vigiado abaixo): laptop, nas, tablet, keyboard, monitor:<conector>,
+    // mouse:<modelo>, headphones:<modelo>, router:<MAC>; vence o nome do aparelho
     property var names: ({})
     property bool showOffline
     property bool editing
@@ -268,6 +269,23 @@ Item {
 
     Behavior on opacity {
         Anim {}
+    }
+
+    FileView {
+        id: namesFile
+
+        path: `${Paths.config}/device-names.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                const d = JSON.parse(text());
+                root.names = d && typeof d === "object" ? d : {};
+            } catch (e) {
+                root.names = {};
+            }
+        }
     }
 
     FileView {

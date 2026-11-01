@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Caelestia.Config
@@ -66,7 +65,6 @@ PageBase {
     // Roteadores: o gateway desta rede e os aparelhos marcados como "router" em
     // Network > Devices (caelestia-lan); chave = MAC (ou IP sem MAC)
     readonly property var setupRouters: (lanBridge.info.devices ?? []).filter(d => d.type === "router").map(d => ({ key: d.mac || d.ip, name: d.name || d.hostname || d.vendor || "", ip: d.ip ?? "", online: !!d.online }))
-    property var deviceNames: ({})
     property bool showOffline
     property bool editLayout
 
@@ -138,26 +136,6 @@ PageBase {
         autoRefresh: 20000
     }
 
-    // Nomes que o usuario da aos aparelhos (~/.config/caelestia/device-names.json):
-    // { "laptop": "OP's Laptop", "nas": "OP's NAS", "monitor:HDMI-A-1": "...",
-    //   "keyboard": "...", "mouse:razer-naga-v2-hyperspeed": "...", ... } -- a chave
-    // e a chave da peca no diagrama; sem entrada, vale o nome do aparelho
-    FileView {
-        id: namesFile
-
-        path: `${Paths.config}/device-names.json`
-        watchChanges: true
-        printErrors: false
-        onFileChanged: reload()
-        onLoaded: {
-            try {
-                root.deviceNames = JSON.parse(text()) ?? ({});
-            } catch (e) {
-                root.deviceNames = {};
-            }
-        }
-    }
-
     ToolBridge {
         id: systemBridge
 
@@ -222,7 +200,6 @@ PageBase {
             nas: root.setupNas
             tablet: root.setupTablet
             routers: root.setupRouters
-            names: root.deviceNames
             showOffline: root.showOffline || root.editLayout
             editing: root.editLayout
             highlightKey: pieceList.visible ? pieceList.rowHover : ""
