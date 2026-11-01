@@ -6,9 +6,9 @@ import "../server/server.js" as S
 
 // A frente do UGREEN DXP4800 Plus em miniatura, para o setup do Home (a versao
 // grande, com legendas e pecas clicaveis, e o ServerDiagram da pagina Server):
-// moldura de metal com a face preta recuada, gaveteiro escuro com a barra de
-// cima, quatro gavetas de face clara com a tampa e a trava, painel de baixo
-// claro com botao, LEDs LAN e DISK1-4, SD e USBs, e a barra do nome. Mesmas
+// so linhas, como os outros diagramas -- moldura com a face recuada, gaveteiro
+// com a barra de cima, quatro gavetas com a tampa e a trava, painel de baixo
+// com botao, LEDs LAN e DISK1-4, SD e USBs, e a barra do nome. Mesmas
 // coordenadas do ServerDiagram (360 x 360 un), sem texto: a 17,8 cm de mesa a
 // peca tem uns 80 px e letra nenhuma se le. Gaveta com disco e LED ganham o
 // tom primario quando o NAS responde.
@@ -25,16 +25,12 @@ Item {
     readonly property var bays: S.bayMap(root.info?.disks)
     readonly property bool linkUp: root.online && Array.isArray(root.info?.net) && root.info.net.some(n => !!n.up)
     readonly property color lit: Colours.palette.m3primary
-    readonly property color metal: Qt.alpha(root.ink, 0.1)
-    readonly property color tray: Qt.alpha(root.ink, 0.14)
-    readonly property color face: Qt.alpha("#000000", 0.16)
-    readonly property color dark: Qt.alpha("#000000", 0.34)
 
-    // Moldura de metal e a face preta recuada
+    // Moldura e a face recuada
     Rectangle {
         anchors.fill: parent
         radius: 24 * root.k
-        color: root.metal
+        color: "transparent"
         border.width: 1
         border.color: root.ink
     }
@@ -43,24 +39,24 @@ Item {
         anchors.fill: parent
         anchors.margins: 8 * root.k
         radius: 18 * root.k
-        color: root.face
+        color: "transparent"
         border.width: 1
         border.color: root.faint
     }
 
-    // Gaveteiro escuro (com a barra grossa em cima)
+    // Gaveteiro (com a barra grossa em cima)
     Rectangle {
         x: 36 * root.k
         y: 28 * root.k
         width: 288 * root.k
         height: 240 * root.k
         radius: 12 * root.k
-        color: root.dark
+        color: "transparent"
         border.width: 1
         border.color: root.faint
     }
 
-    // As 4 gavetas: contorno, face clara da tampa ate a divisa, trava na base
+    // As 4 gavetas: contorno, linha da tampa, tom de estado so com disco, divisa, trava
     Repeater {
         model: 4
 
@@ -90,7 +86,16 @@ Item {
                 width: bay.width - 2
                 height: 155 * root.k
                 radius: 4 * root.k
-                color: bay.on ? Qt.alpha(root.lit, 0.16) : root.tray
+                visible: bay.on
+                color: Qt.alpha(root.lit, 0.16)
+            }
+
+            Rectangle {
+                x: 0
+                y: 7 * root.k
+                width: bay.width
+                height: 1
+                color: root.faint
             }
 
             Rectangle {
@@ -114,21 +119,19 @@ Item {
         }
     }
 
-    // Painel de baixo (metal claro) e a linha da barra do nome
-    Rectangle {
-        x: 8 * root.k
-        y: 272 * root.k
-        width: 344 * root.k
-        height: 54 * root.k
-        color: root.metal
-    }
+    // Painel de baixo e a barra do nome: duas linhas na largura da face
+    Repeater {
+        model: [272, 326]
 
-    Rectangle {
-        x: 8 * root.k
-        y: 326 * root.k
-        width: 344 * root.k
-        height: 1
-        color: root.faint
+        Rectangle {
+            required property int modelData
+
+            x: 8 * root.k
+            y: modelData * root.k
+            width: 344 * root.k
+            height: 1
+            color: root.faint
+        }
     }
 
     // Botao de energia (pilula)

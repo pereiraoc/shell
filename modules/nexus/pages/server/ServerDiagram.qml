@@ -48,12 +48,6 @@ Item {
     readonly property bool labels: root.k >= 1.1
     readonly property color ink: Colours.palette.m3onSurfaceVariant
     readonly property color faint: Colours.palette.m3outlineVariant
-    // Materiais da foto, no traco do tema: metal claro (gavetas, painel de
-    // baixo) e o preto recuado do gaveteiro
-    readonly property color metal: Qt.alpha(root.ink, 0.1)
-    readonly property color tray: Qt.alpha(root.ink, 0.14)
-    readonly property color face: Qt.alpha("#000000", 0.16)
-    readonly property color dark: Qt.alpha("#000000", 0.34)
     readonly property string family: Tokens.font.label.small.family
     // Numeros das gavetas: condensada alta e pesada, como a serigrafia
     readonly property string numFamily: "Nimbus Sans Narrow"
@@ -95,27 +89,28 @@ Item {
     implicitHeight: (root.bottomExpanded ? 384 + 519 : 360) * root.k
 
     // ================================================================ FRENTE
-    // Carcaca: moldura externa clara e a face preta recuada (a faixa entre as
-    // duas e o que se ve nos cantos da foto)
+    // Carcaca: moldura externa e a face recuada (a faixa entre as duas e o que
+    // se ve nos cantos da foto); so linhas, como os outros diagramas
     Chassis {
         x: 0
     }
 
-    // Gaveteiro: caixa preta recuada com a barra grossa em cima; as gavetas
-    // comecam 16 un abaixo do topo dela
+    // Gaveteiro: caixa recuada com a barra grossa em cima (as gavetas comecam
+    // 16 un abaixo do topo dela)
     Rectangle {
         x: 36 * root.k
         y: 28 * root.k
         width: 288 * root.k
         height: 240 * root.k
         radius: 12 * root.k
-        color: root.dark
+        color: "transparent"
         border.width: 1
         border.color: root.faint
     }
 
-    // As 4 gavetas: tampa escura em cima, face clara com o numero e a
-    // capacidade, base preta com a trava redonda
+    // As 4 gavetas: tampa em cima (linha), face com o numero e a capacidade,
+    // divisa e a base com a trava redonda; so a gaveta com disco/escolhida tem
+    // tom (cor de estado)
     Repeater {
         model: 4
 
@@ -144,14 +139,24 @@ Item {
                 border.color: root.stateColor(bay.spotId, bay.on, bay.bad)
             }
 
-            // Face clara (metal): da tampa ate a divisa
+            // Tom de estado (disco presente, escolhida, falha) na face da gaveta
             Rectangle {
                 x: 1
                 y: 7 * root.k
                 width: bay.width - 2
                 height: 155 * root.k
                 radius: 4 * root.k
-                color: bay.lit || bay.on || bay.bad ? root.fill(bay.spotId, bay.on, bay.bad) : root.tray
+                visible: bay.lit || bay.on || bay.bad
+                color: root.fill(bay.spotId, bay.on, bay.bad)
+            }
+
+            // Tampa: a linha onde a face comeca
+            Rectangle {
+                x: 0
+                y: 7 * root.k
+                width: bay.width
+                height: 1
+                color: root.faint
             }
 
             // Numero, em condensada alta como a impressa
@@ -214,21 +219,20 @@ Item {
         }
     }
 
-    // Painel inferior (metal claro) e, abaixo dele, a barra escura com o nome
-    Rectangle {
-        x: 8 * root.k
-        y: 272 * root.k
-        width: 344 * root.k
-        height: 54 * root.k
-        color: root.metal
-    }
+    // Painel inferior e, abaixo dele, a barra com o nome: duas linhas na
+    // largura da face
+    Repeater {
+        model: [272, 326]
 
-    Rectangle {
-        x: 8 * root.k
-        y: 326 * root.k
-        width: 344 * root.k
-        height: 1
-        color: root.faint
+        Rectangle {
+            required property int modelData
+
+            x: 8 * root.k
+            y: modelData * root.k
+            width: 344 * root.k
+            height: 1
+            color: root.faint
+        }
     }
 
     Text {
@@ -421,8 +425,7 @@ Item {
         }
     }
 
-    // Grade quadrada da ventoinha: malha de furos (pontos), aneis concentricos
-    // e o UGREEN grande no meio
+    // Grade quadrada da ventoinha: aneis concentricos e o UGREEN grande no meio
     Item {
         id: fan
 
@@ -439,39 +442,6 @@ Item {
             color: root.fill("fan", fan.on, false)
             border.width: Math.max(1, 1.4 * root.k)
             border.color: root.stateColor("fan", fan.on, false)
-        }
-
-        Canvas {
-            id: mesh
-
-            readonly property color dot: Qt.alpha(root.faint, 0.45)
-
-            anchors.fill: fan
-            onWidthChanged: requestPaint()
-            onHeightChanged: requestPaint()
-            onDotChanged: requestPaint()
-            onPaint: {
-                const ctx = getContext("2d");
-                ctx.reset();
-                const r = 22 * root.k, w = mesh.width, h = mesh.height;
-                ctx.beginPath();
-                ctx.moveTo(r, 1);
-                ctx.arcTo(w - 1, 1, w - 1, h - 1, r);
-                ctx.arcTo(w - 1, h - 1, 1, h - 1, r);
-                ctx.arcTo(1, h - 1, 1, 1, r);
-                ctx.arcTo(1, 1, w - 1, 1, r);
-                ctx.closePath();
-                ctx.clip();
-                ctx.fillStyle = mesh.dot;
-                const step = 6 * root.k, rad = Math.max(0.6, 1.1 * root.k);
-                for (let row = 0, y = step; y < h; y += step * 0.87, row++) {
-                    for (let x = (row % 2 ? step / 2 : 0) + step / 2; x < w; x += step) {
-                        ctx.beginPath();
-                        ctx.arc(x, y, rad, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-            }
         }
 
         Repeater {
@@ -984,9 +954,8 @@ Item {
         }
     }
 
-    // Carcaca de 360 x 360: moldura externa de metal claro e a face preta
-    // recuada 8 un, com raio menor -- a faixa clara entre as duas e o que se
-    // ve nos cantos da foto
+    // Carcaca de 360 x 360: moldura externa e a face recuada 8 un, com raio
+    // menor -- a faixa entre as duas e o que se ve nos cantos da foto
     component Chassis: Item {
         width: 360 * root.k
         height: 360 * root.k
@@ -994,7 +963,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: 24 * root.k
-            color: root.metal
+            color: "transparent"
             border.width: 1
             border.color: root.ink
         }
@@ -1003,7 +972,7 @@ Item {
             anchors.fill: parent
             anchors.margins: 8 * root.k
             radius: 18 * root.k
-            color: root.face
+            color: "transparent"
             border.width: 1
             border.color: root.faint
         }
