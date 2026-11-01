@@ -52,6 +52,9 @@ Item {
     // [{ key, name, ip, online }] roteadores (caelestia-lan: gateway e os marcados
     // como "router"); silhueta generica ate haver foto do modelo
     property var routers: []
+    // { chave da peca: nome } dado pelo usuario (device-names.json); vence o
+    // nome do aparelho no rotulo
+    property var names: ({})
     property bool showOffline
     property bool editing
     // Posicoes salvas: { key: { x, y } } em cm
@@ -151,6 +154,11 @@ Item {
 
     function budH(model: string): real {
         return model === "WF-1000XM5" ? 6.1 : 7;
+    }
+
+    function nameFor(key: string, fallback: string): string {
+        const n = root.names?.[key];
+        return typeof n === "string" && n !== "" ? n : fallback;
     }
 
     function autoX(key: string): real {
@@ -371,7 +379,7 @@ Item {
             defY: root.autoY(`monitor:${ext.mon.name}`)
             wCm: 59
             hCm: root.monitorH(ext.mon)
-            label: ((ext.mon.description || ext.mon.name) ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
+            label: root.nameFor(`monitor:${ext.mon.name}`, ((ext.mon.description || ext.mon.name) ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, ""))
             online: root.monitorOn(ext.mon)
             showOffline: root.showOffline
             onClicked: root.open("display", ext.mon.name)
@@ -419,7 +427,7 @@ Item {
         defY: root.autoY("laptop")
         wCm: 35.5
         hCm: 35.5 * 1243 / 918
-        label: Tr.tr("Laptop")
+        label: root.nameFor("laptop", Tr.tr("Laptop"))
         visible: !!root.laptop
         online: !!root.laptop?.enabled
         showOffline: true
@@ -461,7 +469,7 @@ Item {
         defY: root.autoY("tablet")
         wCm: 28.5
         hCm: 28.5 * 1900 / 2850
-        label: root.tablet?.label || Tr.tr("Tablet")
+        label: root.nameFor("tablet", root.tablet?.label || Tr.tr("Tablet"))
         visible: !!root.tablet && (tab.online || root.showOffline)
         online: !!root.tablet?.online
         showOffline: root.showOffline
@@ -498,7 +506,7 @@ Item {
         defY: root.autoY("nas")
         wCm: 17.8
         hCm: 17.8
-        label: !root.nas ? "" : root.nas.online ? Tr.tr("NAS · DXP4800 Plus") : root.nas.lastSeen ? Tr.tr("NAS · last seen %1").arg(root.nas.lastSeen) : Tr.tr("NAS · out of reach")
+        label: !root.nas ? "" : root.nas.online ? root.nameFor("nas", Tr.tr("NAS · DXP4800 Plus")) : root.nas.lastSeen ? Tr.tr("%1 · last seen %2").arg(root.nameFor("nas", Tr.tr("NAS"))).arg(root.nas.lastSeen) : Tr.tr("%1 · out of reach").arg(root.nameFor("nas", Tr.tr("NAS")))
         visible: !!root.nas && (nasPiece.online || root.showOffline)
         online: !!root.nas?.online
         showOffline: root.showOffline
@@ -531,7 +539,7 @@ Item {
             defY: root.autoY(`router:${rt.dev.key}`)
             wCm: 20
             hCm: 14
-            label: [rt.dev.name, rt.dev.ip].filter(x => x).join(" · ")
+            label: root.nameFor(`router:${rt.dev.key}`, [rt.dev.name, rt.dev.ip].filter(x => x).join(" · "))
             online: !!rt.dev.online
             showOffline: root.showOffline
             onClicked: root.open("network", "")
@@ -653,7 +661,7 @@ Item {
         defY: root.autoY("keyboard")
         wCm: 32.6
         hCm: 32.6 * 793 / 1867
-        label: root.keyboard ? [(root.keyboard.name ?? "").replace(/\s*2\.4GHz$/, ""), root.keyboard.battery !== null && root.keyboard.battery !== undefined ? `${Math.round(root.keyboard.battery * 100)}%` : ""].filter(x => x).join(" · ") : ""
+        label: root.keyboard ? [root.nameFor("keyboard", (root.keyboard.name ?? "").replace(/\s*2\.4GHz$/, "")), root.keyboard.battery !== null && root.keyboard.battery !== undefined ? `${Math.round(root.keyboard.battery * 100)}%` : ""].filter(x => x).join(" · ") : ""
         visible: !!root.keyboard && (kbd.online || root.showOffline)
         online: !!root.keyboard?.online
         showOffline: root.showOffline
@@ -694,7 +702,7 @@ Item {
             defY: root.autoY(`mouse:${mouse.dev.model}`)
             wCm: mouse.naga ? 7.5 : 7.1
             hCm: mouse.naga ? 12 : 10
-            label: (mouse.dev.name ?? "").replace(/\s*\(.*?\)\s*$/, "")
+            label: root.nameFor(`mouse:${mouse.dev.model}`, (mouse.dev.name ?? "").replace(/\s*\(.*?\)\s*$/, ""))
             online: !!mouse.dev.online
             showOffline: root.showOffline
             onClicked: root.open("mouse", mouse.dev.model ?? "")
@@ -743,7 +751,7 @@ Item {
             defY: root.autoY(`headphones:${hp.dev.model}`)
             wCm: hp.big ? 21.7 : root.budW(hp.dev.model)
             hCm: hp.big ? hp.standH : root.budH(hp.dev.model)
-            label: [hp.dev.name, hp.dev.model].filter(x => x).join(" · ")
+            label: root.nameFor(`headphones:${hp.dev.model}`, [hp.dev.name, hp.dev.model].filter(x => x).join(" · "))
             visible: (hp.file !== "" || !hp.big) && (hp.online || root.showOffline)
             online: !!hp.dev.connected
             showOffline: root.showOffline
