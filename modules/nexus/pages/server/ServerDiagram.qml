@@ -515,12 +515,11 @@ Item {
             border.color: Qt.alpha(root.stateColor("fan", fan.on, false), 0.8)
         }
 
-        // O vazado da grade (foto da traseira com a iluminacao removida): um protetor
-        // de aneis concentricos a cada 14 un, com quatro espinhas retas pelo centro
-        // (vertical e horizontal) e o cubo cheio de 36 un com a tampa, por baixo de
-        // uma malha fina em losangos (que nao se desenha: viraria um cinza). Tudo so
-        // em linhas, recortado na borda interna do relevo. Canvas: sao dezenas de
-        // tracos e Repeater nao serve para ShapePath.
+        // O vazado da grade, como na foto ampliada: a malha em losangos e o que mais
+        // aparece (celula de 3,5 un, clara); por tras dela o protetor da ventoinha --
+        // faixas concentricas largas a cada 13 un, duas espinhas retas discretas e o
+        // cubo escuro de 45 un no meio. Tudo so em linhas, recortado na borda interna
+        // do relevo. Canvas: sao centenas de tracos e Repeater nao serve para ShapePath.
         Canvas {
             id: mesh
 
@@ -552,53 +551,53 @@ Item {
                 ctx.arcTo(0, 0, r, 0, r);
                 ctx.closePath();
                 ctx.clip();
-                const cx = w / 2, cy = h / 2, hub = 18 * k;
-                // aneis do protetor, do cubo ate alem dos cantos (cortados pela borda)
+                const cx = w / 2, cy = h / 2, hub = 22 * k;
+                const polar = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+                // malha em losangos: e o que mais se ve na foto -- duas familias de
+                // diagonais a 45 graus, celula de 3,5 un, clara
                 ctx.lineWidth = 1;
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.5);
-                for (let rad = hub + 14 * k; rad < Math.hypot(w, h) / 2; rad += 14 * k) {
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-                // malha fina em losangos por cima: duas familias de diagonais a 45 graus,
-                // a cada 5 un, bem apagadas (e textura, nao estrutura)
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.13);
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.32);
                 ctx.beginPath();
-                for (let d = -h; d < w + h; d += 5 * k) {
+                for (let d = -h; d < w + h; d += 3.5 * k) {
                     ctx.moveTo(d, 0);
                     ctx.lineTo(d + h, h);
                     ctx.moveTo(d, h);
                     ctx.lineTo(d + h, 0);
                 }
                 ctx.stroke();
-                // quatro espinhas retas pelo centro, do cubo a borda
-                ctx.strokeStyle = Qt.alpha(mesh.c, 0.7);
+                // aneis do protetor: faixas largas (4 un) a cada 13 un, do cubo ate os
+                // cantos, por tras da malha
+                ctx.lineWidth = 4 * k;
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.28);
+                for (let rad = hub + 13 * k; rad < Math.hypot(w, h) / 2; rad += 13 * k) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                // espinhas retas do protetor: vertical, horizontal e as quatro para os
+                // cantos, discretas como na foto
+                ctx.lineWidth = Math.max(1, 1.5 * k);
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.22);
                 ctx.beginPath();
-                ctx.moveTo(cx, 0);
-                ctx.lineTo(cx, cy - hub);
-                ctx.moveTo(cx, cy + hub);
-                ctx.lineTo(cx, h);
-                ctx.moveTo(0, cy);
-                ctx.lineTo(cx - hub, cy);
-                ctx.moveTo(cx + hub, cy);
-                ctx.lineTo(w, cy);
+                for (let i = 0; i < 8; i++) {
+                    const a = i * Math.PI / 4;
+                    const p0 = polar(hub, a), p1 = polar(Math.hypot(w, h), a);
+                    ctx.moveTo(p0[0], p0[1]);
+                    ctx.lineTo(p1[0], p1[1]);
+                }
                 ctx.stroke();
-                // cubo do motor: disco cheio (sem furos) e a tampa
-                ctx.strokeStyle = mesh.c;
-                ctx.lineWidth = Math.max(1, 1.2 * k);
+                // cubo do motor: disco escuro de 45 un, borda discreta
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.45);
                 ctx.beginPath();
                 ctx.arc(cx, cy, hub, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.arc(cx, cy, 7 * k, 0, Math.PI * 2);
                 ctx.stroke();
             }
         }
 
         Text {
-            // na foto o nome ocupa 140 x 23 un, em fonte pontilhada
+            // na foto o nome ocupa 140 x 23 un, em fonte pontilhada (o texto solido
+            // basta: o perfurado em Canvas nao rende fora do shell)
             anchors.centerIn: meshEdge
             text: "UGREEN"
             color: root.ink
