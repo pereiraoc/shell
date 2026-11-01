@@ -437,6 +437,9 @@ Item {
         width: 264 * root.k
         height: 250 * root.k
 
+        // Relevo da grade (foto da traseira): uma faixa chanfrada de 12 un sobe do
+        // painel preto ate a malha -- borda externa (onde o relevo comeca) e borda
+        // interna (onde a malha comeca, cantos mais fechados)
         Rectangle {
             anchors.fill: fan
             radius: 22 * root.k
@@ -445,12 +448,21 @@ Item {
             border.color: root.stateColor("fan", fan.on, false)
         }
 
-        // Aneis da grade (foto da traseira): do cubo do motor (46 un) ate alem da
-        // borda da grade, a cada 24 un, cortados por ela; em tinta, senao somem no
-        // fundo escuro. O cubo e o anel de dentro, cheio.
+        Rectangle {
+            anchors.fill: fan
+            anchors.margins: 12 * root.k
+            radius: 12 * root.k
+            color: "transparent"
+            border.width: 1
+            border.color: Qt.alpha(root.stateColor("fan", fan.on, false), 0.8)
+        }
+
+        // Aneis da malha: do cubo do motor (46 un) ate alem da borda interna do
+        // relevo, a cada 24 un, cortados por ela; em tinta, senao somem no fundo
+        // escuro. O cubo e o anel de dentro, cheio.
         Item {
             anchors.fill: fan
-            anchors.margins: Math.max(1, 1.4 * root.k)
+            anchors.margins: 13 * root.k
             clip: true
 
             Repeater {
