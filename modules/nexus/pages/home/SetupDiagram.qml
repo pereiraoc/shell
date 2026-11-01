@@ -4,24 +4,33 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.effects
 import qs.services
 import qs.utils
+import "setup.js" as L
 
 // O setup visto de frente, no traco dos outros diagramas, com cada peca onde
 // o usuario a deixou: monitores (silhueta do LG com o pe, numa mesinha da
 // largura dele e da altura do touchpad, com os estojos dos fones ao lado do
-// pe), notebook (G16 aberto), mousepad de 90 x 25, Azoth, mouses, headphone
-// no suporte e controles. Silhuetas em assets/devices com o traco normalizado
-// para o tamanho em que aparecem (scripts/art/trace.py, `stroke`). Tamanhos reais em cm (1 cm = width/190):
+// pe), notebook (G16 aberto, com tela, camera, teclado, touchpad e
+// alto-falantes clicaveis -- cada area abre a sua pagina), NAS (frente do
+// DXP4800 Plus, a esquerda do monitor, so quando responde), mousepad de
+// 90 x 25, Azoth, mouses, headphone no suporte e controles. Silhuetas em
+// assets/devices com o traco normalizado para o tamanho em que aparecem
+// (scripts/art/trace.py, `stroke`). Tamanhos reais em cm (1 cm = width/190):
 //   LG 25" 58 x 24 cm de tela (EDID), ~59 cm com a moldura; G16 35,5 x 24,3;
-//   Azoth 32,6 x 13,6; Naga 12 x 7,5; Atheris 10 x 6,3; WH-1000XM5 21,7 de
-//   largura; WF-1000XM5 (estojo) 6,5 x 4; FreeClip 2 (estojo) 5 x 5; controle
-//   Xbox 15,3 x 10,2. `editing` deixa arrastar; a posicao (cm, encaixada em
-//   0,5) fica em ~/.config/caelestia/setup-layout.json por peca; `reset()`
-//   apaga tudo e volta ao padrao. Clique fora da edicao abre a pagina da
-//   peca (`open(page, tab)`); o que esta desligado so aparece com `showOffline`.
+//   NAS 17,8 x 17,8 de frente; Azoth 32,6 x 13,6; Naga 12 x 7,5; Atheris
+//   10 x 6,3; WH-1000XM5 21,7 de largura; WF-1000XM5 (estojo) 6,5 x 4;
+//   FreeClip 2 (estojo) 5 x 5; controle Xbox 15,3 x 10,2.
+// `editing` mostra a grade (2,5 cm, 10 cm mais forte) e deixa arrastar; a
+// posicao (cm, encaixada na grade) fica em ~/.config/caelestia/setup-layout.json
+// por peca; `reset()` apaga tudo e volta ao padrao. Na edicao as pecas nao tem
+// nome escrito: `pieces` alimenta a lista ao lado (PieceList), e `hoverKey`
+// (mouse na peca) / `highlightKey` (mouse na lista) / `selectedKey` (clique)
+// acendem peca e linha juntas. Clique fora da edicao abre a pagina da peca
+// (`open(page, tab)`); o que esta desligado so aparece com `showOffline`.
 Item {
     id: root
 
@@ -35,19 +44,28 @@ Item {
     property var headphones: []
     // [{ name, connected }] controles (Bluetooth)
     property var controllers: []
+    // { online, lastSeen, info } do caelestia-nas, ou null
+    property var nas: null
     property bool showOffline
     property bool editing
     // Posicoes salvas: { key: { x, y } } em cm
     property var layout: ({})
     readonly property bool customized: Object.keys(root.layout).length > 0
-    // Nome da peca sob o mouse (a pagina mostra na legenda)
+    // Nome da peca sob o mouse fora da edicao (a pagina mostra na legenda)
     property string hoverLabel
+    // Edicao: peca sob o mouse, peca sob o mouse na lista, peca escolhida
+    property string hoverKey
+    property string highlightKey
+    property string selectedKey
+    // Pecas visiveis, na ordem da lista: [{ key, label, kind, online, device }]
+    property var pieces: []
+    readonly property string legend: root.editing ? root.pieceLabel(root.hoverKey || root.highlightKey || root.selectedKey) : root.hoverLabel
     // So aparece (e so anima) depois do layout salvo carregar e do encaixe:
     // senao a pagina abria no mundo inteiro e "dava zoom" ate o conteudo
     property bool ready
 
     // Mundo em cm: 190 de largura; a linha da mesa (deskY) e a borda de tras
-    // do tampo -- monitor, suporte do fone e notebook apoiam nela, e o
+    // do tampo -- monitor, suporte do fone, NAS e notebook apoiam nela, e o
     // mousepad fica a frente (abaixo da linha). Na edicao aparece o mundo
     // inteiro; fora dela o conteudo (caixa de todas as pecas visiveis) e
     // encaixado na largura e centrado, sem vazio sobrando.
@@ -56,6 +74,7 @@ Item {
     readonly property real worldH: 90
     readonly property real shelfH: 8.3
     readonly property real pad: 2
+    readonly property real snapCm: 2.5
     property rect fit: Qt.rect(0, 0, 190, 90)
     readonly property real cm: root.editing ? root.width / root.worldW : root.width / Math.max(40, root.fit.width + root.pad * 2)
     readonly property real ox: root.editing ? 0 : root.pad - root.fit.x
@@ -74,6 +93,8 @@ Item {
     readonly property var lgMon: root.externals.find(m => /LG ULTRAWIDE/i.test(m.description ?? "")) ?? root.externals[0] ?? null
     readonly property real lgX: root.lgMon ? (root.layout[`monitor:${root.lgMon.name}`]?.x ?? root.zoneX + 30) : root.zoneX + 30
     readonly property real lgBottom: root.lgMon ? (root.layout[`monitor:${root.lgMon.name}`]?.y ?? root.deskY - root.shelfH - 59 * 754 / 1285) + 59 * 754 / 1285 : root.deskY - root.shelfH
+    // Areas clicaveis do notebook (setup.js), com o nome traduzido
+    readonly property var laptopParts: L.laptopParts().map(p => ({ id: p.id, label: root.partLabel(p.id), x: p.x, y: p.y, w: p.w, h: p.h }))
 
     signal open(page: string, tab: string)
 
@@ -100,17 +121,56 @@ Item {
             root.hoverLabel = "";
     }
 
-    // Caixa (cm) das pecas visiveis + a mesa: e o que aparece fora da edicao
+    function setHoverKey(key: string, on: bool): void {
+        if (on)
+            root.hoverKey = key;
+        else if (root.hoverKey === key)
+            root.hoverKey = "";
+    }
+
+    function pieceLabel(key: string): string {
+        return root.pieces.find(p => p.key === key)?.label ?? "";
+    }
+
+    function partLabel(id: string): string {
+        switch (id) {
+        case "screen":
+            return Tr.tr("Screen");
+        case "camera":
+            return Tr.tr("Camera");
+        case "speakers":
+            return Tr.tr("Speakers");
+        case "keyboard":
+            return Tr.tr("Keyboard");
+        case "touchpad":
+            return Tr.tr("Touchpad");
+        }
+        return id;
+    }
+
+    // Clique numa area do notebook: a tela abre o Display com a tela do
+    // notebook escolhida; as outras abrem a aba "laptop"/"touchpad"/"output"
+    function openPart(id: string): void {
+        const p = L.laptopParts().find(h => h.id === id);
+        if (p)
+            root.open(p.page, p.tab || (root.laptop?.name ?? ""));
+    }
+
+    // Caixa (cm) das pecas visiveis + a mesa: e o que aparece fora da edicao.
+    // De quebra recolhe a lista das pecas visiveis para a edicao.
     function refit(): void {
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        const list = [];
         for (const c of root.children) {
             if (c.key === undefined || !c.visible)
                 continue;
+            list.push({ key: c.key, label: c.label, kind: c.kind, online: c.online, device: c.device });
             x0 = Math.min(x0, c.xCm);
             y0 = Math.min(y0, c.yCm);
             x1 = Math.max(x1, c.xCm + c.wCm);
             y1 = Math.max(y1, c.yCm + c.hCm);
         }
+        root.pieces = L.orderPieces(list);
         if (x0 === Infinity) {
             root.fit = Qt.rect(0, 0, root.worldW, root.worldH);
             return;
@@ -123,12 +183,19 @@ Item {
 
     onLayoutChanged: Qt.callLater(root.refit)
     onShowOfflineChanged: Qt.callLater(root.refit)
-    onEditingChanged: Qt.callLater(root.refit)
+    onEditingChanged: {
+        if (!root.editing) {
+            root.selectedKey = "";
+            root.highlightKey = "";
+        }
+        Qt.callLater(root.refit);
+    }
     onMonitorsChanged: Qt.callLater(root.refit)
     onMiceChanged: Qt.callLater(root.refit)
     onKeyboardChanged: Qt.callLater(root.refit)
     onHeadphonesChanged: Qt.callLater(root.refit)
     onControllersChanged: Qt.callLater(root.refit)
+    onNasChanged: Qt.callLater(root.refit)
     Component.onCompleted: Qt.callLater(root.refit)
 
     Behavior on opacity {
@@ -159,6 +226,47 @@ Item {
         }
     }
 
+    // Grade da edicao: linhas finas a cada 2,5 cm (5 quando nao cabem) e
+    // fortes a cada 10 cm; e nela que as pecas encaixam ao soltar
+    Canvas {
+        id: grid
+
+        readonly property color minor: Qt.alpha(root.faint, 0.35)
+        readonly property color major: Qt.alpha(root.faint, 0.85)
+
+        anchors.fill: parent
+        visible: root.editing
+        onVisibleChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onMinorChanged: requestPaint()
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.reset();
+            if (!root.editing || root.cm <= 0)
+                return;
+            const steps = L.gridSteps(root.cm);
+            const isMajor = v => Math.abs(v / steps.major - Math.round(v / steps.major)) < 1e-6;
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= root.worldW + 1e-6; x += steps.minor) {
+                const px = Math.round((x + root.ox) * root.cm) + 0.5;
+                ctx.strokeStyle = isMajor(x) ? grid.major : grid.minor;
+                ctx.beginPath();
+                ctx.moveTo(px, 0);
+                ctx.lineTo(px, grid.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= root.worldH + 1e-6; y += steps.minor) {
+                const py = Math.round((y + root.oy) * root.cm) + 0.5;
+                ctx.strokeStyle = isMajor(y) ? grid.major : grid.minor;
+                ctx.beginPath();
+                ctx.moveTo(0, py);
+                ctx.lineTo(grid.width, py);
+                ctx.stroke();
+            }
+        }
+    }
+
     // Linha da mesa (borda de tras do tampo)
     Rectangle {
         x: 0
@@ -172,7 +280,7 @@ Item {
     Repeater {
         model: root.externals.length
 
-        SetupPiece {
+        Piece {
             id: ext
 
             required property int index
@@ -180,21 +288,13 @@ Item {
             readonly property bool lg: /LG ULTRAWIDE/i.test(ext.mon.description ?? "")
 
             key: `monitor:${ext.mon.name}`
+            kind: "monitor"
             defX: root.zoneX + 30 + ext.index * 62
             defY: root.deskY - root.shelfH - (ext.lg ? 59 * 754 / 1285 : 33)
             wCm: 59
             hCm: ext.lg ? 59 * 754 / 1285 : 33
-            layout: root.layout
-            cm: root.cm
-            ox: root.ox
-            oy: root.oy
-            animate: root.ready
-            deskCm: root.deskY
-            editing: root.editing
-            onHover: (l, on) => root.setHover(l, on)
             label: (ext.mon.description ?? ext.mon.name ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
             onClicked: root.open("display", ext.mon.name)
-            onMoved: (k, x, y) => root.place(k, x, y)
 
             Image {
                 id: lgArt
@@ -227,28 +327,25 @@ Item {
     }
 
     // ----------------------------------------------------------- notebook
-    SetupPiece {
+    // Areas clicaveis (setup.js): tela -> Display (tela do notebook), camera
+    // -> Camera > Laptop, teclado -> Keyboard > Laptop, touchpad -> Mouse >
+    // Touchpad, grades laterais -> Sound > Output; o resto do chassi -> Display
+    Piece {
         id: lap
 
         key: "laptop"
+        kind: "laptop"
         defX: root.laptopRight ? 190 - 37.5 : 2
         defY: root.deskY - 35.5 * 1243 / 918
         wCm: 35.5
         hCm: 35.5 * 1243 / 918
-        layout: root.layout
-        cm: root.cm
-        ox: root.ox
-        oy: root.oy
-        animate: root.ready
-        deskCm: root.deskY
-        editing: root.editing
-        onHover: (l, on) => root.setHover(l, on)
-        label: qsTr("Laptop")
+        label: Tr.tr("Laptop")
         visible: !!root.laptop
         online: !!root.laptop?.enabled
         showOffline: true
+        hotspots: root.laptopParts
         onClicked: root.open("display", root.laptop?.name ?? "")
-        onMoved: (k, x, y) => root.place(k, x, y)
+        onPartClicked: id => root.openPart(id)
 
         Image {
             id: lapArt
@@ -268,10 +365,37 @@ Item {
         }
     }
 
+    // ------------------------------------------------------------------ NAS
+    // Frente do DXP4800 Plus apoiada na mesa, a esquerda do monitor; existe
+    // sempre que ha um NAS configurado, mas so e "ligado" quando responde
+    Piece {
+        id: nasPiece
+
+        key: "nas"
+        kind: "nas"
+        defX: root.zoneX + 2
+        defY: root.deskY - 17.8
+        wCm: 17.8
+        hCm: 17.8
+        label: !root.nas ? "" : root.nas.online ? Tr.tr("NAS · DXP4800 Plus") : root.nas.lastSeen ? Tr.tr("NAS · last seen %1").arg(root.nas.lastSeen) : Tr.tr("NAS · out of reach")
+        visible: !!root.nas && (nasPiece.online || root.showOffline)
+        online: !!root.nas?.online
+        showOffline: root.showOffline
+        onClicked: root.open("server", "overview")
+
+        NasFrontArt {
+            anchors.fill: parent
+            info: root.nas?.info ?? ({})
+            online: nasPiece.online
+            ink: root.ink
+            faint: root.faint
+        }
+    }
+
     // ------------------------------------------------------------- mesinha
     // Apoio horizontal do monitor: a largura do LG, do pe do monitor ate a
     // linha da mesa; os estojos dos fones ficam em cima, ao lado do pe
-    SetupPiece {
+    Piece {
         id: shelf
 
         // o topo fica onde foi posto (sob o pe do monitor); a base desce ate a
@@ -279,21 +403,13 @@ Item {
         readonly property real topCm: root.layout["shelf"]?.y ?? root.lgBottom
 
         key: "shelf"
+        kind: "shelf"
         defX: root.lgX
         defY: root.lgBottom
         wCm: 59
         hCm: Math.max(2, root.deskY - shelf.topCm)
-        layout: root.layout
-        cm: root.cm
-        ox: root.ox
-        oy: root.oy
-        animate: root.ready
-        deskCm: root.deskY
-        editing: root.editing
-        onHover: (l, on) => root.setHover(l, on)
-        label: qsTr("Monitor riser")
+        label: Tr.tr("Monitor riser")
         device: false
-        onMoved: (k, x, y) => root.place(k, x, y)
 
         Rectangle {
             anchors.fill: parent
@@ -313,23 +429,15 @@ Item {
     }
 
     // ------------------------------------------------------------- mousepad
-    SetupPiece {
+    Piece {
         key: "mousepad"
+        kind: "mousepad"
         defX: root.zoneX + 22
         defY: root.deskY + 2
         wCm: 90
         hCm: 25
-        layout: root.layout
-        cm: root.cm
-        ox: root.ox
-        oy: root.oy
-        animate: root.ready
-        deskCm: root.deskY
-        editing: root.editing
-        onHover: (l, on) => root.setHover(l, on)
-        label: qsTr("Mousepad · 90 × 25 cm")
+        label: Tr.tr("Mousepad · 90 × 25 cm")
         device: false
-        onMoved: (k, x, y) => root.place(k, x, y)
 
         Rectangle {
             anchors.fill: parent
@@ -344,30 +452,22 @@ Item {
     Repeater {
         model: root.controllers.length
 
-        SetupPiece {
+        Piece {
             id: pad
 
             required property int index
             readonly property var dev: root.controllers[index] ?? ({})
 
             key: `controller:${pad.index}`
+            kind: "controller"
             defX: root.zoneX + 2 + pad.index * 17
             defY: root.deskY + 6
             wCm: 15.3
             hCm: 10.2
-            layout: root.layout
-            cm: root.cm
-            ox: root.ox
-            oy: root.oy
-            animate: root.ready
-            deskCm: root.deskY
-            editing: root.editing
-            onHover: (l, on) => root.setHover(l, on)
-            label: pad.dev.name ?? qsTr("Controller")
+            label: pad.dev.name ?? Tr.tr("Controller")
             online: !!pad.dev.connected
             showOffline: root.showOffline
             onClicked: root.open("bluetooth", "")
-            onMoved: (k, x, y) => root.place(k, x, y)
 
             MaterialIcon {
                 anchors.centerIn: parent
@@ -379,28 +479,20 @@ Item {
     }
 
     // --------------------------------------------------------------- teclado
-    SetupPiece {
+    Piece {
         id: kbd
 
         key: "keyboard"
+        kind: "keyboard"
         defX: root.zoneX + 27
         defY: root.deskY + 6
         wCm: 32.6
         hCm: 32.6 * 793 / 1867
-        layout: root.layout
-        cm: root.cm
-        ox: root.ox
-        oy: root.oy
-        animate: root.ready
-        deskCm: root.deskY
-        editing: root.editing
-        onHover: (l, on) => root.setHover(l, on)
         label: root.keyboard ? [(root.keyboard.name ?? "").replace(/\s*2\.4GHz$/, ""), root.keyboard.battery !== null && root.keyboard.battery !== undefined ? `${Math.round(root.keyboard.battery * 100)}%` : ""].filter(x => x).join(" · ") : ""
         visible: !!root.keyboard && (kbd.online || root.showOffline)
         online: !!root.keyboard?.online
         showOffline: root.showOffline
         onClicked: root.open("keyboard", root.keyboard?.id ?? "")
-        onMoved: (k, x, y) => root.place(k, x, y)
 
         Image {
             id: kbdArt
@@ -424,7 +516,7 @@ Item {
     Repeater {
         model: root.mice.length
 
-        SetupPiece {
+        Piece {
             id: mouse
 
             required property int index
@@ -432,23 +524,15 @@ Item {
             readonly property bool naga: (mouse.dev.model ?? "").includes("naga")
 
             key: `mouse:${mouse.dev.model}`
+            kind: "mouse"
             defX: root.zoneX + 63 + mouse.index * 10
             defY: root.deskY + 5
             wCm: mouse.naga ? 7.5 : 7.1
             hCm: mouse.naga ? 12 : 10
-            layout: root.layout
-            cm: root.cm
-            ox: root.ox
-            oy: root.oy
-            animate: root.ready
-            deskCm: root.deskY
-            editing: root.editing
-            onHover: (l, on) => root.setHover(l, on)
             label: (mouse.dev.name ?? "").replace(/\s*\(.*?\)\s*$/, "")
             online: !!mouse.dev.online
             showOffline: root.showOffline
             onClicked: root.open("mouse", mouse.dev.model ?? "")
-            onMoved: (k, x, y) => root.place(k, x, y)
 
             // Silhuetas do Home (<modelo>-home.svg): Naga sem o painel lateral, traco
             // normalizado para o tamanho em que aparecem
@@ -475,7 +559,7 @@ Item {
     Repeater {
         model: root.headphones.length
 
-        SetupPiece {
+        Piece {
             id: hp
 
             required property int index
@@ -489,24 +573,16 @@ Item {
             readonly property real standH: 28
 
             key: `headphones:${hp.dev.model}`
+            kind: "headphones"
             defX: hp.big ? root.zoneX + 126 : root.lgX + (hp.budIndex === 0 ? 8 : 44)
             defY: hp.big ? root.deskY - hp.standH : root.lgBottom - hp.hCm + 0.5
             wCm: hp.big ? 21.7 : hp.dev.model === "WF-1000XM5" ? 6.5 : 5
             hCm: hp.big ? hp.standH : hp.dev.model === "WF-1000XM5" ? 4 : 5
-            layout: root.layout
-            cm: root.cm
-            ox: root.ox
-            oy: root.oy
-            animate: root.ready
-            deskCm: root.deskY
-            editing: root.editing
-            onHover: (l, on) => root.setHover(l, on)
             label: [hp.dev.name, hp.dev.model].filter(x => x).join(" · ")
             visible: (hp.file !== "" || !hp.big) && (hp.online || root.showOffline)
             online: !!hp.dev.connected
             showOffline: root.showOffline
             onClicked: root.open("sound", "output")
-            onMoved: (k, x, y) => root.place(k, x, y)
 
             // Suporte: base oval na mesa, haste e o gancho -- por baixo da
             // banda, dentro do arco, segurando-a (a banda tem ~1,5 cm)
@@ -597,5 +673,24 @@ Item {
                 }
             }
         }
+    }
+
+    // Uma peca com tudo o que e igual para todas: mundo (cm, deslocamento,
+    // mesa, grade), edicao e os sinais que o diagrama trata
+    component Piece: SetupPiece {
+        layout: root.layout
+        cm: root.cm
+        ox: root.ox
+        oy: root.oy
+        animate: root.ready
+        deskCm: root.deskY
+        snapCm: root.snapCm
+        editing: root.editing
+        highlighted: root.highlightKey === key
+        selected: root.selectedKey === key
+        onHover: (l, on) => root.setHover(l, on)
+        onHoverKey: (k, on) => root.setHoverKey(k, on)
+        onPressedPiece: k => root.selectedKey = k
+        onMoved: (k, x, y) => root.place(k, x, y)
     }
 }

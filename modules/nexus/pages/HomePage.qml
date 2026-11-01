@@ -13,9 +13,11 @@ import qs.services
 import qs.modules.nexus.common
 import qs.modules.nexus.pages.home
 
-// Home: o setup desenhado (SetupDiagram: monitores no arranjo, notebook,
+// Home: o setup desenhado (SetupDiagram: monitores no arranjo, notebook com
+// tela/camera/teclado/touchpad/alto-falantes clicaveis, NAS quando responde,
 // teclado, mouses, fones, controles -- cada um leva a sua pagina; os
-// desligados so com o botao) e, embaixo, o conjunto FIXO de cartoes de status
+// desligados so com o botao; "Edit layout" poe a lista das pecas ao lado e a
+// grade) e, embaixo, o conjunto FIXO de cartoes de status
 // (rede, som, energia, tela, GPU, disco, atualizacoes, perifericos). Cada
 // cartao leva a pagina dona do assunto. Fixo de proposito: cartoes que mudam
 // de lugar ou "sugerem" coisas foram o que mais se criticou no Home do
@@ -40,6 +42,8 @@ PageBase {
     }
     readonly property var setupHeadphones: (headphonesBridge.info.headphones ?? []).map(h => ({ model: h.model, name: h.name, connected: !!h.connected }))
     readonly property var setupControllers: Bluetooth.devices.values.filter(d => d.bonded && (/controller|gamepad/i.test(d.name ?? "") || (d.icon ?? "").includes("gaming"))).map(d => ({ name: d.name, connected: d.connected }))
+    // NAS: ligado so quando responde; fora do alcance leva o "visto em" (MM-DD HH:MM)
+    readonly property var setupNas: ({ online: nasBridge.info.online === true, lastSeen: nasBridge.info.last_seen ? String(nasBridge.info.last_seen).replace("T", " ").slice(5, 16) : "", info: nasBridge.info })
     property bool showOffline
     property bool editLayout
 
@@ -56,6 +60,14 @@ PageBase {
         const d = Math.floor(s / 86400);
         const h = Math.floor((s % 86400) / 3600);
         return d > 0 ? qsTr("up %1 d %2 h").arg(d).arg(h) : qsTr("up %1 h %2 min").arg(h).arg(Math.floor((s % 3600) / 60));
+    }
+
+    // Deep link `edit` (IPC `nexus openPage home 0 edit`): abre ja na edicao do layout
+    function pickRequested(): void {
+        if (root.nState.requestedTab === "edit") {
+            root.editLayout = true;
+            root.nState.requestedTab = "";
+        }
     }
 
     title: qsTr("Home")
@@ -109,30 +121,71 @@ PageBase {
         tool: "headphones"
     }
 
+    Item {
+        Component.onCompleted: root.pickRequested()
+
+        Connections {
+            function onRequestedTabChanged(): void {
+                root.pickRequested();
+            }
+
+            target: root.nState
+        }
+    }
+
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.medium
 
-        SetupDiagram {
-            id: setup
-
+        // O desenho e, na edicao, a lista das pecas ao lado (mouse num acende o outro)
+        RowLayout {
             Layout.fillWidth: true
-            monitors: root.display.monitors ?? []
-            mice: root.setupMice
-            keyboard: root.setupKeyboard
-            headphones: root.setupHeadphones
-            controllers: root.setupControllers
-            showOffline: root.showOffline || root.editLayout
-            editing: root.editLayout
-            onOpen: (page, tab) => root.nState.openPage(page, 0, tab)
+            spacing: Tokens.spacing.medium
+
+            SetupDiagram {
+                id: setup
+
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
+                monitors: root.display.monitors ?? []
+                mice: root.setupMice
+                keyboard: root.setupKeyboard
+                headphones: root.setupHeadphones
+                controllers: root.setupControllers
+                nas: root.setupNas
+                showOffline: root.showOffline || root.editLayout
+                editing: root.editLayout
+                highlightKey: pieceList.visible ? pieceList.rowHover : ""
+                onOpen: (page, tab) => root.nState.openPage(page, 0, tab)
+            }
+
+            PieceList {
+                id: pieceList
+
+                property string rowHover
+
+                visible: root.editLayout
+                Layout.preferredWidth: 200
+                Layout.alignment: Qt.AlignTop
+                pieces: setup.pieces
+                hoverKey: setup.hoverKey
+                selectedKey: setup.selectedKey
+                onHovered: (key, on) => {
+                    if (on)
+                        pieceList.rowHover = key;
+                    else if (pieceList.rowHover === key)
+                        pieceList.rowHover = "";
+                }
+                onPicked: key => setup.selectedKey = key
+            }
         }
 
-        // Nome do aparelho sob o mouse (linha propria, sempre reservada)
+        // Nome da peca sob o mouse (linha propria, sempre reservada)
         StyledText {
             Layout.fillWidth: true
-            text: setup.hoverLabel
+            text: setup.legend
             color: Colours.palette.m3onSurface
             font: Tokens.font.title.small
             horizontalAlignment: Text.AlignHCenter
@@ -145,7 +198,7 @@ PageBase {
 
             StyledText {
                 Layout.fillWidth: true
-                text: root.editLayout ? qsTr("Drag each piece to where it sits on your desk") : qsTr("Tap a device to open its settings")
+                text: root.editLayout ? Tr.tr("Drag a piece to where it sits on your desk — it snaps to the 2.5 cm grid; the list finds it") : Tr.tr("Tap a device to open its settings")
                 color: Colours.palette.m3outline
                 font: Tokens.font.label.small
                 elide: Text.ElideRight
@@ -204,6 +257,7 @@ PageBase {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
                 readonly property real pct: UPower.displayDevice?.isLaptopBattery ? UPower.displayDevice.percentage * 100 : (root.power.battery?.percent ?? 0)
+
                 icon: UPower.onBattery ? "battery_5_bar" : "battery_charging_full"
                 title: qsTr("Power")
                 value: root.power.battery?.present === false ? qsTr("Plugged in") : `${Math.round(pct)}%`
