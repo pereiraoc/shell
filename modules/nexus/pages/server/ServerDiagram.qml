@@ -527,8 +527,10 @@ Item {
             readonly property color c: root.stateColor("fan", fan.on, false)
             readonly property real k: root.k
 
+            // o rebaixo: entre a borda interna do relevo e a malha ha um sulco escuro
+            // de 5 un na foto; aneis e espinhas so comecam depois dele
             anchors.fill: meshEdge
-            anchors.margins: 1
+            anchors.margins: 5 * root.k
             onCChanged: requestPaint()
             onKChanged: requestPaint()
             onWidthChanged: requestPaint()
@@ -538,8 +540,8 @@ Item {
                 const w = width, h = height, k = mesh.k;
                 ctx.reset();
                 ctx.clearRect(0, 0, w, h);
-                // recorte na borda interna do relevo (cantos de 16 un)
-                const r = 15 * k;
+                // recorte na borda da malha (cantos de 12 un, dentro do rebaixo)
+                const r = 12 * k;
                 ctx.beginPath();
                 ctx.moveTo(r, 0);
                 ctx.lineTo(w - r, 0);
@@ -554,6 +556,10 @@ Item {
                 ctx.clip();
                 const cx = w / 2, cy = h / 2, hub = 22 * k;
                 const polar = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+                // borda da malha (fim do rebaixo)
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.5);
+                ctx.stroke();
                 // malha em losangos: e o que mais se ve na foto -- duas familias de
                 // diagonais a 45 graus, celula de 3,5 un, clara
                 ctx.lineWidth = 1;
