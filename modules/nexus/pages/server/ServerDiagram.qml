@@ -432,10 +432,13 @@ Item {
 
         readonly property bool on: root.online && !!(root.fans?.case_rpm)
 
-        x: 448 * root.k
-        y: 32 * root.k
-        width: 264 * root.k
-        height: 250 * root.k
+        // Medido na foto (1 un = 1,94 px): relevo de x 40..323, y 20..287; a malha,
+        // quadrada, de x 59..300, y 34..276 -- o chanfro e mais largo nos lados
+        // (19 e 23 un) que em cima (14) e embaixo (11)
+        x: 440 * root.k
+        y: 20 * root.k
+        width: 283 * root.k
+        height: 267 * root.k
 
         // Relevo da grade (foto da traseira): uma faixa chanfrada de 12 un sobe do
         // painel preto ate a malha -- borda externa (onde o relevo comeca) e borda
@@ -449,44 +452,97 @@ Item {
         }
 
         Rectangle {
+            id: meshEdge
+
             anchors.fill: fan
-            anchors.margins: 12 * root.k
-            radius: 12 * root.k
+            anchors.leftMargin: 19 * root.k
+            anchors.rightMargin: 23 * root.k
+            anchors.topMargin: 14 * root.k
+            anchors.bottomMargin: 11 * root.k
+            radius: 14 * root.k
             color: "transparent"
             border.width: 1
             border.color: Qt.alpha(root.stateColor("fan", fan.on, false), 0.8)
         }
 
-        // Aneis da malha: do cubo do motor (46 un) ate alem da borda interna do
-        // relevo, a cada 24 un, cortados por ela; em tinta, senao somem no fundo
-        // escuro. O cubo e o anel de dentro, cheio.
-        Item {
-            anchors.fill: fan
-            anchors.margins: 13 * root.k
-            clip: true
+        // A ventoinha vista pela malha (foto da traseira): sete pas curvas saindo do
+        // cubo do motor e varrendo ate a borda, a malha de furos em aneis finos e
+        // densos (a cada 6 un) por cima, o cubo cheio no meio -- tudo so em linhas,
+        // recortado na borda interna do relevo. Canvas: Repeater nao serve para
+        // ShapePath e sao dezenas de tracos.
+        Canvas {
+            id: mesh
 
-            Repeater {
-                model: 10
+            readonly property color c: root.stateColor("fan", fan.on, false)
+            readonly property real k: root.k
 
-                Rectangle {
-                    required property int index
-
-                    readonly property real d: (46 + index * 24) * root.k
-
-                    x: (parent.width - d) / 2
-                    y: (parent.height - d) / 2
-                    width: d
-                    height: d
-                    radius: d / 2
-                    color: "transparent"
-                    border.width: 1
-                    border.color: index === 0 ? root.ink : Qt.alpha(root.ink, 0.45)
+            anchors.fill: meshEdge
+            anchors.margins: 1
+            onCChanged: requestPaint()
+            onKChanged: requestPaint()
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onPaint: {
+                const ctx = getContext("2d");
+                const w = width, h = height, k = mesh.k;
+                ctx.reset();
+                ctx.clearRect(0, 0, w, h);
+                // recorte na borda interna do relevo (cantos de 14 un)
+                const r = 13 * k;
+                ctx.beginPath();
+                ctx.moveTo(r, 0);
+                ctx.lineTo(w - r, 0);
+                ctx.arcTo(w, 0, w, r, r);
+                ctx.lineTo(w, h - r);
+                ctx.arcTo(w, h, w - r, h, r);
+                ctx.lineTo(r, h);
+                ctx.arcTo(0, h, 0, h - r, r);
+                ctx.lineTo(0, r);
+                ctx.arcTo(0, 0, r, 0, r);
+                ctx.closePath();
+                ctx.clip();
+                const cx = w / 2, cy = h / 2;
+                const hub = 23 * k, out = 128 * k;
+                const polar = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+                ctx.lineWidth = 1;
+                // pas: bordo de ataque e bordo de fuga em curvas, do cubo ate alem da borda
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.55);
+                // 7 pas; cada uma varre 0,75 rad do cubo a borda e tem 0,4 rad de
+                // largura no cubo -- menos que o passo (0,9 rad), para as pas vizinhas
+                // nao se cruzarem no desenho
+                for (let i = 0; i < 7; i++) {
+                    const a = i * Math.PI * 2 / 7 + 0.3;
+                    const p0 = polar(hub, a), c0 = polar((hub + out) / 2, a + 0.18), p1 = polar(out, a + 0.75);
+                    const p2 = polar(out, a + 1.08), c2 = polar((hub + out) / 2, a + 0.62), p3 = polar(hub, a + 0.4);
+                    ctx.beginPath();
+                    ctx.moveTo(p0[0], p0[1]);
+                    ctx.quadraticCurveTo(c0[0], c0[1], p1[0], p1[1]);
+                    ctx.lineTo(p2[0], p2[1]);
+                    ctx.quadraticCurveTo(c2[0], c2[1], p3[0], p3[1]);
+                    ctx.stroke();
                 }
+                // malha: aneis finos e densos de furos
+                ctx.strokeStyle = Qt.alpha(mesh.c, 0.22);
+                for (let rad = hub + 6 * k; rad < Math.hypot(w, h) / 2; rad += 6 * k) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                // cubo do motor: disco cheio (sem furos) e a tampa
+                ctx.strokeStyle = mesh.c;
+                ctx.lineWidth = Math.max(1, 1.2 * k);
+                ctx.beginPath();
+                ctx.arc(cx, cy, hub, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 10 * k, 0, Math.PI * 2);
+                ctx.stroke();
             }
         }
 
         Text {
-            anchors.centerIn: fan
+            anchors.centerIn: meshEdge
             text: "UGREEN"
             color: root.ink
             font.family: root.family
