@@ -52,6 +52,70 @@ function partAt(parts, fx, fy) {
     return hit;
 }
 
+// Arranjo automatico (cm, eixo x = 0 no centro): o grupo de cima -- NAS, fones
+// (suporte do WH com os estojos dos buds lado a lado ao pe dele), mesinha
+// (monitores externos + tablet; so existe com monitor externo) ou o tablet
+// sozinho na mesa, notebook (do lado em que esta no arranjo das telas) -- e o
+// mousemat centrado no mesmo eixo, com teclado, mouses e controles dentro.
+// `s` so traz o que vai aparecer (tamanhos em cm); posicoes salvas sobrepoem.
+function autoLayout(s) {
+    const gap = 4, deskY = s.deskY, shelfTop = deskY - s.shelfH;
+    const pos = {};
+    const groups = [];
+    let shelf = null;
+    if (s.nas)
+        groups.push({ w: s.nas.w, place: x => { pos["nas"] = { x: x, y: deskY - s.nas.h }; } });
+    const buds = s.buds || [];
+    if (s.stand || buds.length) {
+        let w = s.stand ? s.stand.w : 0;
+        for (const b of buds)
+            w += (w ? 1 : 0) + b.w;
+        groups.push({ w: w, place: x => {
+            let cx = x;
+            if (s.stand) {
+                pos["headphones:WH-1000XM5"] = { x: cx, y: deskY - s.stand.h };
+                cx += s.stand.w + 1;
+            }
+            for (const b of buds) {
+                pos[b.key] = { x: cx, y: deskY - b.h };
+                cx += b.w + 1;
+            }
+        } });
+    }
+    const monitors = s.monitors || [];
+    if (monitors.length) {
+        const items = monitors.concat(s.tablet ? [Object.assign({ key: "tablet" }, s.tablet)] : []);
+        const w = items.reduce((a, m) => a + m.w, 0) + 2 * (items.length - 1) + 4;
+        groups.push({ w: w, place: x => {
+            shelf = { x: x, y: shelfTop, w: w };
+            let cx = x + 2;
+            for (const m of items) {
+                pos[m.key] = { x: cx, y: shelfTop - m.h };
+                cx += m.w + 2;
+            }
+        } });
+    } else if (s.tablet) {
+        groups.push({ w: s.tablet.w, place: x => { pos["tablet"] = { x: x, y: deskY - s.tablet.h }; } });
+    }
+    if (s.laptop)
+        groups.push({ w: s.laptop.w, place: x => { pos["laptop"] = { x: x, y: deskY - s.laptop.h }; } });
+    const order = s.laptopRight === false ? groups.slice().reverse() : groups;
+    const width = order.reduce((a, g) => a + g.w, 0) + gap * Math.max(0, order.length - 1);
+    let x = -width / 2;
+    for (const g of order) {
+        g.place(x);
+        x += g.w + gap;
+    }
+    const mat = s.mousepad || { w: 90, h: 25 };
+    const mx = -mat.w / 2;
+    pos["mousepad"] = { x: mx, y: deskY + 2 };
+    if (s.keyboard)
+        pos["keyboard"] = { x: mx + 5, y: deskY + 6 };
+    (s.mice || []).forEach((m, i) => { pos[m.key] = { x: mx + 41 + i * 10, y: deskY + 5 }; });
+    (s.controllers || []).forEach((c, i) => { pos[c.key] = { x: mx + mat.w - 5 - (i + 1) * c.w - i * 2, y: deskY + 6 }; });
+    return { pos: pos, shelf: shelf, width: width };
+}
+
 const KIND_ORDER = ["monitor", "laptop", "tablet", "nas", "shelf", "mousepad", "keyboard", "mouse", "headphones", "controller"];
 
 function rank(p) {

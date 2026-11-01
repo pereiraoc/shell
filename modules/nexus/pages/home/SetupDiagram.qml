@@ -100,11 +100,21 @@ Item {
     readonly property var laptop: root.monitors.find(m => m.internal) ?? null
     // Padrao: o notebook fica do lado em que esta no arranjo (a direita do LG, hoje)
     readonly property bool laptopRight: !root.laptop || root.externals.length === 0 || root.posX(root.laptop) >= Math.max(...root.externals.map(m => root.posX(m)))
-    readonly property real zoneX: root.laptopRight ? 0 : 40
-    // Onde o LG esta (salvo ou padrao): a mesinha e os estojos acompanham
-    readonly property var lgMon: root.externals.find(m => /LG ULTRAWIDE/i.test(m.description ?? "")) ?? root.externals[0] ?? null
-    readonly property real lgX: root.lgMon ? (root.layout[`monitor:${root.lgMon.name}`]?.x ?? root.zoneX + 30) : root.zoneX + 30
-    readonly property real lgBottom: root.lgMon ? (root.layout[`monitor:${root.lgMon.name}`]?.y ?? root.deskY - root.shelfH - 59 * 754 / 1285) + 59 * 754 / 1285 : root.deskY - root.shelfH
+    // Arranjo automatico (setup.js autoLayout): so entra o que vai aparecer, com
+    // os tamanhos das pecas; posicoes salvas (layout) sobrepoem por peca
+    readonly property var auto: L.autoLayout({
+        deskY: root.deskY, shelfH: root.shelfH, laptopRight: root.laptopRight,
+        nas: root.nas && (root.nas.online || root.showOffline) ? { w: 17.8, h: 17.8 } : null,
+        stand: root.headphones.some(h => h.model === "WH-1000XM5" && (h.connected || root.showOffline)) ? { w: 21.7, h: 28 } : null,
+        buds: root.headphones.filter(h => h.model !== "WH-1000XM5" && (h.connected || root.showOffline)).map(h => ({ key: `headphones:${h.model}`, w: root.budW(h.model), h: root.budH(h.model) })),
+        monitors: root.externals.filter(m => root.monitorOn(m) || root.showOffline).map(m => ({ key: `monitor:${m.name}`, w: 59, h: root.monitorH(m) })),
+        tablet: root.tablet && (root.tablet.online || root.showOffline) ? { w: 28.5, h: 28.5 * 1900 / 2850 } : null,
+        laptop: root.laptop ? { w: 35.5, h: 35.5 * 1243 / 918 } : null,
+        mousepad: { w: 90, h: 25 },
+        keyboard: root.keyboard && (root.keyboard.online || root.showOffline) ? { w: 32.6, h: 32.6 * 793 / 1867 } : null,
+        mice: root.mice.filter(m => m.online || root.showOffline).map(m => ({ key: `mouse:${m.model}`, w: (m.model ?? "").includes("naga") ? 7.5 : 7.1, h: (m.model ?? "").includes("naga") ? 12 : 10 })),
+        controllers: root.controllers.map((c, i) => ({ key: `controller:${i}`, w: 15.3, h: 10.2, on: !!c.connected })).filter(c => c.on || root.showOffline)
+    })
     // Areas clicaveis do notebook (setup.js), com o nome traduzido
     readonly property var laptopParts: L.laptopParts().map(p => ({ id: p.id, label: root.partLabel(p.id), x: p.x, y: p.y, w: p.w, h: p.h }))
 
@@ -123,6 +133,28 @@ Item {
 
     function monitorOn(m: var): bool {
         return !!m && !!m.enabled && m.connected !== false;
+    }
+
+    function monitorH(m: var): real {
+        return /LG ULTRAWIDE/i.test(m?.description ?? "") ? 59 * 754 / 1285 : 33;
+    }
+
+    // Estojos abertos, como nos guias (assets/devices/*.svg): WF-1000XM5 6,5 x 6,1 cm;
+    // FreeClip 2 6 x 7 cm
+    function budW(model: string): real {
+        return model === "WF-1000XM5" ? 6.5 : 6;
+    }
+
+    function budH(model: string): real {
+        return model === "WF-1000XM5" ? 6.1 : 7;
+    }
+
+    function autoX(key: string): real {
+        return root.auto.pos[key]?.x ?? 0;
+    }
+
+    function autoY(key: string): real {
+        return root.auto.pos[key]?.y ?? 0;
     }
 
     function place(key: string, x: real, y: real): void {
@@ -330,10 +362,10 @@ Item {
 
             key: `monitor:${ext.mon.name}`
             kind: "monitor"
-            defX: root.zoneX + 30 + ext.index * 62
-            defY: root.deskY - root.shelfH - (ext.lg ? 59 * 754 / 1285 : 33)
+            defX: root.autoX(`monitor:${ext.mon.name}`)
+            defY: root.autoY(`monitor:${ext.mon.name}`)
             wCm: 59
-            hCm: ext.lg ? 59 * 754 / 1285 : 33
+            hCm: root.monitorH(ext.mon)
             label: ((ext.mon.description || ext.mon.name) ?? "").replace(/^LG Electronics\s+/i, "").replace(/\s+0x[0-9A-Fa-f]+$/, "")
             online: root.monitorOn(ext.mon)
             showOffline: root.showOffline
@@ -378,8 +410,8 @@ Item {
 
         key: "laptop"
         kind: "laptop"
-        defX: root.laptopRight ? 190 - 37.5 : 2
-        defY: root.deskY - 35.5 * 1243 / 918
+        defX: root.autoX("laptop")
+        defY: root.autoY("laptop")
         wCm: 35.5
         hCm: 35.5 * 1243 / 918
         label: Tr.tr("Laptop")
@@ -411,7 +443,8 @@ Item {
     // --------------------------------------------------------------- tablet
     // Galaxy Tab S8+ de frente (assets/devices/galaxy-tab-s8-plus.svg, pelas
     // fotos: corpo 28,5 x 18,5 cm, moldura uniforme, camera no centro da borda
-    // de cima, S Pen encostada nela), em pe na mesa ao lado do notebook. Existe
+    // de cima, S Pen encostada nela), em pe na mesinha ao lado dos monitores ou,
+    // sem monitor externo, na mesa ao lado do notebook. Existe
     // quando ha um tablet pareado no caelestia-tablet e so e "ligado" enquanto e
     // a saida virtual `tablet`; clicar abre o Display nessa saida.
     Piece {
@@ -419,8 +452,8 @@ Item {
 
         key: "tablet"
         kind: "tablet"
-        defX: root.laptopRight ? 190 - 37.5 - 30.5 : 2 + 35.5 + 2
-        defY: root.deskY - 28.5 * 1900 / 2850
+        defX: root.autoX("tablet")
+        defY: root.autoY("tablet")
         wCm: 28.5
         hCm: 28.5 * 1900 / 2850
         label: root.tablet?.label || Tr.tr("Tablet")
@@ -448,16 +481,16 @@ Item {
     }
 
     // ------------------------------------------------------------------ NAS
-    // Frente do DXP4800 Plus apoiada na mesa, antes de tudo (worldX0 + 1, a
-    // esquerda do suporte do fone e do monitor); existe sempre que ha um NAS
+    // Frente do DXP4800 Plus apoiada na mesa, no comeco do grupo de cima (antes
+    // do suporte do fone e da mesinha); existe sempre que ha um NAS
     // configurado, mas so e "ligado" quando responde
     Piece {
         id: nasPiece
 
         key: "nas"
         kind: "nas"
-        defX: root.worldX0 + 1
-        defY: root.deskY - 17.8
+        defX: root.autoX("nas")
+        defY: root.autoY("nas")
         wCm: 17.8
         hCm: 17.8
         label: !root.nas ? "" : root.nas.online ? Tr.tr("NAS · DXP4800 Plus") : root.nas.lastSeen ? Tr.tr("NAS · last seen %1").arg(root.nas.lastSeen) : Tr.tr("NAS · out of reach")
@@ -476,23 +509,25 @@ Item {
     }
 
     // ------------------------------------------------------------- mesinha
-    // Apoio horizontal do monitor: a largura do LG, do pe do monitor ate a
-    // linha da mesa; os estojos dos fones ficam em cima, ao lado do pe
+    // Apoio horizontal das telas: tao larga quanto os monitores externos (e o
+    // tablet) em cima dela, do pe deles ate a linha da mesa; sem monitor
+    // externo nao existe
     Piece {
         id: shelf
 
         // o topo fica onde foi posto (sob o pe do monitor); a base desce ate a
         // linha da mesa
-        readonly property real topCm: root.layout["shelf"]?.y ?? root.lgBottom
+        readonly property real topCm: root.layout["shelf"]?.y ?? (root.auto.shelf?.y ?? root.deskY - root.shelfH)
 
         key: "shelf"
         kind: "shelf"
-        defX: root.lgX
-        defY: root.lgBottom
-        wCm: 59
+        defX: root.auto.shelf?.x ?? 0
+        defY: root.auto.shelf?.y ?? root.deskY - root.shelfH
+        wCm: root.auto.shelf?.w ?? 59
         hCm: Math.max(2, root.deskY - shelf.topCm)
         label: Tr.tr("Monitor riser")
         device: false
+        visible: !!root.auto.shelf
 
         Rectangle {
             anchors.fill: parent
@@ -515,8 +550,8 @@ Item {
     Piece {
         key: "mousepad"
         kind: "mousepad"
-        defX: root.zoneX + 22
-        defY: root.deskY + 2
+        defX: root.autoX("mousepad")
+        defY: root.autoY("mousepad")
         wCm: 90
         hCm: 25
         label: Tr.tr("Mousepad · 90 × 25 cm")
@@ -543,8 +578,8 @@ Item {
 
             key: `controller:${pad.index}`
             kind: "controller"
-            defX: root.zoneX + 2 + pad.index * 17
-            defY: root.deskY + 6
+            defX: root.autoX(`controller:${pad.index}`)
+            defY: root.autoY(`controller:${pad.index}`)
             wCm: 15.3
             hCm: 10.2
             label: pad.dev.name ?? Tr.tr("Controller")
@@ -567,8 +602,8 @@ Item {
 
         key: "keyboard"
         kind: "keyboard"
-        defX: root.zoneX + 27
-        defY: root.deskY + 6
+        defX: root.autoX("keyboard")
+        defY: root.autoY("keyboard")
         wCm: 32.6
         hCm: 32.6 * 793 / 1867
         label: root.keyboard ? [(root.keyboard.name ?? "").replace(/\s*2\.4GHz$/, ""), root.keyboard.battery !== null && root.keyboard.battery !== undefined ? `${Math.round(root.keyboard.battery * 100)}%` : ""].filter(x => x).join(" · ") : ""
@@ -608,8 +643,8 @@ Item {
 
             key: `mouse:${mouse.dev.model}`
             kind: "mouse"
-            defX: root.zoneX + 63 + mouse.index * 10
-            defY: root.deskY + 5
+            defX: root.autoX(`mouse:${mouse.dev.model}`)
+            defY: root.autoY(`mouse:${mouse.dev.model}`)
             wCm: mouse.naga ? 7.5 : 7.1
             hCm: mouse.naga ? 12 : 10
             label: (mouse.dev.name ?? "").replace(/\s*\(.*?\)\s*$/, "")
@@ -657,10 +692,10 @@ Item {
 
             key: `headphones:${hp.dev.model}`
             kind: "headphones"
-            defX: hp.big ? root.zoneX + 126 : root.lgX + (hp.budIndex === 0 ? 8 : 44)
-            defY: hp.big ? root.deskY - hp.standH : root.lgBottom - hp.hCm + 0.5
-            wCm: hp.big ? 21.7 : hp.dev.model === "WF-1000XM5" ? 6.5 : 5
-            hCm: hp.big ? hp.standH : hp.dev.model === "WF-1000XM5" ? 4 : 5
+            defX: root.autoX(`headphones:${hp.dev.model}`)
+            defY: root.autoY(`headphones:${hp.dev.model}`)
+            wCm: hp.big ? 21.7 : root.budW(hp.dev.model)
+            hCm: hp.big ? hp.standH : root.budH(hp.dev.model)
             label: [hp.dev.name, hp.dev.model].filter(x => x).join(" · ")
             visible: (hp.file !== "" || !hp.big) && (hp.online || root.showOffline)
             online: !!hp.dev.connected
@@ -705,40 +740,12 @@ Item {
                 border.color: root.ink
             }
 
-            // Estojo fechado (o desenho aberto dos guias nao se le em 2 cm de tela):
-            // caixinha arredondada, a costura da tampa e o LED
-            Rectangle {
-                visible: !hp.big
-                anchors.fill: parent
-                radius: hp.dev.model === "WF-1000XM5" ? 1.4 * root.cm : 1.6 * root.cm
-                color: "transparent"
-                border.width: 1
-                border.color: root.ink
-            }
-
-            Rectangle {
-                visible: !hp.big
-                x: 0
-                y: parent.height * 0.42
-                width: parent.width
-                height: 1
-                color: root.ink
-            }
-
-            Rectangle {
-                visible: !hp.big
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height * 0.62
-                width: Math.max(2, 0.4 * root.cm)
-                height: width
-                radius: width / 2
-                color: hp.dev.connected ? Colours.palette.m3primary : root.faint
-            }
-
+            // Estojos abertos, como nos guias (so linhas; o SVG de cada modelo):
+            // ao pe do suporte, lado a lado, na mesa
             Image {
                 id: hpArt
 
-                visible: hp.big
+                visible: hp.file !== ""
                 x: 0
                 y: hp.big ? 1.4 * root.cm : 0
                 width: parent.width

@@ -97,6 +97,53 @@ TestCase {
         compare(three.reduce((n, c) => n + c.length, 0), rows.length);
     }
 
+    function test_autoLayout_mesa_completa() {
+        const a = L.autoLayout({ deskY: 50, shelfH: 8.3, laptopRight: true, nas: { w: 17.8, h: 17.8 }, stand: { w: 21.7, h: 28 },
+            buds: [{ key: "headphones:WF", w: 6.5, h: 6.1 }, { key: "headphones:FC", w: 6, h: 7 }],
+            monitors: [{ key: "monitor:HDMI-A-1", w: 59, h: 34.6 }], tablet: { w: 28.5, h: 19 }, laptop: { w: 35.5, h: 48 },
+            mousepad: { w: 90, h: 25 }, keyboard: { w: 32.6, h: 13.8 }, mice: [{ key: "mouse:naga", w: 7.5, h: 12 }, { key: "mouse:atheris", w: 7.1, h: 10 }],
+            controllers: [{ key: "controller:0", w: 15.3, h: 10.2 }] });
+        // mesinha = LG + tablet + folgas, do topo dela ate a mesa; tablet em pe nela
+        compare(a.shelf.w, 59 + 28.5 + 2 + 4);
+        fuzzyCompare(a.shelf.y, 41.7, 0.001);
+        fuzzyCompare(a.pos["tablet"].y, 41.7 - 19, 0.001);
+        fuzzyCompare(a.pos["monitor:HDMI-A-1"].x + 59 + 2, a.pos["tablet"].x, 0.001);
+        // ordem: NAS, suporte, estojos lado a lado, mesinha, notebook
+        verify(a.pos["nas"].x < a.pos["headphones:WH-1000XM5"].x);
+        fuzzyCompare(a.pos["headphones:WF"].x, a.pos["headphones:WH-1000XM5"].x + 21.7 + 1, 0.001);
+        fuzzyCompare(a.pos["headphones:FC"].x, a.pos["headphones:WF"].x + 6.5 + 1, 0.001);
+        verify(a.pos["headphones:FC"].x < a.shelf.x && a.shelf.x + a.shelf.w < a.pos["laptop"].x);
+        // grupo de cima e mousemat centrados no mesmo eixo
+        fuzzyCompare(a.pos["nas"].x, -a.width / 2, 0.001);
+        fuzzyCompare(a.pos["laptop"].x + 35.5, a.width / 2, 0.001);
+        compare(a.pos["mousepad"].x, -45);
+        compare(a.pos["keyboard"].x, -40);
+        compare(a.pos["mouse:atheris"].x, -45 + 51);
+        fuzzyCompare(a.pos["controller:0"].x, 45 - 5 - 15.3, 0.001);
+        // estojos e NAS na mesa
+        compare(a.pos["headphones:WF"].y, 50 - 6.1);
+        compare(a.pos["nas"].y, 50 - 17.8);
+    }
+
+    function test_autoLayout_viagem_so_tablet() {
+        const a = L.autoLayout({ deskY: 50, shelfH: 8.3, laptopRight: true, nas: null, stand: null, buds: [], monitors: [],
+            tablet: { w: 28.5, h: 19 }, laptop: { w: 35.5, h: 48 }, mousepad: { w: 90, h: 25 }, keyboard: null, mice: [], controllers: [] });
+        compare(a.shelf, null);
+        compare(a.pos["tablet"].y, 50 - 19);
+        // tablet + notebook centrados sobre o mousemat
+        fuzzyCompare(a.pos["tablet"].x, -(28.5 + 4 + 35.5) / 2, 0.001);
+        fuzzyCompare(a.pos["laptop"].x + 35.5, (28.5 + 4 + 35.5) / 2, 0.001);
+        compare(a.pos["mousepad"].x, -45);
+    }
+
+    function test_autoLayout_notebook_a_esquerda() {
+        const a = L.autoLayout({ deskY: 50, shelfH: 8.3, laptopRight: false, nas: { w: 17.8, h: 17.8 }, stand: null, buds: [],
+            monitors: [{ key: "monitor:HDMI-A-1", w: 59, h: 34.6 }], tablet: null, laptop: { w: 35.5, h: 48 }, mousepad: { w: 90, h: 25 },
+            keyboard: null, mice: [], controllers: [] });
+        verify(a.pos["laptop"].x < a.shelf.x && a.shelf.x < a.pos["nas"].x);
+        fuzzyCompare(a.pos["laptop"].x, -a.width / 2, 0.001);
+    }
+
     function test_kindIcon() {
         compare(L.kindIcon("monitor"), "monitor");
         compare(L.kindIcon("laptop"), "laptop_mac");

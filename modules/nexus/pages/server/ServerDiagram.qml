@@ -445,23 +445,31 @@ Item {
             border.color: root.stateColor("fan", fan.on, false)
         }
 
-        Repeater {
-            model: 9
+        // Aneis da grade (foto da traseira): do cubo do motor (46 un) ate alem da
+        // borda da grade, a cada 24 un, cortados por ela; em tinta, senao somem no
+        // fundo escuro. O cubo e o anel de dentro, cheio.
+        Item {
+            anchors.fill: fan
+            anchors.margins: Math.max(1, 1.4 * root.k)
+            clip: true
 
-            Rectangle {
-                required property int index
+            Repeater {
+                model: 10
 
-                readonly property real d: (40 + index * 25) * root.k
+                Rectangle {
+                    required property int index
 
-                x: (fan.width - d) / 2
-                y: (fan.height - d) / 2
-                width: d
-                height: d
-                radius: d / 2
-                color: "transparent"
-                border.width: 1
-                border.color: root.faint
-                opacity: 0.6
+                    readonly property real d: (46 + index * 24) * root.k
+
+                    x: (parent.width - d) / 2
+                    y: (parent.height - d) / 2
+                    width: d
+                    height: d
+                    radius: d / 2
+                    color: "transparent"
+                    border.width: 1
+                    border.color: index === 0 ? root.ink : Qt.alpha(root.ink, 0.45)
+                }
             }
         }
 

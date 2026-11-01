@@ -43,12 +43,16 @@ PageBase {
         return k ? Object.assign({}, m, { description: k.description }) : m;
     })
     readonly property var setupMice: [...(root.periph.mice ?? []).map(m => ({ model: m.model, name: m.name, online: true })), ...(root.periph.mice_offline ?? []).map(m => ({ model: m.model, name: m.name, online: false }))]
+    // Teclado externo (Azoth pelo receptor): presente = `rgb` com backend hid;
+    // dongle fora = `rgb_offline` (visto antes) -> a peca aparece apagada em vez de sumir
     readonly property var setupKeyboard: {
         const k = (root.periph.rgb ?? []).find(d => d.backend === "hid");
-        if (!k)
-            return null;
-        const b = root.peripherals.find(p => p.kind === "keyboard");
-        return { id: k.id, name: k.name, online: true, battery: b ? b.pct : null };
+        if (k) {
+            const b = root.peripherals.find(p => p.kind === "keyboard");
+            return { id: k.id, name: k.name, online: true, battery: b ? b.pct : null };
+        }
+        const off = (root.periph.rgb_offline ?? [])[0];
+        return off ? { id: off.id, name: off.name, online: false, battery: null } : null;
     }
     readonly property var setupHeadphones: (headphonesBridge.info.headphones ?? []).map(h => ({ model: h.model, name: h.name, connected: !!h.connected }))
     readonly property var setupControllers: Bluetooth.devices.values.filter(d => d.bonded && (/controller|gamepad/i.test(d.name ?? "") || (d.icon ?? "").includes("gaming"))).map(d => ({ name: d.name, connected: d.connected }))
