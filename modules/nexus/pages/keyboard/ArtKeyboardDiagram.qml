@@ -43,6 +43,10 @@ Item {
     property real bevelGlow: 0.1
     // Contorno e linhas do relevo (fora do topo) com solidCaps: so um tom da luz
     property real bevelInk: 0.22
+    // Estrutura do keycap (contorno externo, relevo e contorno do topo): quanto
+    // da tinta fica. 1 = cheia; o Azoth usa menos para o branco nao brigar
+    // com a luz -- a serigrafia do topo segue cheia (ou na cor da luz)
+    property real bevelAlpha: 1
     readonly property bool lit: !!root.lighting && !root.lighting.off
     readonly property bool animated: root.lit && root.lighting.mode !== "Static"
     readonly property var litColors: root.lit ? Lit.colors(root.lighting) : []
@@ -63,6 +67,13 @@ Item {
 
     function lightable(key: var): bool {
         return key.d !== "" && !root.plain(key);
+    }
+
+    // O QSG do Azoth desenha a moldura do visor no proprio CHASSIS e a arte
+    // da tecla "oled" repete a mesma moldura: pintar as duas deixava o visor
+    // mais claro que o resto da carcaca (duas camadas da mesma tinta)
+    function chassisDraws(key: var): bool {
+        return key.id === "oled" && !root.thinChassis;
     }
 
     implicitHeight: root.art.H * root.k
@@ -152,7 +163,7 @@ Item {
                 readonly property var glow: root.lit && root.lightable(key.modelData) ? Lit.sample(root.lighting, root.litColors, (key.modelData.x + key.modelData.w / 2) / root.art.W, (key.modelData.y + key.modelData.h / 2) / root.art.H, key.index, root.phase) : null
                 // Serigrafia: na cor da luz quando acesa; tertiary para a tecla escolhida
                 // Contorno/relevo com keycap solido: a luz chega fraca na lateral
-                readonly property color bevelInkNow: key.glow ? Lit.mix(root.ink, key.glow.c, root.bevelInk * key.glow.k) : key.inkNow
+                readonly property color bevelInkNow: key.plain ? key.inkNow : Qt.alpha(key.glow ? Lit.mix(root.ink, key.glow.c, root.bevelInk * key.glow.k) : key.inkNow, root.bevelAlpha)
                 // Escolhida: a legenda (e o logo do ROG no Esc) seguem na cor da luz;
                 // sem luz, tertiary. A selecao e a moldura, nao um topo amarelo
                 readonly property color inkNow: key.active && !key.glow ? Colours.palette.m3tertiary : key.glow ? Lit.mix(Colours.palette.m3surfaceContainerHighest, key.glow.c, 0.15 + root.inkMix * key.glow.k) : key.special && !key.plain ? Colours.palette.m3tertiary : key.plain ? Qt.alpha(root.ink, 0.55) : root.ink
@@ -189,10 +200,11 @@ Item {
                     border.color: key.active ? Colours.palette.m3tertiary : Qt.alpha(root.ink, 0.55)
                 }
 
-                // Parte acesa (`d`). Com solidCaps: inteira no tom da lateral e,
-                // por cima, recortada ao topo na cor cheia -- a legenda acende,
-                // contorno e relevo quase nao
+                // Parte acesa (`d`). Com solidCaps: inteira no tom da lateral (com
+                // bevelAlpha) e, por cima, recortada ao topo na cor cheia -- a
+                // legenda acende e fica inteira, contorno e relevo quase nao
                 Shape {
+                    visible: !root.chassisDraws(key.modelData)
                     preferredRendererType: Shape.CurveRenderer
 
                     ShapePath {
@@ -207,7 +219,7 @@ Item {
                 }
 
                 Item {
-                    visible: root.solidCaps && !!key.glow
+                    visible: root.solidCaps && !key.plain
                     x: key.modelData.f[0]
                     y: key.modelData.f[1]
                     width: key.modelData.f[2]
@@ -246,7 +258,7 @@ Item {
                     antialiasing: true
                     color: "transparent"
                     border.width: key.active ? lw * 1.6 : lw
-                    border.color: key.active ? Colours.palette.m3tertiary : root.ink
+                    border.color: key.active ? Colours.palette.m3tertiary : Qt.alpha(root.ink, root.bevelAlpha)
                 }
 
                 // Legendas que nao acendem (Shift e frontais)

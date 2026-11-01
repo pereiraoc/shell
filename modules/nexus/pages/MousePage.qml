@@ -319,8 +319,9 @@ PageBase {
                 // que vai sumir guarda o ultimo item ate ser destruida.
                 property var modelData: root.miceOffline[index] ?? ({})
                 readonly property var liveItem: root.miceOffline[index]
-                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
                 required property int index
+
+                onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
 
                 active: root.tab === root.tabId(offline.modelData)
 
@@ -338,13 +339,13 @@ PageBase {
                     subtext: qsTr("Wireless: plug in its receiver or switch it to 2.4 GHz. Over Bluetooth only the battery shows up.")
                 }
 
-                // Silhueta apagada: o mouse existe, so nao esta ligado
+                // Silhueta inteira, como a dos mouses ligados (o cabecalho ja diz
+                // que esta desligado); apagada a 45% ficava fraca demais
                 MouseDiagram {
                     Layout.fillWidth: true
                     Layout.topMargin: Tokens.spacing.medium
                     model: offline.modelData.model ?? ""
                     buttons: []
-                    opacity: 0.45
                 }
             }
         }

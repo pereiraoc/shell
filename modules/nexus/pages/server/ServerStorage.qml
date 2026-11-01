@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.controls
 import qs.services
 import qs.modules.nexus.common
 import "server.js" as S
@@ -54,24 +55,29 @@ ColumnLayout {
         onPicked: id => root.page.selectedSpot = id
     }
 
-    StyledText {
+    // Legenda do que esta sob o mouse e, no canto, o botao miudo que abre ou
+    // fecha a vista de baixo (M.2 e memoria, na largura da frente)
+    RowLayout {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.small
         Layout.bottomMargin: Tokens.spacing.small
-        text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.selectedSpot !== "" ? S.spotLegend(root.page.selectedSpot, root.info) : Tr.tr("Click a bay or an M.2 slot to read its disk.")
-        color: Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.body.small
-        wrapMode: Text.WordWrap
-    }
+        spacing: Tokens.spacing.small
 
-    RowButton {
-        first: true
-        last: true
-        Layout.bottomMargin: Tokens.spacing.small
-        icon: diagram.bottomExpanded ? "expand_less" : "expand_more"
-        text: diagram.bottomExpanded ? Tr.tr("Hide the underside") : Tr.tr("Show the underside: M.2 slots and memory")
-        subtext: Tr.tr("Technical view at the front's width (178 × 257 mm)")
-        onClicked: diagram.bottomExpanded = !diagram.bottomExpanded
+        StyledText {
+            Layout.fillWidth: true
+            text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.selectedSpot !== "" ? S.spotLegend(root.page.selectedSpot, root.info) : Tr.tr("Click a bay or an M.2 slot to read its disk.")
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.body.small
+            wrapMode: Text.WordWrap
+        }
+
+        IconTextButton {
+            Layout.alignment: Qt.AlignTop
+            type: IconTextButton.Text
+            icon: diagram.bottomExpanded ? "expand_less" : "expand_more"
+            text: diagram.bottomExpanded ? Tr.tr("Hide the underside") : Tr.tr("Underside")
+            onClicked: diagram.bottomExpanded = !diagram.bottomExpanded
+        }
     }
 
     StyledText {

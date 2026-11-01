@@ -77,6 +77,9 @@ ColumnLayout {
         // solido, laterais com um tom leve, serigrafia so tingida
         solidCaps: true
         bevelGlow: 0.1
+        // Contornos e relevo a 60%: em tinta cheia o branco das teclas dominava
+        // a luz (usuario 01/11)
+        bevelAlpha: 0.6
         glowPad: 0.06
         glowAlpha: 0.32
         inkMix: 0.5
