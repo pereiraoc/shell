@@ -40,6 +40,7 @@ ColumnLayout {
     // Fila de ops { verb, mac, value } (a primeira roda) e as ja aplicadas desde a ultima leitura
     property var queue: []
     property var applied: []
+    readonly property int settleMs: 120000
     property bool reloadAgain
     // { mac, message }
     property var lastError: ({})
@@ -74,7 +75,6 @@ ColumnLayout {
             root.reloadAgain = true;
             return;
         }
-        listProc.snapshot = root.applied.length;
         listProc.running = true;
     }
 
@@ -112,7 +112,7 @@ ColumnLayout {
             doc = { ok: false, message: Tr.tr("unreadable answer from caelestia-nas") };
         }
         if (doc.ok)
-            root.applied = [...root.applied, op];
+            root.applied = [...root.applied, Object.assign({}, op, { at: Date.now() })];
         else
             root.lastError = { mac: op.owner || op.mac, message: doc.message || Tr.tr("The NAS refused (no message)") };
         root.queue = root.queue.slice(1);
@@ -199,8 +199,6 @@ ColumnLayout {
     Process {
         id: listProc
 
-        property int snapshot
-
         command: [root.bin, "network", "--all", "--json"]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -216,8 +214,10 @@ ColumnLayout {
                 } catch (e) {
                     root.listError = Tr.tr("unreadable answer from caelestia-nas");
                 }
-                // O que ja foi aplicado antes desta leitura agora esta na lista
-                root.applied = root.applied.slice(listProc.snapshot);
+                // A API do NetAlertX responde de um cache que leva ~10-30 s para ver uma escrita: a edicao
+                // aplicada continua por cima da lista por 2 min (reaplicar e idempotente), senao a tela "desfaz"
+                // o que o NAS ja gravou e a leitura seguinte traz de volta
+                root.applied = root.applied.filter(o => Date.now() - (o.at || 0) < root.settleMs);
                 if (root.reloadAgain) {
                     root.reloadAgain = false;
                     Qt.callLater(root.reload);
