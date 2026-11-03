@@ -129,11 +129,19 @@ function linkOf(d, byMac) {
     return { up: parent, medium: "unknown", band: "" };
 }
 
+// { mac: device }; os enderecos extras de um aparelho agrupado (`macs`)
+// apontam para o mesmo aparelho, sem passar por cima de uma linha propria.
 function indexByMac(devices) {
     const m = {};
     for (const d of devices ?? [])
         if (d?.mac)
             m[d.mac.toLowerCase()] = d;
+    for (const d of devices ?? [])
+        for (const a of d?.macs ?? []) {
+            const k = (a?.mac ?? "").toLowerCase();
+            if (k && !(k in m))
+                m[k] = d;
+        }
     return m;
 }
 
@@ -276,7 +284,9 @@ function buildMap(devices, opts) {
         if (isWan(d) || d === root || !d?.mac)
             continue;
         const k = linkOf(d, byMac);
-        const up = k.up && byMac[k.up] && k.up !== d.mac.toLowerCase() ? k.up : "";
+        // Enlace para um endereco extra de um grupo: o no e o principal
+        const upDev = k.up ? byMac[k.up] : null;
+        const up = upDev && upDev.mac.toLowerCase() !== d.mac.toLowerCase() ? upDev.mac.toLowerCase() : "";
         if (!up) {
             orphans.push({ dev: d, link: { up: "", medium: "none", band: "" } });
             continue;
@@ -363,29 +373,204 @@ function buildMap(devices, opts) {
     return rows;
 }
 
-// Fila otimista: ops [{ verb: name|type|known, mac, value }] aplicadas sobre a lista
-function applyPending(devices, ops) {
-    if (!ops || ops.length === 0)
-        return devices ?? [];
-    return (devices ?? []).map(d => {
-        let out = d;
-        for (const op of ops) {
-            if ((op.mac ?? "").toLowerCase() !== (d.mac ?? "").toLowerCase())
-                continue;
-            out = Object.assign({}, out);
+// ---------------------------------------------------------------- grupos
+// Um aparelho com varios MACs (celular com MAC aleatorio por rede): o backend
+// ja manda uma linha por grupo, com `macs` [{mac, ip, online, last_seen,
+// hostname, ssid, band, kind}] e `active_mac`; `mac` e o principal.
+
+function lc(s) {
+    return (s ?? "").toLowerCase();
+}
+
+// Enderecos do aparelho no formato de `macs` (um so quando nao e grupo)
+function addrsOf(d) {
+    if (!d)
+        return [];
+    if ((d.macs ?? []).length > 0)
+        return d.macs;
+    const c = d.conn ?? {};
+    return [{ mac: d.mac, ip: d.ip ?? "", online: !!d.online, last_seen: d.last_seen ?? "", hostname: d.hostname ?? null, ssid: c.ssid ?? null, band: c.band ?? null, kind: c.kind ?? null }];
+}
+
+// So os grupos (2+ enderecos); [] para um aparelho comum
+function groupAddrs(d) {
+    const m = d?.macs ?? [];
+    return m.length > 1 ? m : [];
+}
+
+function isPrimary(d, mac) {
+    return lc(d?.mac) === lc(mac);
+}
+
+function isActive(d, mac) {
+    return lc(d?.active_mac || d?.mac) === lc(mac);
+}
+
+// Rede de um endereco: "SSID · 5G", "Wi-Fi 5G", "Cable"; "" = nunca visto no Wi-Fi
+function addrNetwork(a, labels) {
+    const L = labels ?? DEFAULT_LABELS;
+    if (!a)
+        return "";
+    if (a.ssid)
+        return a.band ? `${a.ssid} · ${a.band}` : a.ssid;
+    if (a.kind === "wifi")
+        return a.band ? `${L.wifi} ${a.band}` : L.wifi;
+    if (a.kind === "ethernet")
+        return L.cable;
+    return "";
+}
+
+function hostnamesOf(d) {
+    const out = [];
+    for (const h of [d?.hostname, ...addrsOf(d).map(a => a.hostname)])
+        if (h && !isPlaceholder(h) && out.indexOf(h.toLowerCase()) < 0)
+            out.push(h.toLowerCase());
+    return out;
+}
+
+// Sugestao do backend (aparelho novo com o hostname de um conhecido): so
+// enquanto e novo; o nome vem da lista atual. -> { mac, name } | null
+function suggestionFor(d, byMac) {
+    const s = d?.suggest;
+    if (!d?.new || !s?.mac || isPrimary(d, s.mac))
+        return null;
+    const target = byMac?.[lc(s.mac)];
+    return { mac: target ? target.mac : s.mac, name: target ? bestName(target) : (isPlaceholder(s.name) ? s.mac : s.name) };
+}
+
+// Com quem `d` pode ser agrupado: os outros aparelhos editaveis (sem a
+// Internet e o switch sem IP). Mesmo hostname primeiro, depois os novos, depois
+// por nome. -> [{ dev, sameHost }]
+function groupCandidates(devices, d) {
+    if (!d)
+        return [];
+    const mine = hostnamesOf(d);
+    const me = lc(d.mac);
+    return (devices ?? []).filter(x => x && !isWan(x) && isEditable(x) && !isPassive(x) && lc(x.mac) !== me).map(x => ({
+                dev: x,
+                sameHost: hostnamesOf(x).some(h => mine.indexOf(h) >= 0)
+            })).sort((a, b) => {
+        if (a.sameHost !== b.sameHost)
+            return a.sameHost ? -1 : 1;
+        if (!!a.dev.new !== !!b.dev.new)
+            return a.dev.new ? -1 : 1;
+        return bestName(a.dev).localeCompare(bestName(b.dev));
+    });
+}
+
+// Op de agrupar `d` com `other`: o conhecido fica de principal (um novo entra
+// no grupo de um conhecido, nao o contrario); os enderecos todos do outro vao
+// juntos (um principal de outro grupo leva o grupo inteiro).
+function groupOp(d, other) {
+    const flip = !!d?.new && !other?.new;
+    const primary = flip ? other : d;
+    const extra = flip ? d : other;
+    return { verb: "group", mac: lc(primary?.mac), value: addrsOf(extra).map(a => lc(a.mac)).filter(m => m && m !== lc(primary?.mac)) };
+}
+
+function opMacs(op) {
+    const v = op?.value;
+    return Array.isArray(v) ? v.map(lc) : [];
+}
+
+// Uma op sobre a lista (sem mexer nos objetos de entrada)
+function applyOp(list, op) {
+    const mac = lc(op.mac);
+    switch (op.verb) {
+    case "name":
+    case "type":
+    case "known":
+        return list.map(d => {
+            if (lc(d.mac) !== mac)
+                return d;
+            const out = Object.assign({}, d);
             if (op.verb === "name")
                 out.name = op.value;
             else if (op.verb === "type")
                 out.type = op.value;
-            else if (op.verb === "known")
+            else
                 out.new = false;
+            return out;
+        });
+    case "group": {
+        const ms = opMacs(op).filter(m => m !== mac);
+        if (!list.some(d => lc(d.mac) === mac))
+            return list;
+        const moved = [];
+        const rest = [];
+        for (const d of list) {
+            if (lc(d.mac) === mac) {
+                rest.push(d);
+                continue;
+            }
+            if (ms.indexOf(lc(d.mac)) >= 0) {
+                // a linha propria some; os enderecos dela vao para o principal
+                moved.push(...addrsOf(d));
+                continue;
+            }
+            const keep = (d.macs ?? []).filter(a => ms.indexOf(lc(a.mac)) < 0);
+            if (keep.length !== (d.macs ?? []).length) {
+                moved.push(...(d.macs ?? []).filter(a => ms.indexOf(lc(a.mac)) >= 0));
+                const out = Object.assign({}, d);
+                if (keep.length > 1)
+                    out.macs = keep;
+                else
+                    delete out.macs;
+                rest.push(out);
+                continue;
+            }
+            rest.push(d);
         }
-        return out;
-    });
+        return rest.map(d => {
+            if (lc(d.mac) !== mac)
+                return d;
+            const out = Object.assign({}, d);
+            const all = addrsOf(d).slice();
+            for (const a of moved)
+                if (!all.some(x => lc(x.mac) === lc(a.mac)))
+                    all.push(a);
+            out.macs = all;
+            if (!out.active_mac)
+                out.active_mac = d.mac;
+            out.new = false;
+            return out;
+        });
+    }
+    case "ungroup":
+        return list.map(d => {
+            const m = d.macs ?? [];
+            if (!m.some(a => lc(a.mac) === mac))
+                return d;
+            const out = Object.assign({}, d);
+            const keep = m.filter(a => lc(a.mac) !== mac);
+            if (keep.length > 1)
+                out.macs = keep;
+            else
+                delete out.macs;
+            return out;
+        });
+    case "delete":
+        return applyOp(list, { verb: "ungroup", mac: mac }).filter(d => lc(d.mac) !== mac);
+    default:
+        return list;
+    }
 }
 
+// Fila otimista: ops [{ verb: name|type|known|group|ungroup|delete, mac, value }]
+// aplicadas em ordem sobre a lista. group: mac = principal, value = [MACs].
+function applyPending(devices, ops) {
+    if (!ops || ops.length === 0)
+        return devices ?? [];
+    let list = devices ?? [];
+    for (const op of ops)
+        list = applyOp(list, op);
+    return list;
+}
+
+// name/type trocam o valor da mesma op; group/ungroup/delete sao uma op por alvo
 function opKey(op) {
-    return `${op.verb}~${(op.mac ?? "").toLowerCase()}`;
+    const base = `${op.verb}~${lc(op.mac)}`;
+    return op.verb === "group" ? `${base}~${opMacs(op).join(",")}` : base;
 }
 
 // Junta uma op na fila: a mesma (verbo+MAC) ainda nao iniciada e trocada; a
@@ -399,7 +584,7 @@ function enqueueOp(queue, op) {
             return q;
         }
     }
-    if (q.length > 0 && opKey(q[0]) === k && q[0].value === op.value)
+    if (q.length > 0 && opKey(q[0]) === k && JSON.stringify(q[0].value ?? null) === JSON.stringify(op.value ?? null))
         return q;
     q.push(op);
     return q;
@@ -407,12 +592,26 @@ function enqueueOp(queue, op) {
 
 function opArgs(op) {
     const mac = (op.mac ?? "").toUpperCase();
-    return op.verb === "known" ? ["network", "known", mac, "--json"] : ["network", op.verb, mac, op.value, "--json"];
+    switch (op.verb) {
+    case "known":
+    case "ungroup":
+    case "delete":
+        return ["network", op.verb, mac, "--json"];
+    case "group":
+        return ["network", "group", mac, ...opMacs(op).map(m => m.toUpperCase()), "--json"];
+    default:
+        return ["network", op.verb, mac, op.value, "--json"];
+    }
 }
 
 function busyFor(queue, mac) {
-    const m = (mac ?? "").toLowerCase();
-    return (queue ?? []).some(op => (op.mac ?? "").toLowerCase() === m);
+    const m = lc(mac);
+    return (queue ?? []).some(op => lc(op.mac) === m || lc(op.owner) === m || opMacs(op).indexOf(m) >= 0);
+}
+
+// Algum endereco do aparelho na fila
+function busyForDev(queue, d) {
+    return addrsOf(d).some(a => busyFor(queue, a.mac));
 }
 
 function isEditable(d) {

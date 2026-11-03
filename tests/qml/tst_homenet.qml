@@ -202,4 +202,124 @@ TestCase {
         verify(H.isEditable(dev("02:ca:e1:00:00:01")));
         verify(!H.isEditable(dev("internet")));
     }
+
+    // ------------------------------------------------------------ grupos (03/11)
+    readonly property var phone: ({ mac: "f2:8e:10:36:16:ed", name: "OP's Phone", ip: "192.168.15.187", type: "Phone", new: false, online: true, hostname: "OP-s-Phone", last_seen: "2026-11-03 13:15:48", conn: { kind: "wifi", band: "5G", via: "d8:77:8b:21:04:d0", ssid: "Cafofo 115 - 5G AUX" }, active_mac: "f2:8e:10:36:16:ed", macs: [
+            { mac: "f2:8e:10:36:16:ed", ip: "192.168.15.187", online: true, last_seen: "2026-11-03 13:15:48", hostname: "OP-s-Phone", ssid: "Cafofo 115 - 5G AUX", band: "5G", kind: "wifi" },
+            { mac: "3a:a1:f1:b4:7c:9f", ip: "192.168.15.136", online: false, last_seen: "2026-11-03 12:50:26", hostname: null, ssid: null, band: null, kind: null },
+            { mac: "4e:5d:25:f3:a9:70", ip: "", online: false, last_seen: "2026-11-03 13:18:31", hostname: null, ssid: null, band: null, kind: null }
+        ] })
+    readonly property var stranger: ({ mac: "aa:11:22:33:44:55", name: "(name not found)", hostname: "OP-s-Phone", ip: "192.168.15.200", type: "", new: true, online: true, first_seen: "2026-11-03 13:00:00", suggest: { mac: "f2:8e:10:36:16:ed", name: "OP's Phone" } })
+    readonly property var gdevs: devs.filter(d => d.mac !== "f2:8e:10:36:16:ed").concat([phone, stranger])
+
+    function test_groupOneRow() {
+        const s = H.summary(gdevs);
+        compare(s.total, 15);
+        const rows = H.buildMap(gdevs, { showOffline: true });
+        compare(rows.filter(r => r.kind === "device" && r.dev.mac === "f2:8e:10:36:16:ed").length, 1);
+        verify(!rows.some(r => r.kind === "device" && r.dev.mac === "3a:a1:f1:b4:7c:9f"));
+        // um endereco extra no indice aponta para o aparelho, sem trocar linhas proprias
+        const idx = H.indexByMac(gdevs);
+        compare(idx["3a:a1:f1:b4:7c:9f"].mac, "f2:8e:10:36:16:ed");
+        compare(idx["d8:77:8b:21:04:d0"].type, "AP");
+        // pendurado num endereco extra: vai para o principal
+        const child = { mac: "bb:00:00:00:00:01", name: "Tethered", online: true, parent: "3a:a1:f1:b4:7c:9f", port: "wifi" };
+        const r2 = H.buildMap(gdevs.concat([child]), {});
+        const at = r2.findIndex(r => r.key === "d:f2:8e:10:36:16:ed");
+        verify(r2.findIndex(r => r.key === "d:bb:00:00:00:00:01") > at);
+        verify(r2.some(r => r.key === "l:f2:8e:10:36:16:ed:wifi:"));
+    }
+
+    function test_groupAddrs() {
+        compare(H.groupAddrs(phone).length, 3);
+        compare(H.groupAddrs(dev("6c:1f:f7:a9:a8:8f")), []);
+        compare(H.addrsOf(dev("d4:f5:47:97:7f:db"))[0].band, "5G");
+        verify(H.isActive(phone, "F2:8E:10:36:16:ED"));
+        verify(!H.isActive(phone, "3a:a1:f1:b4:7c:9f"));
+        verify(H.isPrimary(phone, "f2:8e:10:36:16:ed"));
+        compare(H.addrNetwork(phone.macs[0]), "Cafofo 115 - 5G AUX · 5G");
+        compare(H.addrNetwork(phone.macs[1]), "");
+        compare(H.addrNetwork({ kind: "wifi", band: "2.4G" }), "Wi-Fi 2.4G");
+        compare(H.addrNetwork({ kind: "ethernet" }, { wifi: "W", cable: "C" }), "C");
+    }
+
+    function test_suggest() {
+        const idx = H.indexByMac(gdevs);
+        const s = H.suggestionFor(stranger, idx);
+        compare(s.mac, "f2:8e:10:36:16:ed");
+        compare(s.name, "OP's Phone");
+        // conhecido: sem sugestao (nunca aplicada sozinha)
+        compare(H.suggestionFor(Object.assign({}, stranger, { new: false }), idx), null);
+        compare(H.suggestionFor(phone, idx), null);
+        compare(H.unknownDevices(gdevs).some(d => d.mac === stranger.mac), true);
+    }
+
+    function test_candidates() {
+        const c = H.groupCandidates(gdevs, stranger);
+        compare(c[0].dev.mac, "f2:8e:10:36:16:ed");
+        compare(c[0].sameHost, true);
+        compare(c[1].sameHost, false);
+        verify(c[1].dev.new);
+        verify(!c.some(x => x.dev.mac === "internet" || x.dev.mac === stranger.mac || x.dev.mac === "02:ca:e1:00:00:01"));
+        // do lado do grupo: o desconhecido de mesmo hostname primeiro
+        compare(H.groupCandidates(gdevs, phone)[0].dev.mac, stranger.mac);
+    }
+
+    function test_groupOp() {
+        // novo com conhecido: o conhecido fica de principal
+        const op = H.groupOp(stranger, phone);
+        compare(op.mac, "f2:8e:10:36:16:ed");
+        compare(op.value, ["aa:11:22:33:44:55"]);
+        compare(H.groupOp(phone, stranger).mac, "f2:8e:10:36:16:ed");
+        // principal de outro grupo leva o grupo inteiro
+        const op2 = H.groupOp(dev("6c:1f:f7:a9:a8:8f"), phone);
+        compare(op2.value, ["f2:8e:10:36:16:ed", "3a:a1:f1:b4:7c:9f", "4e:5d:25:f3:a9:70"]);
+        compare(H.opArgs(op), ["network", "group", "F2:8E:10:36:16:ED", "AA:11:22:33:44:55", "--json"]);
+        compare(H.opArgs({ verb: "ungroup", mac: "3a:a1:f1:b4:7c:9f" }), ["network", "ungroup", "3A:A1:F1:B4:7C:9F", "--json"]);
+        compare(H.opArgs({ verb: "delete", mac: "3a:a1:f1:b4:7c:9f" }), ["network", "delete", "3A:A1:F1:B4:7C:9F", "--json"]);
+    }
+
+    function test_pendingGroup() {
+        const v = H.applyPending(gdevs, [H.groupOp(stranger, phone)]);
+        verify(!v.some(d => d.mac === stranger.mac));
+        const p = v.find(d => d.mac === phone.mac);
+        compare(p.macs.length, 4);
+        compare(p.macs[3].mac, stranger.mac);
+        compare(H.unknownDevices(v).some(d => d.mac === stranger.mac), false);
+        compare(H.summary(v).total, 14);
+        // a entrada nao muda
+        compare(phone.macs.length, 3);
+        verify(gdevs.some(d => d.mac === stranger.mac));
+        // um aparelho comum vira grupo
+        const v2 = H.applyPending(gdevs, [{ verb: "group", mac: "6c:1f:f7:a9:a8:8f", value: ["aa:11:22:33:44:55"] }]);
+        compare(v2.find(d => d.mac === "6c:1f:f7:a9:a8:8f").macs.map(a => a.mac), ["6c:1f:f7:a9:a8:8f", "aa:11:22:33:44:55"]);
+        // endereco tirado de outro grupo
+        const v3 = H.applyPending(gdevs, [{ verb: "group", mac: "6c:1f:f7:a9:a8:8f", value: ["3a:a1:f1:b4:7c:9f"] }]);
+        compare(v3.find(d => d.mac === phone.mac).macs.length, 2);
+        compare(v3.find(d => d.mac === "6c:1f:f7:a9:a8:8f").macs[1].ip, "192.168.15.136");
+    }
+
+    function test_pendingUngroupDelete() {
+        const v = H.applyPending(gdevs, [{ verb: "ungroup", mac: "3A:A1:F1:B4:7C:9F" }]);
+        compare(v.find(d => d.mac === phone.mac).macs.length, 2);
+        const v2 = H.applyPending(v, [{ verb: "ungroup", mac: "4e:5d:25:f3:a9:70" }]);
+        compare(v2.find(d => d.mac === phone.mac).macs, undefined);
+        compare(phone.macs.length, 3);
+        const v3 = H.applyPending(gdevs, [{ verb: "delete", mac: "a0:29:42:70:51:5c" }]);
+        compare(v3.length, gdevs.length - 1);
+        const v4 = H.applyPending(gdevs, [{ verb: "delete", mac: "4e:5d:25:f3:a9:70" }]);
+        compare(v4.find(d => d.mac === phone.mac).macs.length, 2);
+    }
+
+    function test_queueGroup() {
+        let q = H.enqueueOp([], { verb: "name", mac: "aa:bb:cc:dd:ee:ff", value: "x" });
+        q = H.enqueueOp(q, { verb: "group", mac: "aa:bb:cc:dd:ee:ff", value: ["11:22:33:44:55:66"] });
+        q = H.enqueueOp(q, { verb: "group", mac: "aa:bb:cc:dd:ee:ff", value: ["22:22:33:44:55:66"] });
+        compare(q.length, 3);
+        q = H.enqueueOp(q, { verb: "group", mac: "aa:bb:cc:dd:ee:ff", value: ["22:22:33:44:55:66"] });
+        compare(q.length, 3);
+        verify(H.busyFor(q, "11:22:33:44:55:66"));
+        verify(H.busyForDev([{ verb: "ungroup", mac: "3a:a1:f1:b4:7c:9f" }], phone));
+        verify(!H.busyForDev([{ verb: "ungroup", mac: "3a:a1:f1:b4:7c:9f" }], stranger));
+    }
 }

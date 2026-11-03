@@ -21,6 +21,8 @@ import "homenet.js" as H
 //
 // Dados: `caelestia-nas network --all --json` (lista completa) a cada 30 s
 // enquanto visivel. Edicoes: `caelestia-nas network name|type|known <MAC>`,
+// e `group <principal> <MAC>...|ungroup <MAC>|delete <MAC>` (um aparelho com
+// varios enderecos; o backend ja manda uma linha por grupo, com `macs`),
 // numa fila (um ssh por vez) com a lista otimista (H.applyPending), como em
 // ServerUsers; relemos quando a fila esvazia. A logica pura mora em homenet.js.
 ColumnLayout {
@@ -76,10 +78,17 @@ ColumnLayout {
         listProc.running = true;
     }
 
-    function enqueue(verb: string, mac: string, value: string): void {
-        if (root.lastError.mac === mac.toLowerCase())
+    function enqueue(verb: string, mac: string, value: var): void {
+        root.enqueueOp({ verb: verb, mac: mac.toLowerCase(), value: value });
+    }
+
+    // op { verb, mac, value, owner? }: owner = o aparelho (MAC principal) em que
+    // o erro aparece quando a op e sobre outro endereco (ungroup de um extra)
+    function enqueueOp(op: var): void {
+        const owner = op.owner || op.mac;
+        if (root.lastError.mac === owner)
             root.lastError = ({});
-        root.queue = H.enqueueOp(root.queue, { verb: verb, mac: mac.toLowerCase(), value: value });
+        root.queue = H.enqueueOp(root.queue, op);
         if (!actProc.running)
             root.startNext();
     }
@@ -105,7 +114,7 @@ ColumnLayout {
         if (doc.ok)
             root.applied = [...root.applied, op];
         else
-            root.lastError = { mac: op.mac, message: doc.message || Tr.tr("The NAS refused (no message)") };
+            root.lastError = { mac: op.owner || op.mac, message: doc.message || Tr.tr("The NAS refused (no message)") };
         root.queue = root.queue.slice(1);
         Qt.callLater(root.startNext);
     }
@@ -164,7 +173,7 @@ ColumnLayout {
             return "";
         const name = H.bestName(d);
         const vendor = d.vendor && !/^\(unknown/i.test(d.vendor) && d.vendor !== name ? d.vendor : "";
-        return [d.ip || (H.isPassive(d) ? Tr.tr("no IP (unmanaged)") : ""), isRoot ? Tr.tr("main router") : "", vendor, d.online || H.isPassive(d) ? "" : Tr.tr("offline · seen %1").arg(root.agoText(d.last_seen))].filter(x => x).join(" · ");
+        return [d.ip || (H.isPassive(d) ? Tr.tr("no IP (unmanaged)") : ""), isRoot ? Tr.tr("main router") : "", H.groupAddrs(d).length > 1 ? Tr.tr("%1 addresses").arg(H.groupAddrs(d).length) : "", vendor, d.online || H.isPassive(d) ? "" : Tr.tr("offline · seen %1").arg(root.agoText(d.last_seen))].filter(x => x).join(" · ");
     }
 
     function pressSurvey(): void {
@@ -264,7 +273,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.small
         Layout.bottomMargin: Tokens.spacing.medium
-        text: Tr.tr("Every device in the house and what it hangs from, as the NAS sees it (NetAlertX plus what the router, Google Cast and the Wi-Fi survey tell). Click a device to name it, set its type or mark it as known.")
+        text: Tr.tr("Every device in the house and what it hangs from, as the NAS sees it (NetAlertX plus what the router, Google Cast and the Wi-Fi survey tell). Click a device to name it, set its type, mark it as known or group its addresses (a phone with a random MAC per network is one device).")
         color: Colours.palette.m3outline
         font: Tokens.font.body.small
         wrapMode: Text.WordWrap
@@ -849,17 +858,46 @@ ColumnLayout {
         }
     }
 
-    // Botoes Known / Nickname / Type de um aparelho; com `details`, MAC, datas e fonte
+    // Botoes Known / Nickname / Type / Group with / Delete de um aparelho, a
+    // sugestao de grupo (mesmo hostname de um conhecido; so com um clique) e,
+    // num grupo, os enderecos dele; com `details`, MAC, datas e fonte
     component DeviceEditor: ColumnLayout {
         id: ed
 
         required property var host
         property var dev: null
         property bool details
-        // "" | "name" | "type"
+        // "" | "name" | "type" | "group"
         property string open
+        property bool showAddrs
+        // Apagar: dois cliques, como a varredura de Wi-Fi
+        property bool armDelete
         readonly property string mac: (ed.dev?.mac ?? "").toLowerCase()
-        readonly property bool busy: H.busyFor(ed.host.queue, ed.mac)
+        readonly property bool busy: H.busyForDev(ed.host.queue, ed.dev)
+        readonly property var addrs: H.groupAddrs(ed.dev)
+        readonly property var suggestion: H.suggestionFor(ed.dev, ed.host.byMac)
+        readonly property bool canDelete: !!ed.dev && !ed.dev.online && !H.isPassive(ed.dev) && H.isEditable(ed.dev)
+        readonly property var cands: ed.open === "group" ? H.groupCandidates(ed.host.view, ed.dev) : []
+
+        function pressDelete(): void {
+            if (!ed.armDelete) {
+                ed.armDelete = true;
+                delDisarm.restart();
+                return;
+            }
+            ed.armDelete = false;
+            // num grupo, todos os enderecos (apagar so o principal promoveria o proximo)
+            for (const a of H.addrsOf(ed.dev))
+                ed.host.enqueueOp({ verb: "delete", mac: a.mac.toLowerCase(), value: "", owner: ed.mac });
+        }
+
+        function groupWith(other: var): void {
+            const op = H.groupOp(ed.dev, other);
+            op.owner = ed.mac;
+            if (op.value.length > 0)
+                ed.host.enqueueOp(op);
+            ed.open = "";
+        }
 
         function saveName(): void {
             const v = nameField.text.trim();
@@ -870,7 +908,51 @@ ColumnLayout {
 
         spacing: Tokens.spacing.small
 
-        onDevChanged: if (!ed.dev) ed.open = ""
+        onMacChanged: {
+            ed.open = "";
+            ed.showAddrs = false;
+            ed.armDelete = false;
+        }
+
+        Timer {
+            id: delDisarm
+
+            interval: 4000
+            onTriggered: ed.armDelete = false
+        }
+
+        // Sugestao do NAS: nunca aplicada sozinha, fica desconhecido ate o clique
+        RowLayout {
+            Layout.fillWidth: true
+            visible: !!ed.suggestion
+            spacing: Tokens.spacing.small
+
+            MaterialIcon {
+                text: "link"
+                color: Colours.palette.m3tertiary
+                fontStyle: Tokens.font.icon.small
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Tr.tr("Looks like %1 (same DHCP name)").arg(ed.suggestion?.name ?? "")
+                color: Colours.palette.m3tertiary
+                font: Tokens.font.label.medium
+                wrapMode: Text.WordWrap
+            }
+
+            TextButton {
+                text: Tr.tr("Group")
+                type: TextButton.Filled
+                disabled: ed.busy
+                onClicked: ed.host.enqueueOp({
+                    verb: "group",
+                    mac: ed.suggestion.mac.toLowerCase(),
+                    value: H.addrsOf(ed.dev).map(a => a.mac.toLowerCase()),
+                    owner: ed.mac
+                })
+            }
+        }
 
         StyledText {
             Layout.fillWidth: true
@@ -916,6 +998,32 @@ ColumnLayout {
                 isToggle: true
                 checked: ed.open === "type"
                 onClicked: ed.open = ed.open === "type" ? "" : "type"
+            }
+
+            TextButton {
+                text: Tr.tr("Group with…")
+                type: TextButton.Tonal
+                isToggle: true
+                checked: ed.open === "group"
+                disabled: ed.busy
+                onClicked: ed.open = ed.open === "group" ? "" : "group"
+            }
+
+            TextButton {
+                visible: ed.addrs.length > 1
+                text: Tr.tr("%1 addresses").arg(ed.addrs.length)
+                type: TextButton.Tonal
+                isToggle: true
+                checked: ed.showAddrs
+                onClicked: ed.showAddrs = !ed.showAddrs
+            }
+
+            TextButton {
+                visible: ed.canDelete
+                text: ed.armDelete ? Tr.tr("Click again: delete") : Tr.tr("Delete")
+                type: ed.armDelete ? TextButton.Filled : TextButton.Text
+                disabled: ed.busy
+                onClicked: ed.pressDelete()
             }
 
             StyledText {
@@ -972,6 +1080,126 @@ ColumnLayout {
                         if (ed.dev?.type !== tb.t.value)
                             ed.host.enqueue("type", ed.mac, tb.t.value);
                         ed.open = "";
+                    }
+                }
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: ed.armDelete
+            text: ed.addrs.length > 1 ? Tr.tr("Deletes its %1 addresses from the network monitor; if one shows up again it comes back as a new device").arg(ed.addrs.length) : Tr.tr("Deletes it from the network monitor; if it shows up again it comes back as a new device")
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.small
+            wrapMode: Text.WordWrap
+        }
+
+        // Com quem agrupar: mesmo hostname primeiro
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: ed.open === "group"
+            spacing: Tokens.spacing.extraSmall
+
+            StyledText {
+                Layout.fillWidth: true
+                text: ed.cands.length > 0 ? Tr.tr("Pick the device this one really is: their addresses become one device (an unknown one joins the known one and takes its name and type)") : Tr.tr("No other device to group with")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
+
+            Flow {
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.extraSmall
+
+                Repeater {
+                    model: ed.cands.length
+
+                    TextButton {
+                        id: cb
+
+                        required property int index
+                        readonly property var c: ed.cands[index] ?? ({ dev: null, sameHost: false })
+
+                        text: cb.c.sameHost ? Tr.tr("%1 · same DHCP name").arg(H.bestName(cb.c.dev)) : H.bestName(cb.c.dev)
+                        type: cb.c.sameHost ? TextButton.Filled : TextButton.Tonal
+                        onClicked: ed.groupWith(cb.c.dev)
+                    }
+                }
+            }
+        }
+
+        // Enderecos de um grupo: rede, online, ultima vez, qual esta em uso
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: ed.showAddrs && ed.addrs.length > 1
+            spacing: Tokens.spacing.extraSmall
+
+            StyledText {
+                Layout.fillWidth: true
+                text: Tr.tr("The main address keeps the name and type; one taken out of the group becomes a device of its own")
+                color: Colours.palette.m3outline
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
+
+            Repeater {
+                model: ed.showAddrs ? ed.addrs.length : 0
+
+                RowLayout {
+                    id: ar
+
+                    required property int index
+                    readonly property var a: ed.addrs[index] ?? ({})
+                    readonly property bool primary: H.isPrimary(ed.dev, ar.a.mac)
+                    readonly property string net: H.addrNetwork(ar.a, ed.host.labels)
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.small
+
+                    // online = cheio; offline = so o contorno
+                    Rectangle {
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitWidth: 8
+                        implicitHeight: 8
+                        radius: 4
+                        color: ar.a.online ? Colours.palette.m3primary : "transparent"
+                        border.width: 1
+                        border.color: ar.a.online ? Colours.palette.m3primary : Colours.palette.m3outline
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: [(ar.a.mac ?? "").toLowerCase(), ar.primary ? Tr.tr("main") : "", H.isActive(ed.dev, ar.a.mac) ? Tr.tr("in use now") : ""].filter(x => x).join(" · ")
+                            color: Colours.palette.m3onSurface
+                            font: Tokens.font.label.medium
+                            elide: Text.ElideRight
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: [ar.net || Tr.tr("not seen on Wi-Fi yet"), ar.a.ip ?? "", ar.a.online ? Tr.tr("online") : Tr.tr("seen %1").arg(ed.host.agoText(ar.a.last_seen ?? "") || "?")].filter(x => x).join(" · ")
+                            color: Colours.palette.m3outline
+                            font: Tokens.font.label.small
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
+                    TextButton {
+                        visible: !ar.primary
+                        text: Tr.tr("Remove from group")
+                        type: TextButton.Text
+                        disabled: ed.busy
+                        onClicked: ed.host.enqueueOp({
+                            verb: "ungroup",
+                            mac: (ar.a.mac ?? "").toLowerCase(),
+                            value: "",
+                            owner: ed.mac
+                        })
                     }
                 }
             }
