@@ -156,9 +156,29 @@ function internalSsd(disks) {
     return (disks ?? []).find(isInternalSsd) ?? null;
 }
 
-// Slots M.2 de baixo (2, acesso pela tampa): os NVMe que nao sao o interno, em ordem de dev
+// Slot fisico pelo endereco PCI do controlador (nas-status "pci"). Conferido no aparelho em 03/11: o Lexar em
+// 0000:02:00.0 esta no M.2 2, o mais perto da RAM; o M.2 1 (mais longe) ainda nao tem endereco conhecido.
+var M2_SLOT_BY_PCI = { "0000:02:00.0": 2 };
+
+// Slots M.2 de baixo (2, acesso pela tampa): [slot 1, slot 2], null = vazio. Os NVMe que nao sao o interno; quem
+// tem slot conhecido pelo PCI vai nele, o resto ocupa o que sobrar.
 function m2Slots(disks) {
-    return (disks ?? []).filter(d => (d.bus === "nvme" || (d.bus === undefined && d.kind === "ssd")) && !isInternalSsd(d)).sort((a, b) => String(a.dev).localeCompare(String(b.dev))).slice(0, 2);
+    const ext = (disks ?? []).filter(d => (d.bus === "nvme" || (d.bus === undefined && d.kind === "ssd")) && !isInternalSsd(d)).sort((a, b) => String(a.dev).localeCompare(String(b.dev)));
+    const slots = [null, null];
+    const rest = [];
+    for (const d of ext) {
+        const n = M2_SLOT_BY_PCI[d.pci];
+        if (n && !slots[n - 1])
+            slots[n - 1] = d;
+        else
+            rest.push(d);
+    }
+    for (const d of rest) {
+        const i = slots.indexOf(null);
+        if (i >= 0)
+            slots[i] = d;
+    }
+    return slots;
 }
 
 // Porta de rede pelo driver (atlantic = 10 GbE, igc = 2,5 GbE), ou null.

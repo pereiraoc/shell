@@ -22,7 +22,7 @@ import "server.js" as S
 //   power      botao; led-net LED "LAN"
 //   fan        ventoinha (rpm); lan-10g = LAN 2 (atlantic), lan-2g5 = LAN 1 (igc) -- ordem fisica
 //              das duas portas a confirmar com o cabo em casa (nas-status diz qual tem link)
-//   m2-1/m2-2  slots NVMe da tampa (Lexar no 1; o SSD do sistema e interno, fora deles); ram-1/ram-2 memoria (8 GB; ADATA pendente)
+//   m2-1/m2-2  slots NVMe da tampa (Lexar no 2, perto da RAM; o SSD do sistema e interno, fora deles); ram-1/ram-2 memoria (8 GB; ADATA pendente)
 // `picked(id)` e `hovered` (a pagina mostra a legenda embaixo).
 Item {
     id: root
