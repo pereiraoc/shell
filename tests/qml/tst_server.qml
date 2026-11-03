@@ -93,7 +93,15 @@ TestCase {
         compare(S.spotLegend("lan-10g", info), "LAN 2 · 10 GbE (enp1s0) · link 1000 Mb/s · 192.168.15.129");
         compare(S.spotLegend("lan-2g5", info), "LAN 1 · 2.5 GbE (enp4s0) · no cable");
         compare(S.spotLegend("ram-1", { mem: { total: 7887 } }), "Memory slot 1 · 8 GB installed");
-        compare(S.spotLegend("ram-2", {}), "Memory slot 2 · empty (ADATA 16 GB pending)");
+        compare(S.spotLegend("ram-2", {}), "Memory slot 2 · empty");
+        // Com os pentes do nas-status (dmidecode): cada conector com o seu
+        const mem = { total: 23795, dimms: [
+            { slot: 1, gb: 8, maker: "Samsung", part: "M425R1GB4BB0-CWMOD", speed: 5600, configured: 4800 },
+            { slot: 2, gb: 16, maker: "A-DATA Technology", part: "AD5S480016G-S", speed: 4800, configured: 4800 }] };
+        compare(S.spotLegend("ram-1", { mem }), "Memory slot 1 · 8 GB Samsung M425R1GB4BB0-CWMOD · 4800 MT/s (rated 5600)");
+        compare(S.spotLegend("ram-2", { mem }), "Memory slot 2 · 16 GB A-DATA AD5S480016G-S · 4800 MT/s");
+        compare(S.ramSlots({ total: 7887 }).map(x => x && x.gb), [8, null]);
+        compare(S.ramSlots({ total: 23795, dimms: [{ slot: 1, gb: 8 }, { slot: 2, gb: 0 }] }).map(x => x && x.gb), [8, null]);
         // Discos moram em Storage > NAS desde 02/11; o resto em Server > System
         compare(S.spotTarget("ram-2"), { page: "server", tab: "system" });
         compare(S.spotTarget("bay-2"), { page: "storage", tab: "nas" });

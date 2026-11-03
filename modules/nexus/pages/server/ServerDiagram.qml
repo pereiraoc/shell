@@ -42,6 +42,7 @@ Item {
     readonly property var lan25: S.lanPort(root.info.net, "igc")
     readonly property var fans: root.info.fans ?? null
     readonly property var mem: root.info.mem ?? null
+    readonly property var ram: S.ramSlots(root.mem)
 
     readonly property real k: root.width / 760
     // Rotulos miudos das portas (LAN, DISK1.., HDMI..) so quando o desenho e grande o bastante
@@ -966,11 +967,14 @@ Item {
             }
         }
 
-        // Memoria: dois conectores empilhados (RAM 1 embaixo, com o modulo instalado; RAM 2 em cima, vazio)
+        // Memoria: dois conectores empilhados (RAM 1 embaixo, com o modulo desenhado; RAM 2 em cima, que cobre o
+        // RAM 1 quando tem pente: aparece como conector aceso com o tamanho)
         Item {
             id: ram2
 
             readonly property string spotId: "ram-2"
+            readonly property var dimm: root.ram[1]
+            readonly property bool on: root.online && !!ram2.dimm
 
             x: 250 * bottom.u
             y: 235 * bottom.u
@@ -980,15 +984,15 @@ Item {
             Rectangle {
                 anchors.fill: ram2
                 radius: 2 * root.k
-                color: root.fill(ram2.spotId, false, false)
+                color: root.fill(ram2.spotId, ram2.on, false)
                 border.width: 1
-                border.color: root.stateColor(ram2.spotId, false, false)
+                border.color: root.stateColor(ram2.spotId, ram2.on, false)
             }
 
             Text {
                 anchors.centerIn: ram2
-                text: "RAM 2 · empty"
-                color: root.stateColor(ram2.spotId, false, false)
+                text: ram2.dimm ? `RAM 2 · ${ram2.dimm.gb} GB` : "RAM 2 · empty"
+                color: root.stateColor(ram2.spotId, ram2.on, false)
                 font.family: root.family
                 font.pixelSize: root.small(6)
                 renderType: Text.NativeRendering
@@ -1039,7 +1043,7 @@ Item {
 
                 Text {
                     anchors.centerIn: module
-                    text: root.mem && root.mem.total ? `RAM 1 · ${Math.round(root.mem.total / 1024)} GB` : "RAM 1 · installed"
+                    text: root.ram[0] && root.ram[0].gb ? `RAM 1 · ${root.ram[0].gb} GB` : "RAM 1 · installed"
                     color: root.stateColor(ram1.spotId, ram1.on, false)
                     font.family: root.family
                     font.pixelSize: root.small(7)

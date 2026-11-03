@@ -181,6 +181,32 @@ function m2Slots(disks) {
     return slots;
 }
 
+// Conectores de memoria: [RAM 1, RAM 2], null = vazio. Com `mem.dimms` (dmidecode no nas-status) cada pente no seu
+// conector; sem ele (nas-status antigo) o total inteiro conta como RAM 1.
+function ramSlots(mem) {
+    if (Array.isArray(mem?.dimms) && mem.dimms.length) {
+        const slots = [null, null];
+        for (const d of mem.dimms)
+            if (d.slot >= 1 && d.slot <= 2 && d.gb > 0)
+                slots[d.slot - 1] = d;
+        return slots;
+    }
+    // offline/antigo: o RAM 1 sempre teve pente (o NAS veio com um)
+    return [{ slot: 1, gb: mem?.total ? Math.round(mem.total / 1024) : null }, null];
+}
+
+function ramLegend(n, r) {
+    if (!r)
+        return `Memory slot ${n} · empty`;
+    if (!r.gb)
+        return `Memory slot ${n} · installed module`;
+    if (!r.part)
+        return `Memory slot ${n} · ${r.gb} GB installed`;
+    const maker = String(r.maker ?? "").split(" ")[0];
+    const speed = r.configured ? ` · ${r.configured} MT/s${r.speed && r.speed !== r.configured ? ` (rated ${r.speed})` : ""}` : "";
+    return `Memory slot ${n} · ${r.gb} GB ${maker} ${r.part}${speed}`;
+}
+
 // Porta de rede pelo driver (atlantic = 10 GbE, igc = 2,5 GbE), ou null.
 function lanPort(net, driver) {
     return (net ?? []).find(n => n.driver === driver) ?? null;
@@ -205,9 +231,7 @@ function spotLegend(id, info) {
     }
     if (/^ram-\d$/.test(id)) {
         const n = Number(id.split("-")[1]);
-        if (n === 1)
-            return d.mem?.total ? `Memory slot 1 · ${Math.round(d.mem.total / 1024)} GB installed` : "Memory slot 1 · installed module";
-        return "Memory slot 2 · empty (ADATA 16 GB pending)";
+        return ramLegend(n, ramSlots(d.mem)[n - 1]);
     }
     if (id === "power")
         return d.online === true ? `Power · on, up for ${fmtUptime(d.uptime_s)}` : "Power · out of reach";
