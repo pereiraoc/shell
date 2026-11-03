@@ -108,13 +108,12 @@ TestCase {
         fuzzyCompare(a.shelf.y, 41.7, 0.001);
         fuzzyCompare(a.pos["tablet"].y, 41.7 - 19, 0.001);
         fuzzyCompare(a.pos["monitor:HDMI-A-1"].x + 59 + 2, a.pos["tablet"].x, 0.001);
-        // ordem: NAS, suporte, estojos lado a lado, mesinha, notebook
-        verify(a.pos["nas"].x < a.pos["headphones:WH-1000XM5"].x);
+        // ordem na mesa: suporte, estojos lado a lado, mesinha, notebook (o NAS esta na estante)
         fuzzyCompare(a.pos["headphones:WF"].x, a.pos["headphones:WH-1000XM5"].x + 21.7 + 1, 0.001);
         fuzzyCompare(a.pos["headphones:FC"].x, a.pos["headphones:WF"].x + 6.5 + 1, 0.001);
         verify(a.pos["headphones:FC"].x < a.shelf.x && a.shelf.x + a.shelf.w < a.pos["laptop"].x);
         // grupo de cima e mousemat centrados no mesmo eixo
-        fuzzyCompare(a.pos["nas"].x, -a.width / 2, 0.001);
+        fuzzyCompare(a.pos["headphones:WH-1000XM5"].x, -a.width / 2, 0.001);
         fuzzyCompare(a.pos["laptop"].x + 35.5, a.width / 2, 0.001);
         compare(a.pos["mousepad"].x, -45);
         // teclado centrado na metade esquerda; mouses + controle lado a lado centrados na direita
@@ -125,9 +124,8 @@ TestCase {
         fuzzyCompare(a.pos["mouse:atheris"].x, a.pos["mouse:naga"].x + 7.5 + 3, 0.001);
         fuzzyCompare(a.pos["controller:0"].x + 15.3, 22.5 + rightW / 2, 0.001);
         fuzzyCompare(a.pos["mouse:naga"].y, 52 + (25 - 12) / 2, 0.001);
-        // estojos e NAS na mesa
+        // estojos na mesa
         compare(a.pos["headphones:WF"].y, 50 - 6.1);
-        compare(a.pos["nas"].y, 50 - 17.8);
     }
 
     function test_autoLayout_viagem_so_tablet() {
@@ -145,7 +143,7 @@ TestCase {
         const a = L.autoLayout({ deskY: 50, shelfH: 8.3, laptopRight: false, nas: { w: 17.8, h: 17.8 }, stand: null, buds: [],
             monitors: [{ key: "monitor:HDMI-A-1", w: 59, h: 34.6 }], tablet: null, laptop: { w: 35.5, h: 48 }, mousepad: { w: 90, h: 25 },
             keyboard: null, mice: [], controllers: [] });
-        verify(a.pos["laptop"].x < a.shelf.x && a.shelf.x < a.pos["nas"].x);
+        verify(a.pos["laptop"].x < a.shelf.x);
         fuzzyCompare(a.pos["laptop"].x, -a.width / 2, 0.001);
     }
 
@@ -153,20 +151,56 @@ TestCase {
         const rows = L.groupPieces([{ key: "mousepad", kind: "mousepad" }, { key: "mouse:naga", kind: "mouse" }, { key: "laptop", kind: "laptop" },
             { key: "nas", kind: "nas" }, { key: "tablet", kind: "tablet" }, { key: "monitor:HDMI-A-1", kind: "monitor" }, { key: "shelf", kind: "shelf" },
             { key: "keyboard", kind: "keyboard" }, { key: "headphones:WH-1000XM5", kind: "headphones" }, { key: "headphones:WF", kind: "buds" },
-            { key: "router:aa", kind: "router" }, { key: "controller:0", kind: "controller" }]);
+            { key: "router:aa", kind: "router" }, { key: "controller:0", kind: "controller" }, { key: "rack", kind: "rack" }]);
         compare(rows.map(r => `${r.depth}:${r.header ? "group:" + r.group : r.key}`).join(","),
-            "0:group:laptop,1:laptop,0:group:keyboard-mouse,1:mousepad,1:keyboard,1:mouse:naga,0:group:monitors,1:monitor:HDMI-A-1,1:tablet,1:shelf,0:group:headphones,1:headphones:WH-1000XM5,0:group:buds,1:headphones:WF,0:group:controllers,1:controller:0,0:group:storage,1:nas,0:group:routers,1:router:aa");
+            "0:group:laptop,1:laptop,0:group:keyboard-mouse,1:mousepad,1:keyboard,1:mouse:naga,0:group:monitors,1:monitor:HDMI-A-1,1:tablet,1:shelf,0:group:headphones,1:headphones:WH-1000XM5,0:group:buds,1:headphones:WF,0:group:controllers,1:controller:0,0:group:infrastructure,1:rack,0:group:storage,1:nas,0:group:routers,1:router:aa");
         // grupo sem peca nao aparece
         compare(L.groupPieces([{ key: "laptop", kind: "laptop" }]).length, 2);
     }
 
-    function test_autoLayout_roteadores_ao_lado_do_nas() {
-        const a = L.autoLayout({ deskY: 50, shelfH: 8.3, laptopRight: true, nas: { w: 17.8, h: 17.8 }, routers: [{ key: "router:a", w: 20, h: 14 }, { key: "router:b", w: 20, h: 14 }],
-            stand: null, buds: [], monitors: [], tablet: null, laptop: { w: 35.5, h: 48 }, mousepad: { w: 90, h: 25 }, keyboard: null, mice: [], controllers: [] });
+    function infra(extra) {
+        return L.autoLayout(Object.assign({ deskY: 50, shelfH: 8.3, laptopRight: true, nas: { w: 17.8, h: 17.8 },
+            routers: [{ key: "router:a", w: 20, h: 14 }, { key: "router:b", w: 30, h: 29 }], stand: null, buds: [],
+            monitors: [{ key: "monitor:HDMI-A-1", w: 59, h: 34.6 }], tablet: null, laptop: { w: 35.5, h: 48 },
+            mousepad: { w: 90, h: 25 }, keyboard: null, mice: [], controllers: [] }, extra));
+    }
+
+    function test_estante_centrada_e_na_largura_dos_aparelhos() {
+        const a = infra({});
+        // largura = aparelhos + folgas entre eles + margem nas duas pontas
+        const w = 17.8 + 20 + 30 + 2 * 4 + 2 * 3;
+        fuzzyCompare(a.rack.w, w, 0.001);
+        // centrada no mesmo eixo do mousemat (x = 0)
+        fuzzyCompare(a.rack.x, -w / 2, 0.001);
+        fuzzyCompare(a.rack.x + a.rack.w / 2, a.pos["mousepad"].x + 90 / 2, 0.001);
+        // aparelhos em fila, a partir da margem: NAS e depois os roteadores
+        fuzzyCompare(a.pos["nas"].x, a.rack.x + 3, 0.001);
         fuzzyCompare(a.pos["router:a"].x, a.pos["nas"].x + 17.8 + 4, 0.001);
-        fuzzyCompare(a.pos["router:b"].x, a.pos["router:a"].x + 22, 0.001);
-        compare(a.pos["router:a"].y, 50 - 14);
-        verify(a.pos["router:b"].x + 20 < a.pos["laptop"].x);
+        fuzzyCompare(a.pos["router:b"].x, a.pos["router:a"].x + 20 + 4, 0.001);
+    }
+
+    function test_estante_cresce_com_os_aparelhos() {
+        const one = infra({ nas: null, routers: [{ key: "router:a", w: 20, h: 14 }] });
+        compare(one.rack.w, 20 + 2 * 3);
+        verify(infra({}).rack.w > one.rack.w);
+        fuzzyCompare(one.rack.x, -one.rack.w / 2, 0.001);
+    }
+
+    function test_estante_acima_de_tudo_com_aparelhos_apoiados() {
+        const a = infra({});
+        // aparelhos com a base no tampo
+        fuzzyCompare(a.pos["nas"].y + 17.8, a.rack.y, 0.001);
+        fuzzyCompare(a.pos["router:b"].y + 29, a.rack.y, 0.001);
+        // a estante (com as maos-francesas) passa acima da peca mais alta da mesa
+        const topoMesa = Math.min(a.pos["laptop"].y, a.pos["monitor:HDMI-A-1"].y);
+        verify(a.rack.y + a.rack.h < topoMesa);
+    }
+
+    function test_estante_sem_infra_nao_existe_e_mesa_nao_a_conta() {
+        const a = infra({ nas: null, routers: [] });
+        compare(a.rack, null);
+        // NAS e roteadores nao entram na largura da mesa
+        compare(infra({}).width, a.width);
     }
 
     function test_routerModel_pelo_mac() {

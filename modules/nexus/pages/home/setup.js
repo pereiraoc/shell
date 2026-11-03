@@ -52,30 +52,23 @@ function partAt(parts, fx, fy) {
     return hit;
 }
 
-// Arranjo automatico (cm, eixo x = 0 no centro): o grupo de cima -- NAS, roteadores, fones
-// (suporte do WH com os estojos dos buds lado a lado ao pe dele), mesinha
-// (monitores externos + tablet; so existe com monitor externo) ou o tablet
-// sozinho na mesa, notebook (do lado em que esta no arranjo das telas) -- e o
-// mousemat centrado no mesmo eixo, com teclado, mouses e controles dentro.
-// `s` so traz o que vai aparecer (tamanhos em cm); posicoes salvas sobrepoem.
+// Estante de infraestrutura (cm): altura com tampo + maos-francesas, folga ate a
+// peca mais alta da mesa, entre aparelhos e nas pontas.
+const RACK = { h: 5, clearance: 3, gap: 4, margin: 3 };
+
+// Arranjo automatico (cm, eixo x = 0 no centro). Na mesa: fones (suporte do WH com
+// os estojos dos buds lado a lado ao pe dele), mesinha (monitores externos + tablet;
+// so existe com monitor externo) ou o tablet sozinho, notebook (do lado em que esta
+// no arranjo das telas). Acima de tudo isso, a estante de infraestrutura (`rack`):
+// NAS e roteadores em fila apoiados nela, tao larga quanto eles e centrada no eixo,
+// como o mousemat, que traz teclado, mouses e controles dentro. Sem NAS nem
+// roteador a estante nao existe. `s` so traz o que vai aparecer (tamanhos em cm);
+// posicoes salvas sobrepoem.
 function autoLayout(s) {
     const gap = 4, deskY = s.deskY, shelfTop = deskY - s.shelfH;
     const pos = {};
     const groups = [];
     let shelf = null;
-    if (s.nas)
-        groups.push({ w: s.nas.w, place: x => { pos["nas"] = { x: x, y: deskY - s.nas.h }; } });
-    const routers = s.routers || [];
-    if (routers.length) {
-        const w = routers.reduce((a, r) => a + r.w, 0) + 2 * (routers.length - 1);
-        groups.push({ w: w, place: x => {
-            let cx = x;
-            for (const r of routers) {
-                pos[r.key] = { x: cx, y: deskY - r.h };
-                cx += r.w + 2;
-            }
-        } });
-    }
     const buds = s.buds || [];
     if (s.stand || buds.length) {
         let w = s.stand ? s.stand.w : 0;
@@ -117,6 +110,19 @@ function autoLayout(s) {
         g.place(x);
         x += g.w + gap;
     }
+    // Estante: passa acima da peca mais alta da mesa, centrada no eixo
+    const infra = (s.nas ? [Object.assign({ key: "nas" }, s.nas)] : []).concat(s.routers || []);
+    let rack = null;
+    if (infra.length) {
+        const rackW = infra.reduce((a, d) => a + d.w, 0) + RACK.gap * (infra.length - 1) + RACK.margin * 2;
+        const deskTop = Object.keys(pos).reduce((a, k) => Math.min(a, pos[k].y), deskY);
+        rack = { x: -rackW / 2, y: deskTop - RACK.clearance - RACK.h, w: rackW, h: RACK.h };
+        let cx = rack.x + RACK.margin;
+        for (const d of infra) {
+            pos[d.key] = { x: cx, y: rack.y - d.h };
+            cx += d.w + RACK.gap;
+        }
+    }
     // Mousemat em duas metades: teclado centrado na esquerda; mouses (e controles)
     // lado a lado centrados na direita; tudo centrado na altura do mousemat
     const mat = s.mousepad || { w: 90, h: 25 };
@@ -132,15 +138,15 @@ function autoLayout(s) {
         pos[d.key] = { x: rx, y: mid(d.h) };
         rx += d.w + 3;
     }
-    return { pos: pos, shelf: shelf, width: width };
+    return { pos: pos, shelf: shelf, rack: rack, width: width };
 }
 
-const KIND_ORDER = ["monitor", "laptop", "tablet", "nas", "router", "shelf", "mousepad", "keyboard", "mouse", "headphones", "buds", "controller"];
+const KIND_ORDER = ["monitor", "laptop", "tablet", "rack", "nas", "router", "shelf", "mousepad", "keyboard", "mouse", "headphones", "buds", "controller"];
 
 // Grupos fixos da lista da edicao (pedido de 01/11): notebook sozinho (e o que e
 // constante); teclado e mouse (mousemat, teclados, mouses); telas (monitores
 // externos, tablet, mesinha); fones (suporte + WH); buds (estojos); controles
-// (Bluetooth, quando pareados); armazenamento (NAS); roteadores.
+// (Bluetooth, quando pareados); estante; armazenamento (NAS); roteadores.
 const GROUPS = [
     { id: "laptop", kinds: ["laptop"] },
     { id: "keyboard-mouse", kinds: ["mousepad", "keyboard", "mouse"] },
@@ -148,6 +154,7 @@ const GROUPS = [
     { id: "headphones", kinds: ["headphones"] },
     { id: "buds", kinds: ["buds"] },
     { id: "controllers", kinds: ["controller"] },
+    { id: "infrastructure", kinds: ["rack"] },
     { id: "storage", kinds: ["nas"] },
     { id: "routers", kinds: ["router"] }
 ];
@@ -275,6 +282,7 @@ const KIND_ICON = {
     headphones: "headphones",
     controller: "stadia_controller",
     shelf: "shelf_position",
+    rack: "shelves",
     mousepad: "rectangle"
 };
 

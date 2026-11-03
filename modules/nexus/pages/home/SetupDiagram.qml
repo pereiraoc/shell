@@ -15,9 +15,9 @@ import "setup.js" as L
 // o usuario a deixou: monitores (silhueta do LG com o pe, numa mesinha da
 // largura dele e da altura do touchpad, com os estojos dos fones ao lado do
 // pe), notebook (G16 aberto, com tela, camera, teclado, touchpad e
-// alto-falantes clicaveis -- cada area abre a sua pagina), NAS (frente do
-// DXP4800 Plus, a esquerda do monitor, so quando responde), mousepad de
-// 90 x 25, Azoth, mouses, headphone no suporte e controles. Silhuetas em
+// alto-falantes clicaveis -- cada area abre a sua pagina), estante centrada
+// acima de tudo com o NAS (frente do DXP4800 Plus, so quando responde) e os
+// roteadores, da largura deles, mousepad de 90 x 25, Azoth, mouses, headphone no suporte e controles. Silhuetas em
 // assets/devices com o traco normalizado para o tamanho em que aparecem
 // (scripts/art/trace.py, `stroke`). Tamanhos reais em cm (1 cm = width/190):
 //   LG 25" 58 x 24 cm de tela (EDID), ~59 cm com a moldura; G16 35,5 x 24,3;
@@ -76,8 +76,8 @@ Item {
 
     // Mundo em cm, sem borda fixa: a linha da mesa (deskY) e a borda de tras do
     // tampo -- monitor, suporte do fone, NAS e notebook apoiam nela, e o
-    // mousepad fica a frente (abaixo da linha); x = 0 e a esquerda do arranjo
-    // padrao e o NAS nasce em worldX0 + 1, antes de tudo. Nos dois modos o
+    // mousepad fica a frente (abaixo da linha); x = 0 e o eixo do mousemat e da
+    // estante. Nos dois modos o
     // conteudo (caixa de todas as pecas visiveis) e encaixado na largura e
     // centrado: fora da edicao com 2 cm de folga; na edicao com folga maior
     // (editPad) para haver mesa livre onde soltar, e a caixa recalcula a cada
@@ -265,6 +265,7 @@ Item {
     onControllersChanged: Qt.callLater(root.refit)
     onNasChanged: Qt.callLater(root.refit)
     onTabletChanged: Qt.callLater(root.refit)
+    onRoutersChanged: Qt.callLater(root.refit)
     Component.onCompleted: Qt.callLater(root.refit)
 
     Behavior on opacity {
@@ -512,9 +513,8 @@ Item {
     }
 
     // ------------------------------------------------------------------ NAS
-    // Frente do DXP4800 Plus apoiada na mesa, no comeco do grupo de cima (antes
-    // do suporte do fone e da mesinha); existe sempre que ha um NAS
-    // configurado, mas so e "ligado" quando responde
+    // Frente do DXP4800 Plus apoiada na estante, antes dos roteadores; existe
+    // sempre que ha um NAS configurado, mas so e "ligado" quando responde
     Piece {
         id: nasPiece
 
@@ -541,7 +541,8 @@ Item {
 
     // ----------------------------------------------------------- roteadores
     // Um por roteador (gateway desta rede e os marcados como roteador em Network >
-    // Devices), ao lado do NAS; silhueta do modelo pelo MAC, generica se desconhecido
+    // Devices), na estante ao lado do NAS; silhueta do modelo pelo MAC, generica se
+    // desconhecido
     Repeater {
         model: root.routers.length
 
@@ -577,6 +578,65 @@ Item {
                 layer.effect: Colouriser {
                     colorizationColor: root.ink
                     brightness: 1
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------- estante
+    // Tampo com duas maos-francesas, na largura de quem esta em cima; centrada no
+    // eixo do mousemat e acima da peca mais alta da mesa; sem NAS nem roteador nao
+    // existe. A peca so traz o movel: cada aparelho arrasta por conta propria.
+    Piece {
+        id: rack
+
+        // tampo (cm) e o recuo da mao-francesa a partir de cada ponta
+        readonly property real boardCm: 1.5
+        readonly property real bracketInCm: Math.min(10, rack.wCm * 0.12)
+
+        key: "rack"
+        kind: "rack"
+        defX: root.auto.rack?.x ?? 0
+        defY: root.auto.rack?.y ?? 0
+        wCm: root.auto.rack?.w ?? 40
+        hCm: root.auto.rack?.h ?? 5
+        label: Tr.tr("Infrastructure shelf")
+        device: false
+        visible: !!root.auto.rack
+
+        Rectangle {
+            width: parent.width
+            height: rack.boardCm * root.cm
+            radius: 0.3 * root.cm
+            color: "transparent"
+            border.width: 1
+            border.color: root.ink
+        }
+
+        Canvas {
+            id: brackets
+
+            readonly property color strokeColor: root.ink
+
+            anchors.fill: parent
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onStrokeColorChanged: requestPaint()
+
+            onPaint: {
+                const ctx = getContext("2d");
+                ctx.reset();
+                const top = rack.boardCm * root.cm, h = height - 1, inset = rack.bracketInCm * root.cm, leg = height - top;
+                ctx.strokeStyle = brackets.strokeColor;
+                ctx.lineWidth = 1;
+                for (const dir of [1, -1]) {
+                    const px = dir > 0 ? inset : width - inset;
+                    // parede (vertical) e a diagonal ate o tampo
+                    ctx.beginPath();
+                    ctx.moveTo(px + 0.5, top);
+                    ctx.lineTo(px + 0.5, h);
+                    ctx.lineTo(px + dir * leg, top);
+                    ctx.stroke();
                 }
             }
         }
