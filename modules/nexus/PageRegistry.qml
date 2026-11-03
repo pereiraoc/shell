@@ -34,7 +34,7 @@ QtObject {
             id: "lan",
             label: qsTr("Network"),
             icon: "lan",
-            description: qsTr("This network, home, home devices, remote access"),
+            description: qsTr("This network, home network map, remote access"),
             group: qsTr("Connectivity")
         },
         {
@@ -42,6 +42,13 @@ QtObject {
             label: qsTr("Bluetooth"),
             icon: "bluetooth",
             description: qsTr("Devices, pairing, batteries"),
+            group: qsTr("Connectivity")
+        },
+        {
+            id: "smarthome",
+            label: qsTr("Smart Home Devices"),
+            icon: "home_iot_device",
+            description: qsTr("Home Assistant on the NAS: plugs, lights, power use"),
             group: qsTr("Connectivity")
         },
 

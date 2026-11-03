@@ -66,7 +66,7 @@ PageBase {
         { id: "system", label: Tr.tr("System") },
         { id: "storage", label: Tr.tr("Storage") },
         { id: "network", label: Tr.tr("Network") },
-        { id: "home", label: Tr.tr("Home Devices") },
+        { id: "home", label: Tr.tr("Smart Home") },
         { id: "users", label: Tr.tr("Users") },
         { id: "logs", label: Tr.tr("Logs") }
     ]
@@ -157,11 +157,11 @@ PageBase {
 
             ServerShortcut {
                 page: root
-                target: "lan"
-                targetTab: "devices"
-                where: Tr.tr("Network › Home Devices")
+                target: "smarthome"
+                targetTab: ""
+                where: Tr.tr("Smart Home Devices")
                 icon: "home"
-                explanation: Tr.tr("Home Assistant on the NAS (smart plugs, lights, power use, toggles) now sits under Connectivity, in Network, tab Home Devices.")
+                explanation: Tr.tr("Home Assistant on the NAS (smart plugs, lights, power use, toggles) has its own page under Connectivity: Smart Home Devices.")
             }
         }
 

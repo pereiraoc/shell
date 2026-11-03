@@ -20,7 +20,7 @@ import qs.modules.nexus.pages.server
 // - Home: o mapa da rede de casa pelo monitor que roda no NAS (HomeNetwork, que
 //   era ServerNetwork / Server > Network; DS-18): desconhecidos em cima, a
 //   arvore Internet > roteador > cabo / Wi-Fi por AP > tipo, apelido e tipo;
-// - Home Devices: o Home Assistant do NAS (ServerHome, que era Server > Home).
+// - Home Devices saiu daqui em 03/11: pagina propria Smart Home Devices (SmartHomePage).
 //   Mora aqui porque "Connectivity" e so um grupo do menu (Internet, Network,
 //   Bluetooth) e esta e a pagina dele que ja fala da casa.
 // Wi-Fi, ethernet e VPN ficam na pagina Internet.
@@ -41,8 +41,7 @@ PageBase {
     description: Tr.tr("How you are connected, what is on this network, home, remote access")
     tabs: [
         { id: "local", label: Tr.tr("This network") },
-        { id: "home", label: Tr.tr("Home") },
-        { id: "devices", label: Tr.tr("Home Devices") }
+        { id: "home", label: Tr.tr("Home") }
     ]
 
     ToolBridge {
@@ -57,7 +56,7 @@ PageBase {
     NasBridge {
         id: nas
 
-        live: root.visible && (root.tab === "home" || root.tab === "devices")
+        live: root.visible && root.tab === "home"
     }
 
     ToolBridge {
@@ -234,15 +233,6 @@ PageBase {
                     page: root
                     bridge: nas
                 }
-            }
-        }
-
-        TabPane {
-            active: root.tab === "devices"
-
-            ServerHome {
-                page: root
-                bridge: nas
             }
         }
     }

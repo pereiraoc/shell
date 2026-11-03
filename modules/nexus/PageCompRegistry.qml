@@ -164,6 +164,14 @@ QtObject {
         }
     }
 
+    readonly property Component smarthomeComp: Component {
+        StackPage {
+            Component {
+                SmartHomePage {}
+            }
+        }
+    }
+
     readonly property Component serverComp: Component {
         StackPage {
             Component {
