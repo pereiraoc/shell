@@ -28,7 +28,9 @@ ColumnLayout {
     readonly property var mem: root.info.mem ?? ({})
     readonly property var launchers: S.pickActions(root.bridge.actions, "open:").concat(S.pickActions(root.bridge.actions, "browse:"))
     readonly property int stacksUp: (root.info.stacks ?? []).filter(s => s.active === "active").length
-    readonly property int stacksTotal: (root.info.stacks ?? []).length
+    // Stacks paradas de proposito (autoStart=false no flake, ex.: Foundry; ou condicao nao atendida, ex.: Zigbee sem
+    // dongle) nao contam como "deveriam estar no ar": o cartao so avisa quando falta algo que sobe no boot.
+    readonly property int stacksTotal: (root.info.stacks ?? []).filter(s => s.active === "active" || (s.auto_start !== false && s.condition_met !== false)).length
 
     function backupText(): string {
         if (!root.backup)
@@ -178,7 +180,7 @@ ColumnLayout {
             icon: "deployed_code"
             title: Tr.tr("Services")
             value: root.stacksTotal === 0 ? Tr.tr("None configured") : Tr.tr("%1 of %2 running").arg(root.stacksUp).arg(root.stacksTotal)
-            detail: (root.info.stacks ?? []).map(s => `${s.name} ${s.active === "active" ? "✓" : "✗"}`).join(" · ")
+            detail: (root.info.stacks ?? []).map(s => `${s.name} ${s.active === "active" ? "✓" : (s.auto_start === false || s.condition_met === false) ? "–" : "✗"}`).join(" · ")
             level: root.stacksTotal > 0 && root.stacksUp < root.stacksTotal ? "warn" : "ok"
             onClicked: root.page.nState.openPage("server", 0, "services")
         }

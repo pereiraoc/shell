@@ -93,7 +93,7 @@ ColumnLayout {
                 first: true
                 icon: S.stateIcon(stack.key)
                 iconColour: root.stateColour(stack.key)
-                label: root.stateText(stack.key) + (stack.s.since ? Tr.tr(" since %1").arg(String(stack.s.since).replace("T", " ")) : "")
+                label: root.stateText(stack.key) + (stack.key !== "on" && stack.key !== "failed" && stack.s.auto_start === false ? Tr.tr(" (manual)") : "") + (stack.s.since ? Tr.tr(" since %1").arg(String(stack.s.since).replace("T", " ")) : "")
                 subtext: stack.containers.length === 0 ? Tr.tr("No containers") : stack.containers.map(c => `${c.name}: ${c.status ?? c.state}`).join(" · ")
             }
 
