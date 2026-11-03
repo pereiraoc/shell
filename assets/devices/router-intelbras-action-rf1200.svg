@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3024 2939" width="3024" height="2939">
+  <!-- Intelbras ACtion RF 1200 de frente, como na foto oficial (camera um pouco acima), em 0,1 mm: quatro antenas fixas conicas (duas de fora nos lados, com dobradica; duas de dentro atras do corpo), tampo trapezoidal, 6 LEDs. Largura de 30 cm vem do datasheet do ACtion R1200 (a ficha do RF 1200 nao publica medidas). So linhas. -->
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <!-- antenas de fora, com dobradica -->
+    <path stroke-width="16" d="M227 2280 L132 79 Q132 12 72 12 Q12 12 12 79 L61 2350 Q68 2442 153 2442 L188 2427" />
+    <path stroke-width="16" d="M2797 2280 L2892 79 Q2892 12 2952 12 Q3012 12 3012 79 L2963 2350 Q2956 2442 2871 2442 L2836 2427" />
+    <circle cx="139" cy="2357" r="18" stroke-width="10" />
+    <circle cx="2885" cy="2357" r="18" stroke-width="10" />
+    <!-- antenas de dentro -->
+    <path stroke-width="16" d="M653 1952 L656 44 Q656 12 688 12 L720 12 L808 1952" />
+    <path stroke-width="16" d="M2371 1952 L2368 44 Q2368 12 2336 12 L2304 12 L2216 1952" />
+    <!-- corpo -->
+    <path stroke-width="24" d="M427 1952 L2597 1952 Q2660 1952 2688 2016 L2868 2544 Q2892 2614 2868 2685 Q2832 2755 2762 2825 Q2702 2889 2656 2889 L368 2889 Q315 2889 276 2825 Q192 2755 156 2685 Q132 2614 156 2544 L336 2016 Q364 1952 427 1952 Z" />
+    <path stroke-width="16" d="M149 2649 Q174 2727 269 2730 L2755 2730 Q2850 2727 2875 2649" />
+    <!-- pes -->
+    <path stroke-width="16" d="M410 2892 L427 2927 L597 2927 L614 2892" />
+    <path stroke-width="16" d="M2614 2892 L2597 2927 L2427 2927 L2410 2892" />
+    <!-- LEDs -->
+    <circle cx="1248" cy="2519" r="16" stroke-width="10" />
+    <circle cx="1350" cy="2519" r="16" stroke-width="10" />
+    <circle cx="1452" cy="2519" r="16" stroke-width="10" />
+    <circle cx="1554" cy="2519" r="16" stroke-width="10" />
+    <circle cx="1653" cy="2519" r="16" stroke-width="10" />
+    <circle cx="1762" cy="2519" r="16" stroke-width="10" />
+  </g>
+</svg>

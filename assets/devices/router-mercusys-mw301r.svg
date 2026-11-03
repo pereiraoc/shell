@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1509 1721" width="1509" height="1721">
+  <!-- Mercusys MW301R de frente, como na foto oficial (camera um pouco acima, ve-se o tampo), em 0,1 mm: corpo 135,8 x 25,9 mm (ficha V2), duas antenas-lamina fixas nos lados, 4 LEDs no tampo. So linhas (Colouriser pinta com a tinta do tema). -->
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <!-- antenas -->
+    <path stroke-width="16" d="M135 1096 Q111 1077 106 1040 L106 69 Q106 12 59 12 Q12 12 12 69 L12 1398 Q17 1445 50 1445 L78 1445" />
+    <path stroke-width="16" d="M1374 1096 Q1398 1077 1403 1040 L1403 69 Q1403 12 1450 12 Q1497 12 1497 69 L1497 1398 Q1492 1445 1459 1445 L1431 1445" />
+    <!-- corpo -->
+    <path stroke-width="24" d="M177 1026 L1332 1026 Q1365 1026 1374 1059 L1436 1450 L1436 1653 Q1436 1671 1412 1681 L1384 1709 L125 1709 L97 1681 Q73 1671 73 1653 L73 1450 L135 1059 Q144 1026 177 1026 Z" />
+    <path stroke-width="16" d="M73 1450 Q78 1473 116 1473 L1393 1473 Q1431 1473 1436 1450" />
+    <path stroke-width="12" d="M111 1671 L1398 1671" />
+    <!-- LEDs -->
+    <circle cx="648" cy="1407" r="13" stroke-width="10" />
+    <circle cx="722" cy="1407" r="13" stroke-width="10" />
+    <circle cx="795" cy="1407" r="13" stroke-width="10" />
+    <circle cx="869" cy="1407" r="13" stroke-width="10" />
+  </g>
+</svg>

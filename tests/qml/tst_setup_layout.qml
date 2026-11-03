@@ -169,6 +169,20 @@ TestCase {
         verify(a.pos["router:b"].x + 20 < a.pos["laptop"].x);
     }
 
+    function test_routerModel_pelo_mac() {
+        compare(L.routerModel("d8:c6:78:12:ac:88").art, "router-mitrastar-gpt-2741gnac.svg");
+        compare(L.routerModel("38:6b:1c:3b:4b:f8").art, "router-mercusys-mw301r.svg");
+        compare(L.routerModel("d8:77:8b:21:04:d0").art, "router-intelbras-action-rf1200.svg");
+        compare(L.routerModel("40:ed:00:5e:e2:81").art, "router-tplink-archer-ax53.svg");
+        compare(L.routerModel("40:ED:00:5E:E2:81").art, "router-tplink-archer-ax53.svg");
+        // MAC desconhecido, IP (aparelho sem MAC) e vazio caem na generica
+        for (const k of ["aa:bb:cc:dd:ee:ff", "192.168.15.1", "", undefined]) {
+            compare(L.routerModel(k).art, "router-generic.svg");
+            compare(L.routerModel(k).w, 20);
+            compare(L.routerModel(k).h, 14);
+        }
+    }
+
     function test_kindIcon() {
         compare(L.kindIcon("monitor"), "monitor");
         compare(L.kindIcon("laptop"), "laptop_mac");

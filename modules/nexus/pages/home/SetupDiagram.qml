@@ -50,7 +50,7 @@ Item {
     // { label, online, output } do caelestia-tablet (tablet pareado), ou null
     property var tablet: null
     // [{ key, name, ip, online }] roteadores (caelestia-lan: gateway e os marcados
-    // como "router"); silhueta generica ate haver foto do modelo
+    // como "router"); silhueta e tamanho pelo MAC (setup.js routerModel)
     property var routers: []
     // { chave da peca: nome } dado pelo usuario (~/.config/caelestia/device-names.json,
     // vigiado abaixo): laptop, nas, tablet, keyboard, monitor:<conector>,
@@ -112,7 +112,7 @@ Item {
     readonly property var auto: L.autoLayout({
         deskY: root.deskY, shelfH: root.shelfH, laptopRight: root.laptopRight,
         nas: root.nas && (root.nas.online || root.showOffline) ? { w: 17.8, h: 17.8 } : null,
-        routers: root.routers.filter(r => r.online || root.showOffline).map(r => ({ key: `router:${r.key}`, w: 20, h: 14 })),
+        routers: root.routers.filter(r => r.online || root.showOffline).map(r => ({ key: `router:${r.key}`, w: L.routerModel(r.key).w, h: L.routerModel(r.key).h })),
         stand: root.headphones.some(h => h.model === "WH-1000XM5" && (h.connected || root.showOffline)) ? { w: 21.7, h: 28 } : null,
         buds: root.headphones.filter(h => h.model !== "WH-1000XM5" && (h.connected || root.showOffline)).map(h => ({ key: `headphones:${h.model}`, w: root.budW(h.model), h: root.budH(h.model) })),
         monitors: root.externals.filter(m => root.monitorOn(m) || root.showOffline).map(m => ({ key: `monitor:${m.name}`, w: 59, h: root.monitorH(m) })),
@@ -541,7 +541,7 @@ Item {
 
     // ----------------------------------------------------------- roteadores
     // Um por roteador (gateway desta rede e os marcados como roteador em Network >
-    // Devices), ao lado do NAS; caixa com antenas ate haver foto do modelo
+    // Devices), ao lado do NAS; silhueta do modelo pelo MAC, generica se desconhecido
     Repeater {
         model: root.routers.length
 
@@ -550,13 +550,14 @@ Item {
 
             required property int index
             readonly property var dev: root.routers[index] ?? ({})
+            readonly property var artInfo: L.routerModel(rt.dev.key)
 
             key: `router:${rt.dev.key}`
             kind: "router"
             defX: root.autoX(`router:${rt.dev.key}`)
             defY: root.autoY(`router:${rt.dev.key}`)
-            wCm: 20
-            hCm: 14
+            wCm: rt.artInfo.w
+            hCm: rt.artInfo.h
             label: root.nameFor(`router:${rt.dev.key}`, [rt.dev.name, rt.dev.ip].filter(x => x).join(" · "))
             online: !!rt.dev.online
             showOffline: root.showOffline
@@ -566,7 +567,7 @@ Item {
                 id: rtArt
 
                 anchors.fill: parent
-                source: Quickshell.shellPath("assets/devices/router-generic.svg")
+                source: Quickshell.shellPath(`assets/devices/${rt.artInfo.art}`)
                 fillMode: Image.PreserveAspectFit
                 sourceSize.width: rtArt.width * root.dpr
                 smooth: true

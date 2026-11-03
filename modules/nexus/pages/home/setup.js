@@ -248,6 +248,21 @@ function splitColumns(rows, n) {
     return cols;
 }
 
+// Silhueta e tamanho (cm, o viewBox do SVG em 0,1 mm) de cada roteador conhecido,
+// pelo MAC; qualquer outro cai na silhueta generica. MitraStar e Intelbras sem
+// medida publicada do proprio modelo: ver o comentario dentro de cada SVG.
+const ROUTER_GENERIC = { art: "router-generic.svg", w: 20, h: 14 };
+const ROUTER_MODELS = {
+    "d8:c6:78:12:ac:88": { art: "router-mitrastar-gpt-2741gnac.svg", w: 24.24, h: 12.9 },
+    "38:6b:1c:3b:4b:f8": { art: "router-mercusys-mw301r.svg", w: 15.09, h: 17.21 },
+    "d8:77:8b:21:04:d0": { art: "router-intelbras-action-rf1200.svg", w: 30.24, h: 29.39 },
+    "40:ed:00:5e:e2:81": { art: "router-tplink-archer-ax53.svg", w: 26.26, h: 16.74 }
+};
+
+function routerModel(mac) {
+    return ROUTER_MODELS[String(mac ?? "").toLowerCase()] ?? ROUTER_GENERIC;
+}
+
 const KIND_ICON = {
     monitor: "monitor",
     laptop: "laptop_mac",

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2626 1674" width="2626" height="1674">
+  <!-- TP-Link Archer AX53 de frente, como na foto oficial (camera um pouco acima), em 0,1 mm: corpo 260,2 mm de largura (ficha), quatro antenas fixas atras, tampo em X com a espinha central, grelhas nos lados, 6 LEDs na borda da frente. So linhas. -->
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <!-- antenas -->
+    <path stroke-width="16" d="M471 979 L381 17 L505 17 L580 979" />
+    <path stroke-width="16" d="M820 979 L770 17 L889 17 L934 979" />
+    <path stroke-width="16" d="M1806 979 L1856 17 L1737 17 L1692 979" />
+    <path stroke-width="16" d="M2155 979 L2245 17 L2121 17 L2046 979" />
+    <!-- corpo -->
+    <path stroke-width="24" d="M361 974 L2265 974 L2559 1448 L2609 1537 L2524 1622 L2185 1662 L441 1662 L102 1622 L17 1537 L67 1448 Z" />
+    <path stroke-width="16" d="M67 1477 Q72 1507 117 1507 L2509 1507 Q2554 1507 2559 1477" />
+    <!-- tampo em X e espinha central -->
+    <path stroke-width="12" d="M266 1139 L625 1178 M167 1283 L625 1178 L1188 1243 L92 1507" />
+    <path stroke-width="12" d="M2360 1139 L2001 1178 M2459 1283 L2001 1178 L1438 1243 L2534 1507" />
+    <path stroke-width="12" d="M1188 1243 Q1243 1208 1248 1099 Q1248 1049 1288 1049 L1338 1049 Q1378 1049 1378 1099 Q1383 1208 1438 1243" />
+    <!-- grelhas -->
+    <path stroke-width="10" d="M216 1203 L510 1203 M201 1228 L406 1228 M186 1253 L296 1253" />
+    <path stroke-width="10" d="M2410 1203 L2116 1203 M2425 1228 L2220 1228 M2440 1253 L2330 1253" />
+    <!-- LEDs -->
+    <circle cx="1014" cy="1547" r="13" stroke-width="10" />
+    <circle cx="1129" cy="1547" r="13" stroke-width="10" />
+    <circle cx="1246" cy="1547" r="13" stroke-width="10" />
+    <circle cx="1360" cy="1547" r="13" stroke-width="10" />
+    <circle cx="1475" cy="1547" r="13" stroke-width="10" />
+    <circle cx="1590" cy="1547" r="13" stroke-width="10" />
+  </g>
+</svg>
