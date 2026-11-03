@@ -97,6 +97,7 @@ QtObject {
         { page: "server", sub: 0, tab: "overview", title: Tr.tr("Server overview"), subtitle: Tr.tr("NAS health; open photos, cloud, movies, music"), keywords: "nas server home immich nextcloud jellyfin navidrome photos cloud movies music open" },
         { page: "server", sub: 0, tab: "services", title: Tr.tr("Server services"), subtitle: Tr.tr("Start, stop and restart the Docker stacks"), keywords: "nas docker stack start stop restart immich nextcloud jellyfin navidrome" },
         { page: "server", sub: 0, tab: "system", title: Tr.tr("Server system"), subtitle: Tr.tr("NixOS, watchdog, fans, rebuild, reboot"), keywords: "nas nixos flake rebuild reboot poweroff watchdog fans tailscale netbird vpn" },
+        { page: "server", sub: 0, tab: "users", title: Tr.tr("Server users"), subtitle: Tr.tr("NAS sign-in: access per service, admin, block, temporary password, 2FA"), keywords: "nas users accounts login sign in authelia sso admin administrator block unblock password temporary 2fa totp authenticator access permissions services add user delete" },
         { page: "server", sub: 0, tab: "logs", title: Tr.tr("Server logs"), subtitle: Tr.tr("Journal of a unit on the NAS"), keywords: "nas logs journal journalctl docker containers" },
 
         // Security

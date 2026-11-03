@@ -201,3 +201,111 @@ function spotTarget(id) {
         return { page: "storage", tab: "nas" };
     return { page: "server", tab: "system" };
 }
+
+// ---------------------------------------------------------------- usuarios
+// Aba Users: login central (Authelia) via `caelestia-nas users --json` e
+// `caelestia-nas run user-*`. As acoes rodam em fila; enquanto correm, a lista
+// mostra o resultado esperado (otimista) e a linha do usuario fica ocupada.
+
+const USER_RE = /^[a-z][a-z0-9._-]{1,31}$/;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Mesmo conjunto do MEDIUM do caelestia-nas: pedem dois cliques
+const USER_MEDIUM = ["delete", "block", "passwd", "totp-reset"];
+
+// "user-grant:bia:fotos" -> { verb: "grant", user: "bia", svc: "fotos" }; "user-code" -> { verb: "code" }
+function parseUserAction(id) {
+    const m = /^user-([a-z-]+)(?::([^:]+))?(?::([^:]+))?$/.exec(String(id ?? ""));
+    if (!m)
+        return null;
+    return { verb: m[1], user: m[2] ?? "", svc: m[3] ?? "" };
+}
+
+function userActionId(verb, user, svc) {
+    if (verb === "code")
+        return "user-code";
+    return svc ? `user-${verb}:${user}:${svc}` : `user-${verb}:${user}`;
+}
+
+function userActionRisk(verb) {
+    return USER_MEDIUM.includes(verb) ? "medium" : "low";
+}
+
+// Liga/desliga um servico: grant ou revoke conforme o estado atual
+function serviceToggleId(user, svc) {
+    const has = (user?.services ?? []).includes(svc);
+    return userActionId(has ? "revoke" : "grant", user?.name ?? "", svc);
+}
+
+// A lista com as acoes ainda na fila ja aplicadas (sem mexer no original).
+// delete nao some: fica marcado `deleting` ate a releitura.
+function applyPending(users, ids) {
+    const out = (users ?? []).map(u => Object.assign({}, u, { services: (u.services ?? []).slice() }));
+    for (const id of ids ?? []) {
+        const a = parseUserAction(id);
+        const u = a ? out.find(x => x.name === a.user) : null;
+        if (!u)
+            continue;
+        switch (a.verb) {
+        case "grant":
+            if (!u.services.includes(a.svc))
+                u.services.push(a.svc);
+            break;
+        case "revoke":
+            u.services = u.services.filter(s => s !== a.svc);
+            break;
+        case "admin":
+            u.admin = true;
+            break;
+        case "member":
+            u.admin = false;
+            break;
+        case "block":
+            u.blocked = true;
+            break;
+        case "unblock":
+            u.blocked = false;
+            break;
+        case "delete":
+            u.deleting = true;
+            break;
+        }
+    }
+    return out;
+}
+
+function userBusy(ids, name) {
+    return !!name && (ids ?? []).some(id => parseUserAction(id)?.user === name);
+}
+
+// "" quando o formulario esta bom; senao a chave do problema
+// ("name" | "exists" | "display" | "email")
+function validateNewUser(form, users) {
+    const f = form ?? {};
+    if (!USER_RE.test(f.name ?? ""))
+        return "name";
+    if ((users ?? []).some(u => u.name === f.name))
+        return "exists";
+    if (!String(f.display ?? "").trim())
+        return "display";
+    if (!EMAIL_RE.test(f.email ?? ""))
+        return "email";
+    return "";
+}
+
+// argv de `caelestia-nas` para criar o usuario (sem o binario)
+function addUserArgs(form) {
+    const f = form ?? {};
+    const svcs = (f.services ?? []).filter(s => s);
+    return ["users", "add", f.name, String(f.display ?? "").trim(), f.email, ...(f.admin ? ["--admin"] : []), ...(svcs.length ? ["--services", svcs.join(",")] : []), "--json"];
+}
+
+// Liga/desliga um id numa lista (servicos marcados no formulario)
+function toggleIn(list, id) {
+    const l = list ?? [];
+    return l.includes(id) ? l.filter(x => x !== id) : [...l, id];
+}
+
+// Por nome, estavel: mudar papel ou bloquear nao faz a linha pular de lugar
+function sortUsers(users) {
+    return (users ?? []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}

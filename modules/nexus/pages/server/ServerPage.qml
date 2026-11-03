@@ -17,7 +17,8 @@ import "server.js" as S
 // Services (stacks Docker), System (NixOS, watchdog, ventoinhas, rebuild,
 // reiniciar), Storage / Network / Home Devices (atalhos: o conteudo mora em
 // Storage > NAS, Network > Home e Network > Home Devices -- spec
-// 2026-11-02-nas-login-rede-nexus-design.md secao 4), Logs (journal de uma
+// 2026-11-02-nas-login-rede-nexus-design.md secao 4), Users (login central:
+// papel, acesso por servico, bloqueio, senha temporaria), Logs (journal de uma
 // unidade no NAS). Streaming e fotos NAO sao controlados aqui: a aba Overview
 // so abre o app certo.
 PageBase {
@@ -66,6 +67,7 @@ PageBase {
         { id: "storage", label: Tr.tr("Storage") },
         { id: "network", label: Tr.tr("Network") },
         { id: "home", label: Tr.tr("Home Devices") },
+        { id: "users", label: Tr.tr("Users") },
         { id: "logs", label: Tr.tr("Logs") }
     ]
 
@@ -160,6 +162,22 @@ PageBase {
                 where: Tr.tr("Network › Home Devices")
                 icon: "home"
                 explanation: Tr.tr("Home Assistant on the NAS (smart plugs, lights, power use, toggles) now sits under Connectivity, in Network, tab Home Devices.")
+            }
+        }
+
+        TabPane {
+            id: usersPane
+
+            active: root.tab === "users"
+
+            // So nasce na primeira abertura da aba (um ssh para ler os usuarios).
+            Loader {
+                Layout.fillWidth: true
+                active: usersPane.opened
+                sourceComponent: ServerUsers {
+                    page: root
+                    bridge: nas
+                }
             }
         }
 

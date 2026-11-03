@@ -110,4 +110,54 @@ TestCase {
         compare(S.backupLevel({ last_result: "success", last_start: "2026-10-29T03:30:00" }, now), "warn");
         compare(S.backupLevel({ last_result: "success", last_start: "2026-11-01T03:30:00", alert: true }, now), "warn");
     }
+
+    function test_userActions() {
+        compare(S.parseUserAction("user-grant:bia:fotos"), { verb: "grant", user: "bia", svc: "fotos" });
+        compare(S.parseUserAction("user-totp-reset:bia"), { verb: "totp-reset", user: "bia", svc: "" });
+        compare(S.parseUserAction("user-code"), { verb: "code", user: "", svc: "" });
+        compare(S.parseUserAction("stop:immich"), null);
+        compare(S.userActionId("grant", "bia", "fotos"), "user-grant:bia:fotos");
+        compare(S.userActionId("delete", "bia"), "user-delete:bia");
+        compare(S.userActionId("code", "ignored"), "user-code");
+        compare(S.userActionRisk("delete"), "medium");
+        compare(S.userActionRisk("totp-reset"), "medium");
+        compare(S.userActionRisk("grant"), "low");
+        compare(S.userActionRisk("unblock"), "low");
+        compare(S.serviceToggleId({ name: "bia", services: ["fotos"] }, "fotos"), "user-revoke:bia:fotos");
+        compare(S.serviceToggleId({ name: "bia", services: ["fotos"] }, "nuvem"), "user-grant:bia:nuvem");
+    }
+
+    function test_userPending() {
+        const users = [{ name: "op", admin: true, blocked: false, services: ["fotos"] }, { name: "bia", admin: false, blocked: true, services: [] }];
+        const v = S.applyPending(users, ["user-grant:bia:nuvem", "user-revoke:op:fotos", "user-member:op", "user-unblock:bia", "user-grant:bia:nuvem", "user-passwd:op"]);
+        compare(v[0].services, []);
+        compare(v[0].admin, false);
+        compare(v[1].services, ["nuvem"]);
+        compare(v[1].blocked, false);
+        compare(users[0].services, ["fotos"]);  // original intacto
+        compare(users[0].admin, true);
+        compare(S.applyPending(users, ["user-delete:bia"])[1].deleting, true);
+        compare(S.applyPending(users, ["user-admin:ghost", "garbage"]).length, 2);
+        compare(S.applyPending(null, ["user-code"]), []);
+        verify(S.userBusy(["user-grant:bia:nuvem"], "bia"));
+        verify(!S.userBusy(["user-grant:bia:nuvem"], "op"));
+        verify(!S.userBusy(["user-code"], ""));
+        compare(S.sortUsers([{ name: "zed" }, { name: "bia" }]).map(u => u.name), ["bia", "zed"]);
+    }
+
+    function test_newUserForm() {
+        const users = [{ name: "op" }];
+        compare(S.validateNewUser({ name: "bia", display: "Bia Souza", email: "bia@x.com" }, users), "");
+        compare(S.validateNewUser({ name: "Bia", display: "B", email: "bia@x.com" }, users), "name");
+        compare(S.validateNewUser({ name: "b", display: "B", email: "bia@x.com" }, users), "name");
+        compare(S.validateNewUser({ name: "op", display: "B", email: "bia@x.com" }, users), "exists");
+        compare(S.validateNewUser({ name: "bia", display: "  ", email: "bia@x.com" }, users), "display");
+        compare(S.validateNewUser({ name: "bia", display: "B", email: "bia@x" }, users), "email");
+        compare(S.validateNewUser(null, null), "name");
+        compare(S.addUserArgs({ name: "bia", display: " Bia Souza ", email: "bia@x.com", admin: false, services: ["fotos", "nuvem"] }), ["users", "add", "bia", "Bia Souza", "bia@x.com", "--services", "fotos,nuvem", "--json"]);
+        compare(S.addUserArgs({ name: "bia", display: "Bia", email: "bia@x.com", admin: true, services: [] }), ["users", "add", "bia", "Bia", "bia@x.com", "--admin", "--json"]);
+        compare(S.toggleIn(["a"], "b"), ["a", "b"]);
+        compare(S.toggleIn(["a", "b"], "a"), ["b"]);
+        compare(S.toggleIn(null, "a"), ["a"]);
+    }
 }
