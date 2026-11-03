@@ -54,7 +54,7 @@ Item {
     property var routers: []
     // { chave da peca: nome } dado pelo usuario (~/.config/caelestia/device-names.json,
     // vigiado abaixo): laptop, nas, tablet, keyboard, monitor:<conector>,
-    // mouse:<modelo>, headphones:<modelo>, router:<MAC>; vence o nome do aparelho
+    // mouse:<modelo>, headphones:<modelo>, router:<MAC>, switch; vence o nome do aparelho
     property var names: ({})
     property bool showOffline
     property bool editing
@@ -107,11 +107,13 @@ Item {
     readonly property var laptop: root.monitors.find(m => m.internal) ?? null
     // Padrao: o notebook fica do lado em que esta no arranjo (a direita do LG, hoje)
     readonly property bool laptopRight: !root.laptop || root.externals.length === 0 || root.posX(root.laptop) >= Math.max(...root.externals.map(m => root.posX(m)))
+    readonly property bool showSwitch: L.showSwitch(root.routers, root.showOffline)
     // Arranjo automatico (setup.js autoLayout): so entra o que vai aparecer, com
     // os tamanhos das pecas; posicoes salvas (layout) sobrepoem por peca
     readonly property var auto: L.autoLayout({
         deskY: root.deskY, shelfH: root.shelfH, laptopRight: root.laptopRight,
         nas: root.nas && (root.nas.online || root.showOffline) ? { w: 17.8, h: 17.8 } : null,
+        switch: root.showSwitch ? { w: L.SWITCH.w, h: L.SWITCH.h } : null,
         routers: root.routers.filter(r => r.online || root.showOffline).map(r => ({ key: `router:${r.key}`, w: L.routerModel(r.key).w, h: L.routerModel(r.key).h })),
         stand: root.headphones.some(h => h.model === "WH-1000XM5" && (h.connected || root.showOffline)) ? { w: 21.7, h: 28 } : null,
         buds: root.headphones.filter(h => h.model !== "WH-1000XM5" && (h.connected || root.showOffline)).map(h => ({ key: `headphones:${h.model}`, w: root.budW(h.model), h: root.budH(h.model) })),
@@ -539,6 +541,38 @@ Item {
         }
     }
 
+    // --------------------------------------------------------------- switch
+    // Passivo: nao tem estado proprio (online fica no padrao); so aparece na rede de
+    // casa (setup.js showSwitch). Modelo presumido: TP-Link LS1005G
+    Piece {
+        key: "switch"
+        kind: "switch"
+        defX: root.autoX("switch")
+        defY: root.autoY("switch")
+        wCm: L.SWITCH.w
+        hCm: L.SWITCH.h
+        label: root.nameFor("switch", Tr.tr("Ethernet switch"))
+        visible: root.showSwitch
+        onClicked: root.open("lan", "")
+
+        Image {
+            id: swArt
+
+            anchors.fill: parent
+            source: Quickshell.shellPath(`assets/devices/${L.SWITCH.art}`)
+            fillMode: Image.PreserveAspectFit
+            sourceSize.width: swArt.width * root.dpr
+            smooth: true
+            asynchronous: true
+
+            layer.enabled: true
+            layer.effect: Colouriser {
+                colorizationColor: root.ink
+                brightness: 1
+            }
+        }
+    }
+
     // ----------------------------------------------------------- roteadores
     // Um por roteador (gateway desta rede e os marcados como roteador em Network >
     // Devices), na estante ao lado do NAS; silhueta do modelo pelo MAC, generica se
@@ -585,7 +619,7 @@ Item {
 
     // ------------------------------------------------------------- estante
     // Tampo com duas maos-francesas, na largura de quem esta em cima; centrada no
-    // eixo do mousemat e acima da peca mais alta da mesa; sem NAS nem roteador nao
+    // eixo do mousemat e acima da peca mais alta da mesa; sem nenhum aparelho nao
     // existe. A peca so traz o movel: cada aparelho arrasta por conta propria.
     Piece {
         id: rack

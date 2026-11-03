@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230">
+  <!-- TP-Link LS1005G de frente, em 0,1 mm: frente de 90 x 23 mm (ficha), moldura com as 5 portas
+       RJ45, o divisor entre a 1 e a 2 e o LED no canto de cada porta, como na foto oficial. Modelo
+       PRESUMIDO, sem confirmacao. So linhas (Colouriser pinta com a tinta do tema). -->
+  <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+    <!-- corpo -->
+    <rect x="12" y="12" width="876" height="206" rx="10" ry="10" stroke-width="24" />
+    <!-- moldura das portas -->
+    <rect x="80" y="38" width="743" height="120" stroke-width="8" />
+    <path stroke-width="6" d="M238 38 V158" />
+    <!-- portas e LEDs -->
+    <path stroke-width="8" d="M99 69 L128 69 L128 53 L138 53 L138 44 L186 44 L186 53 L195 53 L195 69 L224 69 L224 90 L231 90 L231 116 L227 116 L227 140 L101 140 L101 116 L96 116 L96 90 L99 90 Z" />
+    <circle cx="108" cy="54" r="6" stroke-width="5" />
+    <path stroke-width="8" d="M249 69 L277 69 L277 53 L288 53 L288 44 L335 44 L335 53 L344 53 L344 69 L374 69 L374 90 L380 90 L380 116 L376 116 L376 140 L251 140 L251 116 L245 116 L245 90 L249 90 Z" />
+    <circle cx="257" cy="54" r="6" stroke-width="5" />
+    <path stroke-width="8" d="M394 69 L422 69 L422 53 L433 53 L433 44 L480 44 L480 53 L489 53 L489 69 L519 69 L519 90 L525 90 L525 116 L521 116 L521 140 L396 140 L396 116 L391 116 L391 90 L394 90 Z" />
+    <circle cx="402" cy="54" r="6" stroke-width="5" />
+    <path stroke-width="8" d="M538 69 L566 69 L566 53 L577 53 L577 44 L624 44 L624 53 L634 53 L634 69 L663 69 L663 90 L669 90 L669 116 L665 116 L665 140 L540 140 L540 116 L535 116 L535 90 L538 90 Z" />
+    <circle cx="546" cy="54" r="6" stroke-width="5" />
+    <path stroke-width="8" d="M682 69 L710 69 L710 53 L721 53 L721 44 L768 44 L768 53 L778 53 L778 69 L807 69 L807 90 L813 90 L813 116 L809 116 L809 140 L684 140 L684 116 L679 116 L679 90 L682 90 Z" />
+    <circle cx="690" cy="54" r="6" stroke-width="5" />
+  </g>
+</svg>

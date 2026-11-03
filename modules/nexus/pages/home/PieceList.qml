@@ -11,7 +11,7 @@ import "setup.js" as L
 // Lista das pecas do setup, embaixo do desenho na edicao do layout (ao lado
 // ela roubava a largura e o desenho ficava pequeno demais): grupos fixos em
 // duas colunas (setup.js GROUPS: notebook; teclado e mouse; telas; fones; buds;
-// armazenamento; roteadores), cada um com as suas pecas indentadas. Cada
+// armazenamento; switches; roteadores), cada um com as suas pecas indentadas. Cada
 // linha de peca = icone, nome e estado. Mouse na linha acende a peca no
 // desenho (`hovered(key, on)`); mouse na peca acende a linha (`hoverKey`);
 // clique escolhe (`picked(key)`, `selectedKey`). Os nomes moram aqui, e nao em
@@ -42,6 +42,7 @@ ColumnLayout {
         case "controllers": return Tr.tr("Controllers");
         case "infrastructure": return Tr.tr("Infrastructure");
         case "storage": return Tr.tr("Storage");
+        case "switches": return Tr.tr("Switches");
         case "routers": return Tr.tr("Routers");
         default: return Tr.tr("Other");
         }

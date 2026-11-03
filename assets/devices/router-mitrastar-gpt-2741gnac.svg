@@ -1,24 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2424 1290" width="2424" height="1290">
-  <!-- MitraStar GPT-2741GNAC-N2 (gateway Vivo Fibra) em tres quartos, como na unica foto achada: caixa baixa quadrada de dois andares, sem antena externa, faixa perfurada no tampo (tracejado), respiro na base, 4 LEDs. 0,1 mm com 24 cm de canto a canto ESTIMADOS (medidas nao publicadas). So linhas. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 540" width="2000" height="540">
+  <!-- MitraStar GPT-2741GNAC-N2 (gateway Vivo Fibra) de frente. NAO HA FOTO DE FRENTE: elevacao
+       construida a partir da foto em tres quartos: dois andares (o de cima com o dobro da altura
+       e um pouco mais largo), sem antena externa, 4 LEDs no pe do andar de cima, a esquerda, e
+       respiro no de baixo. 0,1 mm, com 20 x 5,4 cm ESTIMADOS (medidas nao publicadas).
+       So linhas (Colouriser pinta com a tinta do tema). -->
   <g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
-    <!-- andar de cima: borda de fora, lado e emenda -->
-    <path stroke-width="24" d="M12 446 Q12 424 37 411 L910 37 Q989 6 1067 21 L2324 169 Q2412 182 2409 232 L2381 436" />
-    <path stroke-width="24" d="M12 446 L43 716" />
-    <path stroke-width="16" d="M25 439 L1806 766 Q1891 782 1941 722 L2403 219" />
-    <path stroke-width="16" d="M43 716 L1806 1105 Q1853 1115 1891 1071 L2381 436" />
-    <!-- borda de dentro do tampo -->
-    <path stroke-width="12" d="M119 446 L989 53 L2324 200 L1853 691 Q1834 706 1809 703 Z" />
-    <!-- faixa perfurada (tracejado) -->
-    <path stroke-width="10" stroke-dasharray="24 32" d="M439 436 L1061 94 L2142 241 L1680 609 Z" />
+    <!-- andar de cima -->
+    <rect x="12" y="12" width="1976" height="348" rx="44" ry="44" stroke-width="24" />
     <!-- andar de baixo -->
-    <path stroke-width="24" d="M43 716 L62 854 Q69 870 94 876 L1696 1256 Q1821 1294 1891 1231 L2368 615 Q2399 571 2403 483 L2381 436" />
-    <!-- respiros -->
-    <path stroke-width="10" stroke-dasharray="32 28" d="M125 835 L1633 1181" />
-    <path stroke-width="10" stroke-dasharray="32 28" d="M1922 1127 L2349 577" />
+    <path stroke-width="24" d="M44 360 V496 a32 32 0 0 0 32 32 H1924 a32 32 0 0 0 32 -32 V360" />
+    <!-- respiro -->
+    <path stroke-width="10" stroke-dasharray="32 28" d="M132 424 H1720" />
+    <path stroke-width="10" stroke-dasharray="32 28" stroke-dashoffset="30" d="M132 472 H1720" />
     <!-- LEDs -->
-    <circle cx="219" cy="731" r="10" stroke-width="8" />
-    <circle cx="307" cy="750" r="10" stroke-width="8" />
-    <circle cx="392" cy="769" r="10" stroke-width="8" />
-    <circle cx="477" cy="788" r="10" stroke-width="8" />
+    <circle cx="232" cy="306" r="13" stroke-width="10" />
+    <circle cx="326" cy="306" r="13" stroke-width="10" />
+    <circle cx="416" cy="306" r="13" stroke-width="10" />
+    <circle cx="506" cy="306" r="13" stroke-width="10" />
   </g>
 </svg>

@@ -179,6 +179,58 @@ TestCase {
         fuzzyCompare(a.pos["router:b"].x, a.pos["router:a"].x + 20 + 4, 0.001);
     }
 
+    function test_switch_na_estante_entre_nas_e_roteadores() {
+        const sw = { w: 9, h: 2.3 };
+        const a = infra({ switch: sw });
+        // conta na largura da estante, que continua centrada
+        const w = 17.8 + 9 + 20 + 30 + 3 * 4 + 2 * 3;
+        fuzzyCompare(a.rack.w, w, 0.001);
+        fuzzyCompare(a.rack.x, -w / 2, 0.001);
+        // ordem: NAS, switch, roteadores
+        fuzzyCompare(a.pos["switch"].x, a.pos["nas"].x + 17.8 + 4, 0.001);
+        fuzzyCompare(a.pos["router:a"].x, a.pos["switch"].x + 9 + 4, 0.001);
+        // base no tampo
+        fuzzyCompare(a.pos["switch"].y + 2.3, a.rack.y, 0.001);
+        // sem NAS nem roteador a estante existe so por causa do switch
+        compare(infra({ switch: sw, nas: null, routers: [] }).rack.w, 9 + 2 * 3);
+        // sem switch nada muda
+        compare(infra({}).pos["switch"], undefined);
+    }
+
+    function test_switch_so_com_o_gateway_de_casa() {
+        const gw = { key: "d8:c6:78:12:ac:88", online: true };
+        const other = { key: "aa:bb:cc:dd:ee:ff", online: true };
+        compare(L.showSwitch([other, gw], false), true);
+        compare(L.showSwitch([{ key: "D8:C6:78:12:AC:88", online: true }], false), true);
+        // fora de casa: outro gateway, nenhum roteador, ou o de casa so lembrado (offline)
+        compare(L.showSwitch([other], false), false);
+        compare(L.showSwitch([], false), false);
+        compare(L.showSwitch([{ key: "d8:c6:78:12:ac:88", online: false }], false), false);
+        // "mostrar offline" (e a edicao) mostra o lembrado, mas nao inventa o gateway
+        compare(L.showSwitch([{ key: "d8:c6:78:12:ac:88", online: false }], true), true);
+        compare(L.showSwitch([other], true), false);
+    }
+
+    function test_switch_arte_e_tamanho_real() {
+        compare(L.SWITCH.art, "switch-tplink-ls1005g.svg");
+        compare(L.SWITCH.w, 9);
+        compare(L.SWITCH.h, 2.3);
+    }
+
+    function test_mitrastar_de_frente() {
+        const m = L.routerModel("d8:c6:78:12:ac:88");
+        compare(m.art, "router-mitrastar-gpt-2741gnac.svg");
+        compare(m.w, 20);
+        compare(m.h, 5.4);
+    }
+
+    function test_switch_na_lista() {
+        compare(L.kindIcon("switch"), "lan");
+        const rows = L.groupPieces([{ key: "router:aa", kind: "router" }, { key: "switch", kind: "switch" }, { key: "nas", kind: "nas" }]);
+        compare(rows.map(r => r.key).join(","), "group:storage,nas,group:switches,switch,group:routers,router:aa");
+        compare(L.orderPieces([{ key: "router:aa", kind: "router" }, { key: "switch", kind: "switch" }, { key: "nas", kind: "nas" }]).map(p => p.key).join(","), "nas,switch,router:aa");
+    }
+
     function test_estante_cresce_com_os_aparelhos() {
         const one = infra({ nas: null, routers: [{ key: "router:a", w: 20, h: 14 }] });
         compare(one.rack.w, 20 + 2 * 3);

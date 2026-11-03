@@ -60,9 +60,9 @@ const RACK = { h: 5, clearance: 3, gap: 4, margin: 3 };
 // os estojos dos buds lado a lado ao pe dele), mesinha (monitores externos + tablet;
 // so existe com monitor externo) ou o tablet sozinho, notebook (do lado em que esta
 // no arranjo das telas). Acima de tudo isso, a estante de infraestrutura (`rack`):
-// NAS e roteadores em fila apoiados nela, tao larga quanto eles e centrada no eixo,
-// como o mousemat, que traz teclado, mouses e controles dentro. Sem NAS nem
-// roteador a estante nao existe. `s` so traz o que vai aparecer (tamanhos em cm);
+// NAS, switch e roteadores em fila apoiados nela, tao larga quanto eles e centrada
+// no eixo, como o mousemat, que traz teclado, mouses e controles dentro. Sem nenhum
+// deles a estante nao existe. `s` so traz o que vai aparecer (tamanhos em cm);
 // posicoes salvas sobrepoem.
 function autoLayout(s) {
     const gap = 4, deskY = s.deskY, shelfTop = deskY - s.shelfH;
@@ -111,7 +111,9 @@ function autoLayout(s) {
         x += g.w + gap;
     }
     // Estante: passa acima da peca mais alta da mesa, centrada no eixo
-    const infra = (s.nas ? [Object.assign({ key: "nas" }, s.nas)] : []).concat(s.routers || []);
+    const infra = (s.nas ? [Object.assign({ key: "nas" }, s.nas)] : [])
+        .concat(s.switch ? [Object.assign({ key: "switch" }, s.switch)] : [])
+        .concat(s.routers || []);
     let rack = null;
     if (infra.length) {
         const rackW = infra.reduce((a, d) => a + d.w, 0) + RACK.gap * (infra.length - 1) + RACK.margin * 2;
@@ -141,12 +143,12 @@ function autoLayout(s) {
     return { pos: pos, shelf: shelf, rack: rack, width: width };
 }
 
-const KIND_ORDER = ["monitor", "laptop", "tablet", "rack", "nas", "router", "shelf", "mousepad", "keyboard", "mouse", "headphones", "buds", "controller"];
+const KIND_ORDER = ["monitor", "laptop", "tablet", "rack", "nas", "switch", "router", "shelf", "mousepad", "keyboard", "mouse", "headphones", "buds", "controller"];
 
 // Grupos fixos da lista da edicao (pedido de 01/11): notebook sozinho (e o que e
 // constante); teclado e mouse (mousemat, teclados, mouses); telas (monitores
 // externos, tablet, mesinha); fones (suporte + WH); buds (estojos); controles
-// (Bluetooth, quando pareados); estante; armazenamento (NAS); roteadores.
+// (Bluetooth, quando pareados); estante; armazenamento (NAS); switches; roteadores.
 const GROUPS = [
     { id: "laptop", kinds: ["laptop"] },
     { id: "keyboard-mouse", kinds: ["mousepad", "keyboard", "mouse"] },
@@ -156,6 +158,7 @@ const GROUPS = [
     { id: "controllers", kinds: ["controller"] },
     { id: "infrastructure", kinds: ["rack"] },
     { id: "storage", kinds: ["nas"] },
+    { id: "switches", kinds: ["switch"] },
     { id: "routers", kinds: ["router"] }
 ];
 
@@ -258,9 +261,10 @@ function splitColumns(rows, n) {
 // Silhueta e tamanho (cm, o viewBox do SVG em 0,1 mm) de cada roteador conhecido,
 // pelo MAC; qualquer outro cai na silhueta generica. MitraStar e Intelbras sem
 // medida publicada do proprio modelo: ver o comentario dentro de cada SVG.
+const HOME_GATEWAY = "d8:c6:78:12:ac:88";
 const ROUTER_GENERIC = { art: "router-generic.svg", w: 20, h: 14 };
 const ROUTER_MODELS = {
-    "d8:c6:78:12:ac:88": { art: "router-mitrastar-gpt-2741gnac.svg", w: 24.24, h: 12.9 },
+    [HOME_GATEWAY]: { art: "router-mitrastar-gpt-2741gnac.svg", w: 20, h: 5.4 },
     "38:6b:1c:3b:4b:f8": { art: "router-mercusys-mw301r.svg", w: 15.09, h: 17.21 },
     "d8:77:8b:21:04:d0": { art: "router-intelbras-action-rf1200.svg", w: 30.24, h: 29.39 },
     "40:ed:00:5e:e2:81": { art: "router-tplink-archer-ax53.svg", w: 26.26, h: 16.74 }
@@ -270,12 +274,24 @@ function routerModel(mac) {
     return ROUTER_MODELS[String(mac ?? "").toLowerCase()] ?? ROUTER_GENERIC;
 }
 
+// Switch da casa: frente de 9 x 2,3 cm (modelo presumido, sem confirmacao). Passivo,
+// nao responde na rede: aparece quando estamos na rede de casa, isto e, com o gateway
+// de casa ligado; o caelestia-lan lembra aparelhos, entao so estar na lista nao basta
+// (offline = lembrado, fora de casa), a nao ser com "mostrar offline".
+const SWITCH = { art: "switch-tplink-ls1005g.svg", w: 9, h: 2.3 };
+
+function showSwitch(routers, showOffline) {
+    const gw = routers.find(r => String(r.key ?? "").toLowerCase() === HOME_GATEWAY);
+    return !!gw && (!!gw.online || !!showOffline);
+}
+
 const KIND_ICON = {
     monitor: "monitor",
     laptop: "laptop_mac",
     tablet: "tablet_android",
     nas: "dns",
     router: "router",
+    switch: "lan",
     buds: "earbuds",
     keyboard: "keyboard",
     mouse: "mouse",
