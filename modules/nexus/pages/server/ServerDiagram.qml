@@ -22,7 +22,7 @@ import "server.js" as S
 //   power      botao; led-net LED "LAN"
 //   fan        ventoinha (rpm); lan-10g = LAN 2 (atlantic), lan-2g5 = LAN 1 (igc) -- ordem fisica
 //              das duas portas a confirmar com o cabo em casa (nas-status diz qual tem link)
-//   m2-1/m2-2  slots NVMe (sistema; Lexar quando chegar); ram-1/ram-2 memoria (8 GB; ADATA pendente)
+//   m2-1/m2-2  slots NVMe da tampa (Lexar no 1; o SSD do sistema e interno, fora deles); ram-1/ram-2 memoria (8 GB; ADATA pendente)
 // `picked(id)` e `hovered` (a pagina mostra a legenda embaixo).
 Item {
     id: root
@@ -37,6 +37,7 @@ Item {
     readonly property bool online: root.info.online === true
     readonly property var bays: S.bayMap(root.info.disks)
     readonly property var m2: S.m2Slots(root.info.disks)
+    readonly property var internal: S.internalSsd(root.info.disks)
     readonly property var lan10: S.lanPort(root.info.net, "atlantic")
     readonly property var lan25: S.lanPort(root.info.net, "igc")
     readonly property var fans: root.info.fans ?? null
@@ -831,7 +832,7 @@ Item {
             y: -14 * root.k
             width: bottom.width
             horizontalAlignment: Text.AlignHCenter
-            text: "UNDERSIDE · 178 × 257 mm · M.2 × 2 · RAM × 2"
+            text: "UNDERSIDE · 178 × 257 mm · M.2 × 2 · RAM × 2" + (root.internal ? ` · system SSD inside (${Math.round((root.internal.size ?? 0) / 1e9)} GB, not in these slots)` : "")
             color: root.faint
             font.family: root.family
             font.pixelSize: root.small(7)
@@ -886,7 +887,7 @@ Item {
             }
         }
 
-        // 2x M.2 na vertical (esquerda): M.2 1 = sistema, M.2 2 = Lexar quando chegar
+        // 2x M.2 na vertical (esquerda), slots livres da tampa; o SSD do sistema (128 GB) e interno e nao ocupa nenhum
         Repeater {
             model: 2
 
@@ -951,7 +952,7 @@ Item {
                     y: 175 * bottom.u
                     width: slot.width
                     horizontalAlignment: Text.AlignHCenter
-                    text: slot.disk ? `${Math.round((slot.disk.size ?? 0) / 1e9)} GB` : (slot.index === 1 ? "empty · Lexar" : "empty")
+                    text: slot.disk ? `${Math.round((slot.disk.size ?? 0) / 1e9)} GB` : "empty"
                     color: slot.on ? root.stateColor(slot.spotId, slot.on, slot.bad) : root.faint
                     font.family: root.family
                     font.pixelSize: root.small(6)

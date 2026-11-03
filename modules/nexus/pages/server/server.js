@@ -145,9 +145,20 @@ function bayMap(disks) {
     return out;
 }
 
-// Slots M.2 de baixo: [sistema, Lexar] = os NVMe na ordem (nvme0n1 = sistema).
+// SSD do sistema do DXP4800 Plus: interno (placa-mae), NAO ocupa os 2 slots M.2 de baixo
+var INTERNAL_SSD = /^TWSC TSC3AN128/;
+
+function isInternalSsd(d) {
+    return INTERNAL_SSD.test(String(d?.model ?? ""));
+}
+
+function internalSsd(disks) {
+    return (disks ?? []).find(isInternalSsd) ?? null;
+}
+
+// Slots M.2 de baixo (2, acesso pela tampa): os NVMe que nao sao o interno, em ordem de dev
 function m2Slots(disks) {
-    return (disks ?? []).filter(d => d.bus === "nvme" || (d.bus === undefined && d.kind === "ssd")).sort((a, b) => String(a.dev).localeCompare(String(b.dev))).slice(0, 2);
+    return (disks ?? []).filter(d => (d.bus === "nvme" || (d.bus === undefined && d.kind === "ssd")) && !isInternalSsd(d)).sort((a, b) => String(a.dev).localeCompare(String(b.dev))).slice(0, 2);
 }
 
 // Porta de rede pelo driver (atlantic = 10 GbE, igc = 2,5 GbE), ou null.
@@ -169,8 +180,8 @@ function spotLegend(id, info) {
         const n = Number(id.split("-")[1]);
         const disk = m2Slots(d.disks)[n - 1];
         if (!disk)
-            return n === 2 ? "M.2 slot 2 · empty (Lexar NM790 pending)" : "M.2 slot 1 · empty";
-        return `M.2 slot ${n} · ${disk.dev} ${disk.model ?? ""} · ${fmtBytes(disk.size)} · SMART ${disk.smart ?? "?"}${disk.temp != null ? ` · ${disk.temp} °C` : ""}${n === 1 ? " · system" : ""}`;
+            return `M.2 slot ${n} · empty`;
+        return `M.2 slot ${n} · ${disk.dev} ${disk.model ?? ""} · ${fmtBytes(disk.size)} · SMART ${disk.smart ?? "?"}${disk.temp != null ? ` · ${disk.temp} °C` : ""}`;
     }
     if (/^ram-\d$/.test(id)) {
         const n = Number(id.split("-")[1]);

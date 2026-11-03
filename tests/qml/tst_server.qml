@@ -66,7 +66,8 @@ TestCase {
 
     function test_silhouette() {
         const disks = [
-            { dev: "nvme0n1", kind: "ssd", bus: "nvme", bay: null, size: 128035676160, model: "TWSC", smart: "PASSED", temp: 41 },
+            { dev: "nvme1n1", kind: "ssd", bus: "nvme", bay: null, size: 128035676160, model: "TWSC TSC3AN128-F2T70S", smart: "PASSED", temp: 41 },
+            { dev: "nvme0n1", kind: "ssd", bus: "nvme", bay: null, size: 512110190592, model: "Lexar SSD NM790 512GB", smart: "PASSED", temp: 28 },
             { dev: "sda", kind: "hdd", bus: "ata", bay: 2, size: 4000787030016, model: "ST4000VN006", smart: "PASSED", temp: 33 },
             { dev: "sdb", kind: "hdd", bus: "ata", bay: 1, size: 4000787030016, model: "ST4000VN006", smart: "FAILED", temp: 51 }
         ];
@@ -75,15 +76,16 @@ TestCase {
         compare(bays[2].dev, "sda");
         compare(bays[3], undefined);
         compare(S.bayMap([{ dev: "sda", kind: "hdd" }, { dev: "sdb", kind: "hdd" }])[2].dev, "sdb");  // sem `bay`: pela ordem
-        compare(S.m2Slots(disks).map(d => d.dev), ["nvme0n1"]);
+        compare(S.m2Slots(disks).map(d => d.dev), ["nvme0n1"]);          // o SSD do sistema e interno: fora dos slots
+        compare(S.internalSsd(disks).dev, "nvme1n1");
         const net = [{ iface: "enp1s0", driver: "atlantic", up: true, speed_mbps: 1000, ip: "192.168.15.129" }, { iface: "enp4s0", driver: "igc", up: false, speed_mbps: -1, ip: null }];
         compare(S.lanPort(net, "igc").iface, "enp4s0");
         compare(S.lanPort(null, "igc"), null);
         const info = { online: true, uptime_s: 7200, disks, net, fans: { case_rpm: 655, case_mode: "manual", cpu_rpm: 867, cpu_mode: "auto" } };
         compare(S.spotLegend("bay-1", info), "Bay 1 · sdb ST4000VN006 · 3.6 TB · SMART FAILED · 51 °C");
         compare(S.spotLegend("bay-4", info), "Bay 4 · empty");
-        compare(S.spotLegend("m2-2", info), "M.2 slot 2 · empty (Lexar NM790 pending)");
-        compare(S.spotLegend("m2-1", info), "M.2 slot 1 · nvme0n1 TWSC · 119.2 GB · SMART PASSED · 41 °C · system");
+        compare(S.spotLegend("m2-2", info), "M.2 slot 2 · empty");
+        compare(S.spotLegend("m2-1", info), "M.2 slot 1 · nvme0n1 Lexar SSD NM790 512GB · 476.9 GB · SMART PASSED · 28 °C");
         compare(S.spotLegend("power", info), "Power · on, up for 2 h 0 min");
         compare(S.spotLegend("power", { online: false }), "Power · out of reach");
         compare(S.spotLegend("fan", info), "Fan · case 655 rpm (manual) · CPU 867 rpm (auto)");
