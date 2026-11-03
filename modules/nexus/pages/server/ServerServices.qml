@@ -106,19 +106,19 @@ ColumnLayout {
                     required property int index
                     property var modelData: stack.acts[index] ?? ({})
                     readonly property var liveItem: stack.acts[index]
-                    readonly property bool isArmed: root.page.armed === act.modelData.id
+                    readonly property bool isArmed: root.bridge.armed === act.modelData.id
                     readonly property bool isBusy: root.bridge.busyAction === act.modelData.id
 
                     onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
 
                     color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
                     icon: act.isBusy ? "hourglass_top" : String(act.modelData.id ?? "").startsWith("start:") ? "play_arrow" : String(act.modelData.id ?? "").startsWith("stop:") ? "stop" : "restart_alt"
-                    text: root.page.actionText(act.modelData)
+                    text: root.bridge.actionText(act.modelData)
                     subtext: act.modelData.detail ?? ""
                     disabled: root.bridge.busyAction !== "" && !act.isBusy
                     onClicked: {
                         if (!act.isBusy)
-                            root.page.press(act.modelData);
+                            root.bridge.press(act.modelData);
                     }
                 }
             }

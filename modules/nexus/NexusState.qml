@@ -31,6 +31,9 @@ QtObject {
     property string selectedRgbDevice
     property string selectedMouse
     property string selectedHeadphone
+    // Peca da silhueta do NAS escolhida (bay-1..4, m2-1/2, power, fan, lan-10g,
+    // lan-2g5): Server > Overview escolhe, Storage > NAS mostra o disco dela
+    property string selectedNasSpot
 
     signal close
     signal subPageOpened(idx: int)

@@ -9,13 +9,20 @@ import qs.components.controls
 import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.server
 
-// A rede como ela esta (pedido de 01/11): o diagrama desta rede (internet,
-// roteador, este PC, a VPN por cima), o que ha nela (caelestia-lan; a lista
-// completa e a subpagina 1), a rede de casa pelo monitor que roda no NAS
-// (caelestia-nas; DS-18) e o acesso remoto ao PC pelo celular e pelo tablet
-// (caelestia-remote: Sunshine + Moonlight; DS-37, CF-29). Wi-Fi, ethernet e VPN
-// ficam na pagina Internet.
+// A rede como ela esta (pedido de 01/11), em abas (02/11, spec
+// 2026-11-02-nas-login-rede-nexus-design.md secao 4):
+// - This network: o diagrama desta rede (internet, roteador, este PC, a VPN por
+//   cima), o que ha nela (caelestia-lan; a lista completa e a subpagina 1) e o
+//   acesso remoto ao PC pelo celular e pelo tablet (caelestia-remote: Sunshine
+//   + Moonlight; DS-37, CF-29);
+// - Home: a rede de casa pelo monitor que roda no NAS (ServerNetwork, que era
+//   Server > Network; DS-18). O mapa completo da casa vem depois;
+// - Home Devices: o Home Assistant do NAS (ServerHome, que era Server > Home).
+//   Mora aqui porque "Connectivity" e so um grupo do menu (Internet, Network,
+//   Bluetooth) e esta e a pagina dele que ja fala da casa.
+// Wi-Fi, ethernet e VPN ficam na pagina Internet.
 PageBase {
     id: root
 
@@ -25,14 +32,17 @@ PageBase {
     readonly property var router: root.devices.find(d => d.type === "router") ?? null
     readonly property string routerName: root.router ? (root.router.name || root.router.hostname || root.router.vendor || Tr.tr("Router")) : Tr.tr("Router")
     readonly property string linkText: Nmcli.activeEthernet ? Tr.tr("Ethernet") : (Nmcli.active ? (Nmcli.active.ssid ?? Tr.tr("Wi-Fi")) : (root.net ? root.net.iface : Tr.tr("No connection")))
-    readonly property bool nasOnline: nas.info.online === true
-    readonly property var monitor: nas.info.monitor ?? null
     readonly property var pending: remote.info.pending ?? []
     property string pinText
     property string pinName
 
     title: Tr.tr("Network")
     description: Tr.tr("How you are connected, what is on this network, home, remote access")
+    tabs: [
+        { id: "local", label: Tr.tr("This network") },
+        { id: "home", label: Tr.tr("Home") },
+        { id: "devices", label: Tr.tr("Home Devices") }
+    ]
 
     ToolBridge {
         id: lan
@@ -41,11 +51,12 @@ PageBase {
         autoRefresh: 15000
     }
 
-    ToolBridge {
+    // Uma ponte do NAS para as abas Home e Home Devices (as acoes dos toggles
+    // passam por ela); relê a cada 30 s so com uma delas na frente.
+    NasBridge {
         id: nas
 
-        tool: "nas"
-        autoRefresh: 60000
+        live: root.visible && (root.tab === "home" || root.tab === "devices")
     }
 
     ToolBridge {
@@ -61,199 +72,176 @@ PageBase {
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
 
-        // ---- esta rede -----------------------------------------------------
-        SectionHeader {
-            first: true
-            text: Tr.tr("This network")
-        }
-
-        ConnectedRect {
-            Layout.fillWidth: true
-            first: true
-            implicitHeight: diagram.implicitHeight + Tokens.padding.large * 2
-
-            RowLayout {
-                id: diagram
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: Tokens.padding.large
-                spacing: 0
-
-                NetNode {
-                    icon: "public"
-                    label: Tr.tr("Internet")
-                    sub: VPN.connected ? Tr.tr("via VPN · %1").arg(VPN.providerName) : ""
-                    dim: !Nmcli.isConnected
-                }
-
-                NetLink {
-                    label: VPN.connected && VPN.pingMs >= 0 ? Tr.tr("%1 ms").arg(VPN.pingMs) : ""
-                }
-
-                NetNode {
-                    icon: "router"
-                    label: root.routerName
-                    sub: root.net ? root.net.gateway : ""
-                    dim: !root.net
-                }
-
-                NetLink {
-                    label: root.linkText
-                }
-
-                NetNode {
-                    icon: "laptop_mac"
-                    label: Tr.tr("This PC")
-                    sub: root.net ? root.net.ip : ""
-                    dim: !root.net
-                }
-            }
-        }
-
         InfoRow {
-            icon: "lan"
-            label: root.net ? Tr.tr("%1 · %2 device(s) online now").arg(root.net.subnet).arg(root.onlineCount) : Tr.tr("Not connected to any network")
-            subtext: root.net ? Tr.tr("Other devices on this network, as this PC sees them (kernel neighbour table)") : ""
-        }
-
-        RowButton {
-            icon: "devices"
-            text: Tr.tr("Devices on this network")
-            subtext: Tr.tr("Names, open ports, router page, SSH; mark which ones are routers")
-            onClicked: root.nState.openSubPage(1)
-        }
-
-        RowButton {
-            last: true
-            icon: "vpn_key"
-            text: Tr.tr("Wi-Fi, ethernet and VPN")
-            subtext: Tr.tr("Connect, saved networks, VPN providers")
-            onClicked: root.nState.openPage("network", 0, "")
-        }
-
-        // ---- em casa -------------------------------------------------------
-        SectionHeader {
-            text: Tr.tr("At home")
-        }
-
-        GridLayout {
-            Layout.fillWidth: true
-            visible: root.nasOnline && !!root.monitor
-            columns: width >= 520 ? 3 : 1
-            columnSpacing: Tokens.spacing.small
-            rowSpacing: Tokens.spacing.small
-
-            StatusCard {
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                icon: "devices"
-                title: Tr.tr("Online now")
-                value: String(root.monitor?.online ?? "?")
-                detail: Tr.tr("%1 known in total").arg(root.monitor?.total ?? "?")
-                level: "ok"
-            }
-
-            StatusCard {
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                icon: "new_releases"
-                title: Tr.tr("New")
-                value: String(root.monitor?.new ?? "?")
-                detail: (root.monitor?.new ?? 0) > 0 ? Tr.tr("Not yet marked as known") : Tr.tr("Nothing unknown on the network")
-                level: (root.monitor?.new ?? 0) > 0 ? "warn" : "ok"
-            }
-
-            StatusCard {
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                icon: "signal_disconnected"
-                title: Tr.tr("Down")
-                value: String(root.monitor?.down ?? "?")
-                detail: Tr.tr("Known devices that are currently offline")
-                level: "ok"
-            }
-        }
-
-        InfoRow {
-            first: true
-            last: false
-            visible: !root.nasOnline
-            icon: "home"
-            iconColour: Colours.palette.m3outline
-            label: nas.info.last_seen ? Tr.tr("The NAS is out of reach · last seen %1").arg(String(nas.info.last_seen).replace("T", " ").slice(5, 16)) : Tr.tr("The NAS is out of reach")
-            subtext: Tr.tr("The home map (router, switch, every device) lives in the monitor on the NAS; it shows here when the NAS answers, at home or over the VPN")
-        }
-
-        RowButton {
-            first: root.nasOnline
-            last: true
-            icon: "hub"
-            text: Tr.tr("Home network monitor (on the NAS)")
-            subtext: Tr.tr("New and unknown devices, alerts on the phone, network map")
-            onClicked: root.nState.openPage("server", 0, "network")
-        }
-
-        // ---- acesso remoto -------------------------------------------------
-        ToolSection {
-            tool: "remote"
-            title: Tr.tr("Use this PC from your phone or tablet")
-            icon: "cast"
-            hint: Tr.tr("Sunshine streams the screen (HEVC on the GPU) with touch, keyboard, mouse and controller. On the device, install Moonlight, pick this PC and type the PIN it shows below. On the home network now; over the VPN once Tailscale is logged in.")
-        }
-
-        // PIN do Moonlight: campo curto, nome do aparelho, botao. Sem texto de apoio
-        // nos campos (sobrepunha um ao outro); o que falta dizer esta no resumo acima.
-        ConnectedRect {
-            Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.small
+            visible: nas.error !== "" && root.tab !== "local"
             first: true
             last: true
-            implicitHeight: pinRow.implicitHeight + Tokens.padding.medium * 2
+            icon: "error"
+            iconColour: Colours.palette.m3error
+            label: Tr.tr("Could not read the NAS tool")
+            subtext: nas.error
+        }
 
-            RowLayout {
-                id: pinRow
+        TabPane {
+            active: root.tab === "local"
 
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: Tokens.padding.medium
-                spacing: Tokens.spacing.small
+            // ---- esta rede -----------------------------------------------------
+            SectionHeader {
+                first: true
+                text: Tr.tr("This network")
+            }
 
-                StyledTextField {
-                    id: pinField
+            ConnectedRect {
+                Layout.fillWidth: true
+                first: true
+                implicitHeight: diagram.implicitHeight + Tokens.padding.large * 2
 
-                    Layout.preferredWidth: Tokens.padding.extraExtraLarge * 5
-                    placeholderText: Tr.tr("PIN from Moonlight")
-                    leadingIcon: "pin"
-                    inputMethodHints: Qt.ImhDigitsOnly
-                    onTextChanged: root.pinText = text
-                    onAccepted: nameField.forceActiveFocus()
-                }
+                RowLayout {
+                    id: diagram
 
-                StyledTextField {
-                    id: nameField
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: Tokens.padding.large
+                    spacing: 0
 
-                    Layout.fillWidth: true
-                    placeholderText: Tr.tr("Device name (e.g. OP's Phone)")
-                    leadingIcon: "devices"
-                    onTextChanged: root.pinName = text
-                    onAccepted: pairButton.clicked()
-                }
+                    NetNode {
+                        icon: "public"
+                        label: Tr.tr("Internet")
+                        sub: VPN.connected ? Tr.tr("via VPN · %1").arg(VPN.providerName) : ""
+                        dim: !Nmcli.isConnected
+                    }
 
-                TextButton {
-                    id: pairButton
+                    NetLink {
+                        label: VPN.connected && VPN.pingMs >= 0 ? Tr.tr("%1 ms").arg(VPN.pingMs) : ""
+                    }
 
-                    Layout.preferredWidth: Tokens.padding.extraExtraLarge * 3
-                    text: remote.busyAction.startsWith("pair") ? Tr.tr("Pairing…") : Tr.tr("Pair")
-                    enabled: /^\d{4}$/.test(root.pinText) && remote.busyAction === ""
-                    opacity: enabled ? 1 : 0.5
-                    onClicked: {
-                        remote.run({ id: `pair~${root.pinText}~${root.pinName.trim() || "device"}` });
-                        pinField.text = "";
+                    NetNode {
+                        icon: "router"
+                        label: root.routerName
+                        sub: root.net ? root.net.gateway : ""
+                        dim: !root.net
+                    }
+
+                    NetLink {
+                        label: root.linkText
+                    }
+
+                    NetNode {
+                        icon: "laptop_mac"
+                        label: Tr.tr("This PC")
+                        sub: root.net ? root.net.ip : ""
+                        dim: !root.net
                     }
                 }
+            }
+
+            InfoRow {
+                icon: "lan"
+                label: root.net ? Tr.tr("%1 · %2 device(s) online now").arg(root.net.subnet).arg(root.onlineCount) : Tr.tr("Not connected to any network")
+                subtext: root.net ? Tr.tr("Other devices on this network, as this PC sees them (kernel neighbour table)") : ""
+            }
+
+            RowButton {
+                icon: "devices"
+                text: Tr.tr("Devices on this network")
+                subtext: Tr.tr("Names, open ports, router page, SSH; mark which ones are routers")
+                onClicked: root.nState.openSubPage(1)
+            }
+
+            RowButton {
+                last: true
+                icon: "vpn_key"
+                text: Tr.tr("Wi-Fi, ethernet and VPN")
+                subtext: Tr.tr("Connect, saved networks, VPN providers")
+                onClicked: root.nState.openPage("network", 0, "")
+            }
+
+            // ---- acesso remoto -------------------------------------------------
+            ToolSection {
+                tool: "remote"
+                title: Tr.tr("Use this PC from your phone or tablet")
+                icon: "cast"
+                hint: Tr.tr("Sunshine streams the screen (HEVC on the GPU) with touch, keyboard, mouse and controller. On the device, install Moonlight, pick this PC and type the PIN it shows below. On the home network now; over the VPN once Tailscale is logged in.")
+            }
+
+            // PIN do Moonlight: campo curto, nome do aparelho, botao. Sem texto de apoio
+            // nos campos (sobrepunha um ao outro); o que falta dizer esta no resumo acima.
+            ConnectedRect {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.small
+                first: true
+                last: true
+                implicitHeight: pinRow.implicitHeight + Tokens.padding.medium * 2
+
+                RowLayout {
+                    id: pinRow
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: Tokens.padding.medium
+                    spacing: Tokens.spacing.small
+
+                    StyledTextField {
+                        id: pinField
+
+                        Layout.preferredWidth: Tokens.padding.extraExtraLarge * 5
+                        placeholderText: Tr.tr("PIN from Moonlight")
+                        leadingIcon: "pin"
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        onTextChanged: root.pinText = text
+                        onAccepted: nameField.forceActiveFocus()
+                    }
+
+                    StyledTextField {
+                        id: nameField
+
+                        Layout.fillWidth: true
+                        placeholderText: Tr.tr("Device name (e.g. OP's Phone)")
+                        leadingIcon: "devices"
+                        onTextChanged: root.pinName = text
+                        onAccepted: pairButton.clicked()
+                    }
+
+                    TextButton {
+                        id: pairButton
+
+                        Layout.preferredWidth: Tokens.padding.extraExtraLarge * 3
+                        text: remote.busyAction.startsWith("pair") ? Tr.tr("Pairing…") : Tr.tr("Pair")
+                        enabled: /^\d{4}$/.test(root.pinText) && remote.busyAction === ""
+                        opacity: enabled ? 1 : 0.5
+                        onClicked: {
+                            remote.run({ id: `pair~${root.pinText}~${root.pinName.trim() || "device"}` });
+                            pinField.text = "";
+                        }
+                    }
+                }
+            }
+        }
+
+        TabPane {
+            id: homePane
+
+            active: root.tab === "home"
+
+            // So nasce na primeira abertura (lista os aparelhos pela CLI a cada 30 s enquanto visivel).
+            Loader {
+                Layout.fillWidth: true
+                active: homePane.opened
+                sourceComponent: ServerNetwork {
+                    page: root
+                    bridge: nas
+                }
+            }
+        }
+
+        TabPane {
+            active: root.tab === "devices"
+
+            ServerHome {
+                page: root
+                bridge: nas
             }
         }
     }

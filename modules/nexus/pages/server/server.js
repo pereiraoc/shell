@@ -89,12 +89,14 @@ function reachKey(data) {
 }
 
 // Opcoes do seletor de unidade da aba Logs: stacks primeiro, depois as nativas
+// Unidades da aba Logs: stacks primeiro, depois os servicos do NixOS. `group`
+// ("stack" | "service") vira o rotulo de cada linha no seletor.
 function unitsForLogs(data) {
     const out = [];
     for (const s of data?.stacks ?? [])
-        out.push({ value: s.unit, label: s.name });
+        out.push({ value: s.unit, label: s.name, group: "stack" });
     for (const u of data?.services ?? [])
-        out.push({ value: u.unit, label: String(u.unit).replace(/\.(service|timer|mount)$/, "") });
+        out.push({ value: u.unit, label: String(u.unit).replace(/\.(service|timer|mount)$/, ""), group: "service" });
     return out;
 }
 
@@ -192,11 +194,10 @@ function spotLegend(id, info) {
     return "";
 }
 
-// Aba que cada peca abre.
-function spotTab(id) {
+// Onde cada peca abre: { page, tab } do Nexus. Discos (baias e M.2) moram em
+// Storage > NAS desde 02/11; o resto (memoria, ventoinha, portas) em Server > System.
+function spotTarget(id) {
     if (/^(bay|m2)-/.test(id))
-        return "storage";
-    if (/^ram-/.test(id))
-        return "system";
-    return "system";
+        return { page: "storage", tab: "nas" };
+    return { page: "server", tab: "system" };
 }

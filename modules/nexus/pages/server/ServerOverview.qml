@@ -55,11 +55,12 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: Tokens.spacing.small
         info: root.info
-        selected: root.page.selectedSpot
+        selected: root.page.nState.selectedNasSpot
         bottomExpanded: false
         onPicked: id => {
-            root.page.selectedSpot = id;
-            root.page.nState.openPage("server", 0, S.spotTab(id));
+            const to = S.spotTarget(id);
+            root.page.nState.selectedNasSpot = id;
+            root.page.nState.openPage(to.page, 0, to.tab);
         }
     }
 
@@ -73,7 +74,7 @@ ColumnLayout {
 
         StyledText {
             Layout.fillWidth: true
-            text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.selectedSpot !== "" ? S.spotLegend(root.page.selectedSpot, root.info) : Tr.tr("Hover a bay, the fan or a port to read it; click to open its tab.")
+            text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.nState.selectedNasSpot !== "" ? S.spotLegend(root.page.nState.selectedNasSpot, root.info) : Tr.tr("Hover a bay, the fan or a port to read it; click to open where it lives.")
             color: Colours.palette.m3onSurfaceVariant
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -157,7 +158,7 @@ ColumnLayout {
             value: root.store ? Tr.tr("%1 free").arg(S.fmtBytes(root.store.avail)) : Tr.tr("HDs not mounted")
             detail: root.store ? Tr.tr("%1% used · %2 on %3 disks · scrub %4").arg(root.store.pct).arg(root.store.btrfs?.profile ?? "?").arg(root.store.btrfs?.devices ?? "?").arg(root.store.btrfs?.scrub?.status ?? "?") : Tr.tr("Services stay down until /srv/storage is mounted")
             level: root.store ? S.fsLevel(root.store) : "error"
-            onClicked: root.page.nState.openPage("server", 0, "storage")
+            onClicked: root.page.nState.openPage("storage", 0, "nas")
         }
 
         StatusCard {

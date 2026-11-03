@@ -34,7 +34,7 @@ QtObject {
             id: "lan",
             label: qsTr("Network"),
             icon: "lan",
-            description: qsTr("This network, home, remote access"),
+            description: qsTr("This network, home, home devices, remote access"),
             group: qsTr("Connectivity")
         },
         {

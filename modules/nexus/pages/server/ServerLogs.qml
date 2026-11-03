@@ -28,6 +28,13 @@ ColumnLayout {
     property string failMessage
 
     readonly property var units: S.unitsForLogs(root.bridge.info)
+    readonly property int stackCount: root.units.filter(u => u.group === "stack").length
+    // Rotulo do grupo em cada linha da lista (a ordem ja vem stacks -> servicos)
+    readonly property var unitOptions: root.units.map(u => ({
+                value: u.value,
+                label: u.label,
+                detail: u.group === "stack" ? Tr.tr("stack") : Tr.tr("NixOS service")
+            }))
     readonly property string unit: root.page.logsUnit || (root.units[0]?.value ?? "")
     readonly property string bin: `${Quickshell.env("HOME")}/.local/bin/caelestia-nas`
     readonly property var shown: {
@@ -75,12 +82,19 @@ ColumnLayout {
         onTriggered: root.reload()
     }
 
-    ChipSelectRow {
+    // ~25 unidades: em chips numa linha so os nomes se sobrepunham. Linha com a
+    // unidade atual que abre a lista ali mesmo (stacks primeiro, depois NixOS),
+    // com filtro por nome.
+    ExpandSelectRow {
         first: true
+        icon: "subject"
         label: Tr.tr("Unit")
-        subtext: Tr.tr("Stacks first, then the NixOS services")
-        options: root.units
+        subtext: Tr.tr("%1 stacks · %2 NixOS services").arg(root.stackCount).arg(root.units.length - root.stackCount)
+        options: root.unitOptions
         current: root.unit
+        filterable: true
+        maxShown: Math.max(root.units.length, 1)
+        disabled: root.units.length === 0
         onPicked: v => root.page.logsUnit = v
     }
 

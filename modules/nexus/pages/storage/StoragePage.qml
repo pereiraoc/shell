@@ -8,11 +8,14 @@ import qs.components
 import qs.components.misc
 import qs.services
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.server
 
 // Uso de disco e limpezas seguras, em abas: Partitions (uso por particao,
-// clicar abre a arvore), Clean up (limpezas seguras + ultima limpeza) e Largest
-// (maiores pastas por particao). Tudo vem do caelestia-storage (repositorio de
-// setup) pela ToolBridge; a pagina so desenha e dispara.
+// clicar abre a arvore), Clean up (limpezas seguras + ultima limpeza), Largest
+// (maiores pastas por particao) e NAS (os discos do NAS de casa: a mesma
+// ServerStorage que era a aba Storage do Server, pela ponte do caelestia-nas).
+// Tudo vem do caelestia-storage (repositorio de setup) pela ToolBridge; a
+// pagina so desenha e dispara.
 //
 // Limpeza pede dois cliques: o shell nao tem dialogo de confirmacao, e um
 // clique perdido nao pode apagar 10 GB.
@@ -64,7 +67,8 @@ PageBase {
     tabs: [
         { id: "partitions", label: qsTr("Partitions") },
         { id: "cleanup", label: qsTr("Clean up") },
-        { id: "largest", label: qsTr("Largest") }
+        { id: "largest", label: qsTr("Largest") },
+        { id: "nas", label: qsTr("NAS") }
     ]
 
     // O PageBase so aceita Item como filho; o Timer mora dentro da ponte
@@ -360,6 +364,55 @@ PageBase {
                             trailingIcon: "chevron_right"
                             onClicked: root.browse(dir.modelData.path)
                         }
+                    }
+                }
+            }
+        }
+
+        // --------------------------------------------------------------- NAS
+        TabPane {
+            id: nasPane
+
+            active: root.tab === "nas"
+
+            // So nasce na primeira abertura: a ponte do NAS faz um ssh ao nascer
+            // e outro a cada 30 s enquanto a aba esta na frente.
+            Loader {
+                Layout.fillWidth: true
+                active: nasPane.opened
+                sourceComponent: ColumnLayout {
+                    spacing: Tokens.spacing.extraSmall / 2
+
+                    NasBridge {
+                        id: nas
+
+                        live: root.visible && nasPane.active
+                    }
+
+                    InfoRow {
+                        visible: nas.error !== ""
+                        first: true
+                        last: true
+                        icon: "error"
+                        iconColour: Colours.palette.m3error
+                        label: qsTr("Could not read the NAS tool")
+                        subtext: nas.error
+                    }
+
+                    // A silhueta e os discos vem do ultimo status lido; fora de alcance, diz desde quando
+                    InfoRow {
+                        visible: nas.info.online !== true
+                        first: true
+                        last: true
+                        icon: nas.loading ? "hourglass_empty" : "cloud_off"
+                        iconColour: Colours.palette.m3outline
+                        label: nas.loading ? qsTr("Reaching the NAS…") : nas.info.last_seen ? qsTr("The NAS is out of reach · last seen %1").arg(String(nas.info.last_seen).replace("T", " ").slice(5, 16)) : qsTr("The NAS is out of reach")
+                        subtext: qsTr("Its disks show here when the NAS answers, at home or over the VPN")
+                    }
+
+                    ServerStorage {
+                        page: root
+                        bridge: nas
                     }
                 }
             }

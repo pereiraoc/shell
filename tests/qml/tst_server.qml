@@ -56,6 +56,7 @@ TestCase {
         const d = { stacks: [{ unit: "stack-immich.service", name: "immich" }], services: [{ unit: "caddy.service" }, { unit: "nas-backup.timer" }] };
         compare(S.unitsForLogs(d).map(u => u.value), ["stack-immich.service", "caddy.service", "nas-backup.timer"]);
         compare(S.unitsForLogs(d)[2].label, "nas-backup");
+        compare(S.unitsForLogs(d).map(u => u.group), ["stack", "service", "service"]);
         compare(S.unitsForLogs(null), []);
         compare(S.storageFs({ filesystems: [{ mount: "/" }, { mount: "/srv/storage", pct: 42 }] }, "/srv/storage").pct, 42);
         compare(S.storageFs({}, "/x"), null);
@@ -90,10 +91,12 @@ TestCase {
         compare(S.spotLegend("lan-2g5", info), "LAN 1 · 2.5 GbE (enp4s0) · no cable");
         compare(S.spotLegend("ram-1", { mem: { total: 7887 } }), "Memory slot 1 · 8 GB installed");
         compare(S.spotLegend("ram-2", {}), "Memory slot 2 · empty (ADATA 16 GB pending)");
-        compare(S.spotTab("ram-2"), "system");
-        compare(S.spotTab("bay-2"), "storage");
-        compare(S.spotTab("m2-1"), "storage");
-        compare(S.spotTab("fan"), "system");
+        // Discos moram em Storage > NAS desde 02/11; o resto em Server > System
+        compare(S.spotTarget("ram-2"), { page: "server", tab: "system" });
+        compare(S.spotTarget("bay-2"), { page: "storage", tab: "nas" });
+        compare(S.spotTarget("m2-1"), { page: "storage", tab: "nas" });
+        compare(S.spotTarget("fan"), { page: "server", tab: "system" });
+        compare(S.spotTarget("lan-10g"), { page: "server", tab: "system" });
     }
 
     function test_levels() {

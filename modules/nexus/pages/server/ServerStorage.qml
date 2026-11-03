@@ -50,9 +50,9 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: Tokens.spacing.small
         info: root.info
-        selected: root.page.selectedSpot
+        selected: root.page.nState.selectedNasSpot
         bottomExpanded: true
-        onPicked: id => root.page.selectedSpot = id
+        onPicked: id => root.page.nState.selectedNasSpot = id
     }
 
     // Legenda do que esta sob o mouse e, no canto, o botao miudo que abre ou
@@ -65,7 +65,7 @@ ColumnLayout {
 
         StyledText {
             Layout.fillWidth: true
-            text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.selectedSpot !== "" ? S.spotLegend(root.page.selectedSpot, root.info) : Tr.tr("Click a bay or an M.2 slot to read its disk.")
+            text: diagram.hovered !== "" ? S.spotLegend(diagram.hovered, root.info) : root.page.nState.selectedNasSpot !== "" ? S.spotLegend(root.page.nState.selectedNasSpot, root.info) : Tr.tr("Click a bay or an M.2 slot to read its disk.")
             color: Colours.palette.m3onSurfaceVariant
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -167,7 +167,7 @@ ColumnLayout {
             required property int index
             property var modelData: root.maintenance[index] ?? ({})
             readonly property var liveItem: root.maintenance[index]
-            readonly property bool isArmed: root.page.armed === act.modelData.id
+            readonly property bool isArmed: root.bridge.armed === act.modelData.id
             readonly property bool isBusy: root.bridge.busyAction === act.modelData.id
 
             onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
@@ -176,12 +176,12 @@ ColumnLayout {
             last: act.index === root.maintenance.length - 1
             color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
             icon: act.isBusy ? "hourglass_top" : act.modelData.id === "scrub" ? "fact_check" : "monitor_heart"
-            text: root.page.actionText(act.modelData)
+            text: root.bridge.actionText(act.modelData)
             subtext: act.modelData.detail ?? ""
             disabled: root.bridge.busyAction !== "" && !act.isBusy
             onClicked: {
                 if (!act.isBusy)
-                    root.page.press(act.modelData);
+                    root.bridge.press(act.modelData);
             }
         }
     }

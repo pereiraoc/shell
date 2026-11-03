@@ -11,43 +11,23 @@ import qs.modules.nexus.common
 import "server.js" as S
 
 // Nexus > Server: o NAS de casa (UGREEN DXP4800 Plus, NixOS). Toda a logica mora
-// em `caelestia-nas` (setup, contrato status/actions/run) e chega pela ToolBridge;
+// em `caelestia-nas` (setup, contrato status/actions/run) e chega pela ToolBridge
+// (NasBridge: dois cliques nas acoes de risco medio, releitura a cada 30 s);
 // esta pagina so desenha e dispara. Abas: Overview (saude + abrir os apps),
-// Services (stacks Docker), Storage (HDs, SMART, scrub), System (NixOS, watchdog,
-// ventoinhas, rebuild, reiniciar), Logs (journal de uma unidade no NAS). Acoes
-// com risk "medium" pedem dois cliques (o shell nao tem dialogo de confirmacao).
-// Streaming e fotos NAO sao controlados aqui: a aba Overview so abre o app certo.
+// Services (stacks Docker), System (NixOS, watchdog, ventoinhas, rebuild,
+// reiniciar), Storage / Network / Home Devices (atalhos: o conteudo mora em
+// Storage > NAS, Network > Home e Network > Home Devices -- spec
+// 2026-11-02-nas-login-rede-nexus-design.md secao 4), Logs (journal de uma
+// unidade no NAS). Streaming e fotos NAO sao controlados aqui: a aba Overview
+// so abre o app certo.
 PageBase {
     id: root
 
-    property string armed: ""
     property string logsUnit: ""
-    // Peca da silhueta escolhida (bay-1..4, m2-1/2, power, fan, lan-10g, lan-2g5)
-    property string selectedSpot: ""
 
     readonly property var info: nas.info
     readonly property bool online: root.info.online === true
     readonly property string reach: S.reachKey(root.info)
-
-    function press(action: var): void {
-        if (!action?.id)
-            return;
-        if (action.risk === "medium" && root.armed !== action.id) {
-            root.armed = action.id;
-            disarm.restart();
-            return;
-        }
-        root.armed = "";
-        nas.run(action);
-    }
-
-    function actionText(action: var): string {
-        if (root.armed === action.id)
-            return Tr.tr("Click again: %1").arg(action.label);
-        if (nas.busyAction === action.id)
-            return Tr.tr("%1 — running…").arg(action.label);
-        return action.label ?? "";
-    }
 
     function showLogs(unit: string): void {
         root.logsUnit = unit;
@@ -67,38 +47,33 @@ PageBase {
         }
     }
 
+    // Uma linha para a aba-atalho Storage: o mesmo cartao da Overview, em texto
+    function storageSummary(): string {
+        if (!root.online)
+            return "";
+        const fs = S.storageFs(root.info, "/srv/storage");
+        if (!fs)
+            return Tr.tr("HDs not mounted");
+        return Tr.tr("%1 free · %2% used · %3").arg(S.fmtBytes(fs.avail)).arg(fs.pct).arg(fs.btrfs?.profile ?? "?");
+    }
+
     title: Tr.tr("Server")
     description: Tr.tr("The NAS at home: services, storage, health")
     tabs: [
         { id: "overview", label: Tr.tr("Overview") },
         { id: "services", label: Tr.tr("Services") },
-        { id: "network", label: Tr.tr("Network") },
-        { id: "home", label: Tr.tr("Home") },
-        { id: "storage", label: Tr.tr("Storage") },
         { id: "system", label: Tr.tr("System") },
+        { id: "storage", label: Tr.tr("Storage") },
+        { id: "network", label: Tr.tr("Network") },
+        { id: "home", label: Tr.tr("Home Devices") },
         { id: "logs", label: Tr.tr("Logs") }
     ]
 
     // O PageBase so aceita Item como filho; os Timers moram dentro da ponte (que e Item).
-    ToolBridge {
+    NasBridge {
         id: nas
 
-        tool: "nas"
-
-        Timer {
-            id: disarm
-
-            interval: 4000
-            onTriggered: root.armed = ""
-        }
-
-        // Atualiza sozinho enquanto esta pagina esta na frente (um ssh a cada 30 s).
-        Timer {
-            interval: 30000
-            repeat: true
-            running: root.visible && root.pageId === "server"
-            onTriggered: nas.refresh()
-        }
+        live: root.visible && root.pageId === "server"
     }
 
     ColumnLayout {
@@ -136,45 +111,55 @@ PageBase {
         }
 
         TabPane {
-            id: networkPane
+            active: root.tab === "system"
 
+            ServerSystem {
+                page: root
+                bridge: nas
+            }
+        }
+
+        // Atalhos: o conteudo mora na pagina do assunto, na aba certa
+        TabPane {
+            active: root.tab === "storage"
+
+            ServerShortcut {
+                page: root
+                target: "storage"
+                targetTab: "nas"
+                where: Tr.tr("Storage › NAS")
+                icon: "hard_drive"
+                explanation: Tr.tr("The NAS disks (bays, M.2, RAID1, SMART, scrub) and its shared folders now sit with the rest of the disks, in Storage, tab NAS.")
+                summary: root.storageSummary()
+                summaryIcon: "hard_drive"
+            }
+        }
+
+        TabPane {
             active: root.tab === "network"
 
-            // So nasce na primeira abertura (lista os aparelhos pela CLI a cada 30 s enquanto visivel).
-            Loader {
-                Layout.fillWidth: true
-                active: networkPane.opened
-                sourceComponent: ServerNetwork {
-                    page: root
-                    bridge: nas
-                }
+            ServerShortcut {
+                page: root
+                target: "lan"
+                targetTab: "home"
+                where: Tr.tr("Network › Home")
+                icon: "hub"
+                explanation: Tr.tr("The home network monitor that runs on the NAS (who is online, new devices, mark as known) now sits with this PC's network, in Network, tab Home.")
+                summary: root.online && nas.info.monitor?.ok ? Tr.tr("%1 online now · %2 new").arg(nas.info.monitor.online ?? "?").arg(nas.info.monitor.new ?? "?") : ""
+                summaryIcon: "devices"
             }
         }
 
         TabPane {
             active: root.tab === "home"
 
-            ServerHome {
+            ServerShortcut {
                 page: root
-                bridge: nas
-            }
-        }
-
-        TabPane {
-            active: root.tab === "storage"
-
-            ServerStorage {
-                page: root
-                bridge: nas
-            }
-        }
-
-        TabPane {
-            active: root.tab === "system"
-
-            ServerSystem {
-                page: root
-                bridge: nas
+                target: "lan"
+                targetTab: "devices"
+                where: Tr.tr("Network › Home Devices")
+                icon: "home"
+                explanation: Tr.tr("Home Assistant on the NAS (smart plugs, lights, power use, toggles) now sits under Connectivity, in Network, tab Home Devices.")
             }
         }
 

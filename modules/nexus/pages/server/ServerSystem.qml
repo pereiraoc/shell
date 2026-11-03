@@ -122,7 +122,7 @@ ColumnLayout {
             required property int index
             property var modelData: root.acts[index] ?? ({})
             readonly property var liveItem: root.acts[index]
-            readonly property bool isArmed: root.page.armed === act.modelData.id
+            readonly property bool isArmed: root.bridge.armed === act.modelData.id
             readonly property bool isBusy: root.bridge.busyAction === act.modelData.id
 
             onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
@@ -131,7 +131,7 @@ ColumnLayout {
             last: act.index === root.acts.length - 1
             color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
             icon: act.isBusy ? "hourglass_top" : root.actIcon(act.modelData.id ?? "")
-            text: root.page.actionText(act.modelData)
+            text: root.bridge.actionText(act.modelData)
             subtext: act.modelData.detail ?? ""
             disabled: root.bridge.busyAction !== "" && !act.isBusy
             onClicked: {
@@ -140,7 +140,7 @@ ColumnLayout {
                 if (act.modelData.id === "shell")
                     root.bridge.run(act.modelData);
                 else
-                    root.page.press(act.modelData);
+                    root.bridge.press(act.modelData);
             }
         }
     }
