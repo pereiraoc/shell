@@ -166,18 +166,15 @@ PageBase {
         }
 
         TabPane {
-            id: usersPane
-
             active: root.tab === "users"
 
-            // So nasce na primeira abertura da aba (um ssh para ler os usuarios).
-            Loader {
-                Layout.fillWidth: true
-                active: usersPane.opened
-                sourceComponent: ServerUsers {
-                    page: root
-                    bridge: nas
-                }
+            ServerShortcut {
+                page: root
+                target: "security"
+                targetTab: "users"
+                where: Tr.tr("Security › NAS users")
+                icon: "manage_accounts"
+                explanation: Tr.tr("Who can sign in to the NAS services (central login), as user or administrator, which services each person sees, and blocking, now sit with the rest of the sign-in settings, in Security, tab NAS users.")
             }
         }
 

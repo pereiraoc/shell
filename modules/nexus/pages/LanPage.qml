@@ -17,8 +17,9 @@ import qs.modules.nexus.pages.server
 //   cima), o que ha nela (caelestia-lan; a lista completa e a subpagina 1) e o
 //   acesso remoto ao PC pelo celular e pelo tablet (caelestia-remote: Sunshine
 //   + Moonlight; DS-37, CF-29);
-// - Home: a rede de casa pelo monitor que roda no NAS (ServerNetwork, que era
-//   Server > Network; DS-18). O mapa completo da casa vem depois;
+// - Home: o mapa da rede de casa pelo monitor que roda no NAS (HomeNetwork, que
+//   era ServerNetwork / Server > Network; DS-18): desconhecidos em cima, a
+//   arvore Internet > roteador > cabo / Wi-Fi por AP > tipo, apelido e tipo;
 // - Home Devices: o Home Assistant do NAS (ServerHome, que era Server > Home).
 //   Mora aqui porque "Connectivity" e so um grupo do menu (Internet, Network,
 //   Bluetooth) e esta e a pagina dele que ja fala da casa.
@@ -229,7 +230,7 @@ PageBase {
             Loader {
                 Layout.fillWidth: true
                 active: homePane.opened
-                sourceComponent: ServerNetwork {
+                sourceComponent: HomeNetwork {
                     page: root
                     bridge: nas
                 }

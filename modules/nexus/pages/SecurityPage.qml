@@ -11,6 +11,7 @@ import qs.components.misc
 import qs.services
 import qs.utils
 import qs.modules.nexus.common
+import qs.modules.nexus.pages.server
 
 PageBase {
     id: root
@@ -78,11 +79,12 @@ PageBase {
     }
 
     title: qsTr("Security")
-    description: qsTr("Unlock methods, face recognition and PIN")
+    description: qsTr("Unlock methods, face recognition, PIN and the NAS users")
     tabs: [
         { id: "unlock", label: qsTr("Unlock") },
         { id: "lock", label: qsTr("Lock screen") },
-        { id: "recovery", label: qsTr("Recovery") }
+        { id: "recovery", label: qsTr("Recovery") },
+        { id: "users", label: qsTr("NAS users") }
     ]
 
     // PageBase so aceita Item como filho e o ultimo e o conteudo
@@ -102,6 +104,13 @@ PageBase {
                 }
             }
             onLoadFailed: root.lockOnLogin = false
+        }
+
+        // So para o "dois cliques" da aba NAS users (sem consultar o NAS a cada 30 s aqui)
+        NasBridge {
+            id: nasBridge
+
+            live: false
         }
     }
 
@@ -299,6 +308,22 @@ PageBase {
                 text: qsTr("Reset authentication methods")
                 subtext: qsTr("Re-enable face and PIN if locked out")
                 onClicked: root.resetLockouts()
+            }
+        }
+
+        // Usuarios do login central do NAS (Authelia): papel, acesso por servico, bloqueio
+        TabPane {
+            id: usersPane
+
+            active: root.tab === "users"
+
+            Loader {
+                Layout.fillWidth: true
+                active: usersPane.opened
+                sourceComponent: ServerUsers {
+                    page: root
+                    bridge: nasBridge
+                }
             }
         }
     }
