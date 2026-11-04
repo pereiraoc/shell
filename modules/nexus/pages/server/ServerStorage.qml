@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -13,6 +15,8 @@ import "server.js" as S
 // Aba Storage: os sistemas de arquivos do NAS (SSD do sistema, HDs em Btrfs
 // RAID1), a saude SMART de cada disco, e as acoes: scrub (verificacao de
 // integridade, demora horas), teste SMART curto, abrir as pastas no Thunar.
+// Os discos vem do `caelestia-nas disks --json` (mesmo formato do caelestia-storage)
+// e aparecem no DiskCard da aba Partitions; clicar abre a arvore do NAS.
 ColumnLayout {
     id: root
 
@@ -21,21 +25,25 @@ ColumnLayout {
 
     readonly property var info: root.bridge.info
     readonly property bool online: root.info.online === true
-    readonly property var filesystems: root.info.filesystems ?? []
     readonly property var disks: root.info.disks ?? []
     readonly property var maintenance: (root.bridge.actions ?? []).filter(a => a.id === "scrub" || String(a.id).startsWith("smart-short:"))
     readonly property var browsers: S.pickActions(root.bridge.actions, "browse:")
+    property var nasDisks: []
+    property string disksError
 
-    function fsSubtext(fs: var): string {
-        const parts = [fs.fstype ?? ""];
-        if (fs.btrfs) {
-            parts.push(Tr.tr("%1 on %2 disks").arg(fs.btrfs.profile ?? "?").arg(fs.btrfs.devices ?? "?"));
-            const sc = fs.btrfs.scrub;
-            if (sc)
-                parts.push(sc.errors > 0 ? Tr.tr("scrub found %1 errors").arg(sc.errors) : Tr.tr("scrub %1%2").arg(sc.status ?? "?").arg(sc.started ? ` (${sc.started})` : ""));
-        }
-        return parts.filter(x => x).join(" · ");
+    function browse(path: string): void {
+        root.page.nState.storageRemote = true;
+        root.page.nState.storagePath = path;
+        root.page.nState.openSubPage(1);
     }
+
+    function loadDisks(): void {
+        if (!disksProc.running)
+            disksProc.running = true;
+    }
+
+    onOnlineChanged: if (root.online && root.nasDisks.length === 0) root.loadDisks()
+    Component.onCompleted: root.loadDisks()
 
     Layout.fillWidth: true
     spacing: Tokens.spacing.extraSmall / 2
@@ -84,7 +92,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.small
         Layout.bottomMargin: Tokens.spacing.medium
-        text: Tr.tr("The system lives on the internal SSD; photos, cloud files and media live on the two HDs mirrored with Btrfs RAID1. A scrub reads everything and checks the checksums.")
+        text: Tr.tr("The system lives on the internal SSD; app data on the Lexar; photos, cloud files and media on the two HDs mirrored with Btrfs RAID1. Click a partition to see what takes space in it. A scrub reads everything and checks the checksums.")
         color: Colours.palette.m3outline
         font: Tokens.font.body.small
         wrapMode: Text.WordWrap
@@ -99,58 +107,36 @@ ColumnLayout {
         label: Tr.tr("NAS out of reach")
     }
 
-    SectionHeader {
-        visible: root.online
-        text: Tr.tr("FILESYSTEMS")
-    }
-
+    // Um cartao por disco do NAS, igual a aba Partitions (barra GParted + particoes
+    // na ordem do disco). Clicar numa particao montada abre a arvore de pastas dela
+    // no proprio NAS (StorageBrowser em modo remoto: caelestia-nas du).
     Repeater {
-        model: root.online ? root.filesystems.length : 0
+        model: root.online ? root.nasDisks.length : 0
 
-        MeterRow {
-            id: fsRow
+        DiskCard {
+            id: card
 
             required property int index
-            property var modelData: root.filesystems[index] ?? ({})
-            readonly property var liveItem: root.filesystems[index]
+            readonly property var health: root.disks.find(d => d.dev === (root.nasDisks[card.index]?.name ?? "")) ?? ({})
 
-            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-
-            first: fsRow.index === 0
-            last: fsRow.index === root.filesystems.length - 1
-            icon: fsRow.modelData.fstype === "btrfs" ? "hard_drive" : "memory"
-            label: fsRow.modelData.mount ?? ""
-            subtext: root.fsSubtext(fsRow.modelData)
-            valueText: Tr.tr("%1 of %2").arg(S.fmtBytes(fsRow.modelData.used)).arg(S.fmtBytes(fsRow.modelData.size))
-            value: S.pct(fsRow.modelData)
-            warnAt: 0.75
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.medium
+            disk: root.nasDisks[card.index] ?? ({})
+            fmt: S.fmtBytes
+            firstCard: card.index === 0
+            extra: [card.health.smart ? Tr.tr("SMART %1").arg(card.health.smart) : "", card.health.temp !== null && card.health.temp !== undefined ? `${card.health.temp} °C` : "", card.health.bay ? Tr.tr("bay %1").arg(card.health.bay) : ""].filter(x => x).join("  ·  ")
+            onBrowse: path => root.browse(path)
         }
     }
 
-    SectionHeader {
-        visible: root.online && root.disks.length > 0
-        text: Tr.tr("DISKS")
-    }
-
-    Repeater {
-        model: root.online ? root.disks.length : 0
-
-        InfoRow {
-            id: disk
-
-            required property int index
-            property var modelData: root.disks[index] ?? ({})
-            readonly property var liveItem: root.disks[index]
-
-            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
-
-            first: disk.index === 0
-            last: disk.index === root.disks.length - 1
-            icon: disk.modelData.smart === "FAILED" ? "error" : disk.modelData.kind === "hdd" ? "hard_drive" : "memory"
-            iconColour: disk.modelData.smart === "FAILED" ? Colours.palette.m3error : disk.modelData.smart === "PASSED" ? Colours.palette.m3primary : Colours.palette.m3outline
-            label: `${disk.modelData.dev ?? ""} · ${disk.modelData.model ?? ""}`
-            subtext: [disk.modelData.kind === "hdd" ? Tr.tr("hard disk") : Tr.tr("SSD"), S.fmtBytes(disk.modelData.size), disk.modelData.smart ? Tr.tr("SMART %1").arg(disk.modelData.smart) : Tr.tr("SMART unknown"), disk.modelData.temp !== null && disk.modelData.temp !== undefined ? `${disk.modelData.temp} °C` : ""].filter(x => x).join(" · ")
-        }
+    InfoRow {
+        visible: root.online && root.nasDisks.length === 0
+        first: true
+        last: true
+        icon: disksProc.running ? "hourglass_top" : "hard_drive"
+        iconColour: Colours.palette.m3tertiary
+        label: disksProc.running ? Tr.tr("Reading the NAS disks…") : Tr.tr("Could not read the NAS disks")
+        subtext: root.disksError
     }
 
     SectionHeader {
@@ -210,6 +196,37 @@ ColumnLayout {
             subtext: browser.modelData.detail ?? ""
             trailingIcon: "open_in_new"
             onClicked: root.bridge.run(browser.modelData)
+        }
+    }
+
+    // Leitor dos discos (o layout ignora Item invisivel). Particoes mudam pouco:
+    // le ao abrir e a cada 5 min enquanto a aba esta aberta.
+    Item {
+        visible: false
+
+        Process {
+            id: disksProc
+
+            command: [`${Quickshell.env("HOME")}/.local/bin/caelestia-nas`, "disks", "--json"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const d = JSON.parse(text);
+                        if (d.ok)
+                            root.nasDisks = d.disks ?? [];
+                        root.disksError = d.ok ? "" : (d.message ?? "");
+                    } catch (e) {
+                        root.disksError = Tr.tr("caelestia-nas disks did not return JSON");
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 300000
+            repeat: true
+            running: root.visible && root.online
+            onTriggered: root.loadDisks()
         }
     }
 }

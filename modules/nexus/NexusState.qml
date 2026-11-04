@@ -28,6 +28,8 @@ QtObject {
     property string selectedEthernetInterface
     property bool networkDetailsFromSaved
     property string storagePath
+    // true = a arvore do Storage mostra o NAS (caelestia-nas du), nao este PC
+    property bool storageRemote
     property string selectedRgbDevice
     property string selectedMouse
     property string selectedHeadphone

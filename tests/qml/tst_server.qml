@@ -171,4 +171,39 @@ TestCase {
         compare(S.toggleIn(["a", "b"], "a"), ["b"]);
         compare(S.toggleIn(null, "a"), ["a"]);
     }
+
+    function test_serviceCards() {
+        compare(S.serviceKey("caddy.service"), "caddy");
+        compare(S.serviceArt("immich"), "assets/services/immich.svg");
+        compare(S.serviceArt("caddy.service"), "assets/services/caddy.svg");
+        compare(S.stackSummary({ where: "pc", site: "odysseus.pereiraoc.com" }), "Runs on this PC (NAS publishes it on the VPN)");
+        compare(S.serviceArt("navidrome"), "");
+        compare(S.serviceGlyph("navidrome"), "library_music");
+        compare(S.serviceGlyph("unknown-thing"), "deployed_code");
+        compare(S.serviceTitle("homeassistant"), "Home Assistant");
+        compare(S.serviceTitle("whatever.service"), "whatever");
+        compare(S.unitKind("nas-backup.timer"), "timer");
+        compare(S.unitKind("sshd.service"), "");
+        compare(S.dotKey("on"), "on");
+        compare(S.dotKey("starting"), "busy");
+        compare(S.stackSummary({ containers: [{ state: "running", status: "Up 3 hours (healthy)" }] }), "Up 3 hours (healthy)");
+        compare(S.stackSummary({ containers: [{ state: "running" }, { state: "exited" }] }), "1/2 containers up");
+        compare(S.stackSummary({ containers: [], condition_met: false }), "Waiting for its device");
+        compare(S.stackSummary({ containers: [], auto_start: false }), "Stopped (manual start)");
+        compare(S.overlayName("netbird"), "NetBird");
+        compare(S.overlayName(""), "?");
+        const gs = S.groupServices([{ name: "immich" }, { name: "jellyfin" }, { name: "arr" }, { name: "weird" }], x => x.name);
+        compare(gs.map(g => g.key).join(","), "media,files,other");
+        compare(gs[0].items.map(i => i.name).join(","), "jellyfin,arr");
+        const us = S.groupServices([{ unit: "docker.service" }, { unit: "caddy.service" }, { unit: "nas-backup.timer" }], x => x.unit);
+        compare(us.map(g => g.key).join(","), "net,disks,platform");
+        const units = [{ unit: "nas-backup.service", active: "inactive", sub: "dead", result: "success" }, { unit: "nas-backup.timer", active: "active", sub: "waiting" }, { unit: "caddy.service", active: "active", sub: "running" }, { unit: "x.service", active: "inactive", sub: "dead", result: "success" }];
+        compare(S.visibleUnits(units).map(u => u.unit).join(","), "nas-backup.timer,caddy.service,x.service");
+        compare(S.unitSummary(units[1], units, { next: "2026-11-04T03:32:37" }), "Scheduled · next 11-04 03:32 · last run ok");
+        compare(S.unitSummary(units[3], units, null), "Idle · last run ok");
+        compare(S.unitStateKey(units[1], [units[1], { unit: "nas-backup.service", active: "failed", result: "exit-code" }]), "failed");
+        const sites = S.staticSites([{ id: "open:pleitost" }, { id: "open:immich" }], [{ name: "immich" }], [units[2]]);
+        compare(sites.length, 1);
+        compare(sites[0].name + " " + sites[0].active + " " + S.stackSummary(sites[0]), "pleitost active Static site served by Caddy");
+    }
 }

@@ -105,7 +105,7 @@ ColumnLayout {
         last: true
         icon: "vpn_lock"
         label: Tr.tr("Remote access")
-        subtext: !root.overlay ? Tr.tr("no VPN agent on the NAS") : Tr.tr("%1 · %2 · %3 %4").arg(root.overlay.kind ?? "?").arg(root.overlay.online ? Tr.tr("online") : Tr.tr("offline")).arg(root.overlay.ip ?? "").arg(root.overlay.name ?? "")
+        subtext: !root.overlay ? Tr.tr("no VPN agent on the NAS") : Tr.tr("%1 · %2 · %3 %4").arg(S.overlayName(root.overlay.kind)).arg(root.overlay.online ? Tr.tr("online") : Tr.tr("offline")).arg(root.overlay.ip ?? "").arg(root.overlay.name ?? "")
     }
 
     SectionHeader {

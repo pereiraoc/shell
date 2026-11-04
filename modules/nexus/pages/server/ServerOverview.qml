@@ -190,7 +190,7 @@ ColumnLayout {
             Layout.preferredWidth: 1
             icon: "vpn_lock"
             title: Tr.tr("Remote access")
-            value: !root.overlay ? Tr.tr("No VPN on the NAS") : root.overlay.online ? Tr.tr("%1 online").arg(root.overlay.kind) : Tr.tr("%1 offline").arg(root.overlay.kind)
+            value: !root.overlay ? Tr.tr("No VPN on the NAS") : root.overlay.online ? Tr.tr("%1 online").arg(S.overlayName(root.overlay.kind)) : Tr.tr("%1 offline").arg(S.overlayName(root.overlay.kind))
             detail: root.overlay ? [root.overlay.ip ?? "", root.overlay.name ?? ""].filter(x => x).join(" · ") : Tr.tr("Only the home network reaches it")
             level: root.overlay && !root.overlay.online ? "warn" : "ok"
             onClicked: root.page.nState.openPage("server", 0, "system")

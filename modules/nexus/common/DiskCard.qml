@@ -11,16 +11,17 @@ import qs.modules.nexus.common
 // na ordem do disco (largura proporcional ao tamanho, com um minimo para a EFI de
 // 0,5 GB nao sumir; a parte cheia de cada pedaco = usado); embaixo, as particoes na
 // mesma ordem, com a mesma cor. Livre = pedaco tracejado/vazio. Dados: data.disks do
-// caelestia-storage (lsblk + df + /proc/swaps). Clicar numa particao montada abre a
-// arvore de pastas nela.
+// caelestia-storage (lsblk + df + /proc/swaps) ou do caelestia-nas disks (o mesmo
+// formato, discos do NAS). Clicar numa particao montada abre a arvore de pastas nela.
+// Mora em common porque serve as duas abas (Partitions e NAS) do Storage.
 ColumnLayout {
     id: root
 
     required property var disk
     required property var fmt          // funcao de formatar bytes da pagina
     property bool firstCard
-
-    signal browse(string path)
+    // Linha extra na legenda (ex.: SMART e temperatura dos discos do NAS)
+    property string extra
 
     readonly property var segs: root.disk.segments ?? []
     // fracoes da barra: proporcional, minimo de 3% por pedaco, renormalizado
@@ -30,6 +31,8 @@ ColumnLayout {
         const sum = raw.reduce((a, b) => a + b, 0) || 1;
         return raw.map(f => f / sum);
     }
+
+    signal browse(string path)
 
     function roleColour(seg: var): color {
         if (seg.kind === "free")
@@ -45,6 +48,10 @@ ColumnLayout {
             return Colours.palette.m3inversePrimary;
         case "boot":
             return Colours.palette.m3outline;
+        case "apps":
+            return Colours.palette.m3secondary;
+        case "cache":
+            return Colours.palette.m3inversePrimary;
         default:
             return Colours.palette.m3onSurfaceVariant;
         }
@@ -64,6 +71,10 @@ ColumnLayout {
             return "swap_horiz";
         case "boot":
             return "power_settings_new";
+        case "apps":
+            return "deployed_code";
+        case "cache":
+            return "cached";
         default:
             return "hard_drive";
         }
@@ -83,6 +94,10 @@ ColumnLayout {
             return qsTr("Swap");
         case "boot":
             return qsTr("Boot");
+        case "apps":
+            return qsTr("App data");
+        case "cache":
+            return qsTr("Cache");
         default:
             return seg.mount ? qsTr("Other") : qsTr("Not mounted");
         }
@@ -103,6 +118,8 @@ ColumnLayout {
             parts.push(seg.role === "swap" ? qsTr("%1 in use").arg(root.fmt(seg.used)) : qsTr("%1 free  ·  %2%").arg(root.fmt(seg.avail)).arg(seg.pct));
         else if (seg.role === "swap")
             parts.push(qsTr("inactive"));
+        if (seg.note)
+            parts.push(seg.note);
         return parts.join("  ·  ");
     }
 
@@ -115,8 +132,21 @@ ColumnLayout {
 
     // ----------------------------------------------------------- barra GParted
     ConnectedRect {
+        id: barCard
+
+        // A barra fica abaixo da curva do canto grande (o raio extraLarge escala com
+        // rounding.scale: com 2x sao ~56 px e, colada no topo, a barra vazava pra fora
+        // da borda arredondada). inset = quanto a curva entra na altura em que a lateral
+        // da barra encosta nela.
+        readonly property real side: Tokens.padding.largeIncreased
+        readonly property real r: Tokens.rounding.extraLarge
+        readonly property real cornerInset: barCard.r > barCard.side ? barCard.r - Math.sqrt(barCard.r * barCard.r - (barCard.r - barCard.side) * (barCard.r - barCard.side)) : 0
+        readonly property real topPad: Math.max(Tokens.padding.medium, Math.ceil(barCard.cornerInset) + Tokens.padding.small / 2)
+        readonly property real bottomPad: barCard.last ? barCard.topPad : Tokens.padding.medium
+
         Layout.fillWidth: true
-        implicitHeight: bar.height + legend.implicitHeight + Tokens.padding.medium * 2 + Tokens.spacing.small
+        Layout.preferredHeight: barCard.implicitHeight
+        implicitHeight: barCard.topPad + bar.height + Tokens.spacing.small + legend.implicitHeight + barCard.bottomPad
         first: true
         last: root.segs.length === 0
 
@@ -126,9 +156,9 @@ ColumnLayout {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Tokens.padding.medium
-            anchors.leftMargin: Tokens.padding.largeIncreased
-            anchors.rightMargin: Tokens.padding.largeIncreased
+            anchors.topMargin: barCard.topPad
+            anchors.leftMargin: barCard.side
+            anchors.rightMargin: barCard.side
             height: 22
             spacing: 3
 
@@ -186,10 +216,10 @@ ColumnLayout {
             anchors.right: bar.right
             anchors.top: bar.bottom
             anchors.topMargin: Tokens.spacing.small
-            text: qsTr("%1  ·  %2 partitions  ·  solid = used, light = free, outline = unallocated").arg(root.disk.path).arg(root.segs.filter(s => s.kind === "part").length)
+            text: qsTr("%1  ·  %2%3  ·  solid = used, light = free, outline = unallocated").arg(root.disk.path).arg(root.segs.filter(s => s.kind === "part").length === 1 ? qsTr("1 partition") : qsTr("%1 partitions").arg(root.segs.filter(s => s.kind === "part").length)).arg(root.extra ? `  ·  ${root.extra}` : "")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
-            elide: Text.ElideRight
+            wrapMode: Text.WordWrap
         }
     }
 

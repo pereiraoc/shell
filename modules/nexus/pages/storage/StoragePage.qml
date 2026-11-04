@@ -58,6 +58,7 @@ PageBase {
 
     // Abre a arvore (subpagina 1) numa pasta.
     function browse(path: string): void {
+        root.nState.storageRemote = false;
         root.nState.storagePath = path;
         root.nState.openSubPage(1);
     }

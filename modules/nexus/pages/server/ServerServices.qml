@@ -9,9 +9,10 @@ import qs.services
 import qs.modules.nexus.common
 import "server.js" as S
 
-// Aba Services: cada stack Docker (Immich, Nextcloud, Jellyfin, Navidrome) com
-// estado, containers e os botoes start/stop/restart (parar e reiniciar pedem
-// dois cliques). Embaixo, as unidades nativas do NixOS, so leitura.
+// Aba Services: cada stack Docker como card (ServiceCard: logo, bolinha de
+// estado, resumo dos containers; no hover, start/stop/restart com dois cliques
+// para parar/reiniciar, abrir o app e o log). Embaixo, as unidades nativas do
+// NixOS em cards compactos (so leitura + log).
 ColumnLayout {
     id: root
 
@@ -22,6 +23,10 @@ ColumnLayout {
     readonly property bool online: root.info.online === true
     readonly property var stacks: root.info.stacks ?? []
     readonly property var services: root.info.services ?? []
+    // stacks + apps sem stack (Pleitost: site estatico no Caddy) + apps que o NAS
+    // publica mas rodam no PC (Odysseus; pc_apps do caelestia-nas)
+    readonly property var stackGroups: S.groupServices(root.stacks.concat(S.staticSites(root.bridge.actions, root.stacks, root.services), root.info.pc_apps ?? []), x => x.name)
+    readonly property var unitGroups: S.groupServices(S.visibleUnits(root.services), x => x.unit)
 
     function stateText(key: string): string {
         switch (key) {
@@ -36,14 +41,6 @@ ColumnLayout {
         default:
             return Tr.tr("Stopped");
         }
-    }
-
-    function stateColour(key: string): color {
-        if (key === "failed")
-            return Colours.palette.m3error;
-        if (key === "on")
-            return Colours.palette.m3primary;
-        return Colours.palette.m3outline;
     }
 
     Layout.fillWidth: true
@@ -69,94 +66,129 @@ ColumnLayout {
         subtext: root.online ? Tr.tr("They appear here after phase 2 (services.nix) is applied") : ""
     }
 
+    // Um grupo por funcao (S.groupServices: Media, Photos & files, Smart home...),
+    // cada um com titulo e a grade de cards (uma coluna a cada ~240 px).
+    // Modelo = quantidade: o refresh de 30 s nao recria os cards (hover e o
+    // "clique de novo" nao se perdem).
     Repeater {
-        model: root.online ? root.stacks.length : 0
+        model: root.online ? root.stackGroups.length : 0
 
         ColumnLayout {
-            id: stack
+            id: grp
 
             required property int index
-            readonly property var s: root.stacks[index] ?? ({})
-            readonly property string key: S.stateKey(stack.s.active)
-            readonly property var acts: S.stackActions(root.bridge.actions, stack.s.name ?? "")
-            readonly property var containers: stack.s.containers ?? []
+            readonly property var g: root.stackGroups[grp.index] ?? ({ items: [] })
 
             Layout.fillWidth: true
-            spacing: Tokens.spacing.extraSmall / 2
+            spacing: Tokens.spacing.small
 
             SectionHeader {
-                first: stack.index === 0
-                text: String(stack.s.name ?? "").toUpperCase()
+                first: grp.index === 0
+                text: String(grp.g.title ?? "").toUpperCase()
             }
 
-            InfoRow {
-                first: true
-                icon: S.stateIcon(stack.key)
-                iconColour: root.stateColour(stack.key)
-                label: root.stateText(stack.key) + (stack.key !== "on" && stack.key !== "failed" && stack.s.auto_start === false ? Tr.tr(" (manual)") : "") + (stack.s.since ? Tr.tr(" since %1").arg(String(stack.s.since).replace("T", " ")) : "")
-                subtext: stack.containers.length === 0 ? Tr.tr("No containers") : stack.containers.map(c => `${c.name}: ${c.status ?? c.state}`).join(" · ")
-            }
+            GridLayout {
+                id: grid
 
-            Repeater {
-                model: stack.acts.length
+                // largura de coluna fixa: grupo com 2 cards nao estica os dois
+                readonly property real cellWidth: Math.floor((grp.width - grid.columnSpacing * (grid.columns - 1)) / grid.columns)
 
-                RowButton {
-                    id: act
+                Layout.fillWidth: true
+                columns: Math.max(2, Math.floor(grp.width / 240))
+                columnSpacing: Tokens.spacing.small
+                rowSpacing: Tokens.spacing.small
 
-                    required property int index
-                    property var modelData: stack.acts[index] ?? ({})
-                    readonly property var liveItem: stack.acts[index]
-                    readonly property bool isArmed: root.bridge.armed === act.modelData.id
-                    readonly property bool isBusy: root.bridge.busyAction === act.modelData.id
+                Repeater {
+                    model: (grp.g.items ?? []).length
 
-                    onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+                    ServiceCard {
+                        id: stack
 
-                    color: act.isArmed ? Colours.palette.m3errorContainer : Colours.tPalette.m3surfaceContainer
-                    icon: act.isBusy ? "hourglass_top" : String(act.modelData.id ?? "").startsWith("start:") ? "play_arrow" : String(act.modelData.id ?? "").startsWith("stop:") ? "stop" : "restart_alt"
-                    text: root.bridge.actionText(act.modelData)
-                    subtext: act.modelData.detail ?? ""
-                    disabled: root.bridge.busyAction !== "" && !act.isBusy
-                    onClicked: {
-                        if (!act.isBusy)
-                            root.bridge.press(act.modelData);
+                        required property int index
+                        readonly property var s: grp.g.items[stack.index] ?? ({})
+
+                        Layout.preferredWidth: grid.cellWidth
+                        Layout.maximumWidth: grid.cellWidth
+                        bridge: root.bridge
+                        name: stack.s.name ?? ""
+                        stateKey: S.stateKey(stack.s.active)
+                        stateText: root.stateText(stack.stateKey) + (stack.stateKey !== "on" && stack.stateKey !== "failed" && (stack.s.auto_start === false || stack.s.condition_met === false) ? Tr.tr(" (on purpose)") : "")
+                        since: stack.s.since ? String(stack.s.since).replace("T", " ").slice(5, 16) : ""
+                        summary: S.stackSummary(stack.s)
+                        // app do PC nao tem journal no NAS
+                        logUnit: stack.s.where === "pc" ? "" : (stack.s.unit ?? "")
+                        actions: stack.s.site || stack.s.where === "pc" ? [] : S.stackActions(root.bridge.actions, stack.s.name ?? "")
+                        openAction: S.actionById(root.bridge.actions, "open:" + (stack.s.name ?? ""))
+                        onShowLog: unit => root.page.showLogs(unit)
                     }
                 }
-            }
-
-            RowButton {
-                last: true
-                icon: "subject"
-                text: Tr.tr("Show log")
-                subtext: Tr.tr("journal of %1 plus the container logs").arg(stack.s.unit ?? "")
-                onClicked: root.page.showLogs(stack.s.unit ?? "")
             }
         }
     }
 
-    SectionHeader {
+    // Unidades do NixOS: mesmos grupos por funcao, cards compactos, depois de
+    // um separador "SYSTEM"
+    StyledText {
+        Layout.fillWidth: true
+        Layout.topMargin: Tokens.spacing.large
+        Layout.leftMargin: Tokens.padding.small
         visible: root.online && root.services.length > 0
-        text: Tr.tr("SYSTEM UNITS")
+        text: Tr.tr("System services of the NAS (NixOS units): read-only here, with their logs.")
+        color: Colours.palette.m3outline
+        font: Tokens.font.body.small
+        wrapMode: Text.WordWrap
     }
 
     Repeater {
-        model: root.online ? root.services.length : 0
+        model: root.online ? root.unitGroups.length : 0
 
-        InfoRow {
-            id: unit
+        ColumnLayout {
+            id: ugrp
 
             required property int index
-            property var modelData: root.services[index] ?? ({})
-            readonly property var liveItem: root.services[index]
-            readonly property string key: S.stateKey(unit.modelData.active)
+            readonly property var g: root.unitGroups[ugrp.index] ?? ({ items: [] })
 
-            onLiveItemChanged: if (liveItem !== undefined) modelData = liveItem
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
 
-            first: unit.index === 0
-            last: unit.index === root.services.length - 1
-            icon: S.stateIcon(unit.key)
-            iconColour: root.stateColour(unit.key)
-            label: unit.modelData.unit ?? ""
-            subtext: [root.stateText(unit.key), unit.modelData.sub ?? "", unit.modelData.enabled ?? ""].filter(x => x).join(" · ")
+            SectionHeader {
+                text: Tr.tr("SYSTEM · %1").arg(String(ugrp.g.title ?? "").toUpperCase())
+            }
+
+            GridLayout {
+                id: ugrid
+
+                // largura de coluna fixa: grupo com 2 cards nao estica os dois
+                readonly property real cellWidth: Math.floor((ugrp.width - ugrid.columnSpacing * (ugrid.columns - 1)) / ugrid.columns)
+
+                Layout.fillWidth: true
+                columns: Math.max(2, Math.floor(ugrp.width / 240))
+                columnSpacing: Tokens.spacing.small
+                rowSpacing: Tokens.spacing.small
+
+                Repeater {
+                    model: (ugrp.g.items ?? []).length
+
+                    ServiceCard {
+                        id: unit
+
+                        required property int index
+                        readonly property var u: ugrp.g.items[unit.index] ?? ({})
+
+                        Layout.preferredWidth: ugrid.cellWidth
+                        Layout.maximumWidth: ugrid.cellWidth
+                        compact: true
+                        bridge: root.bridge
+                        name: unit.u.unit ?? ""
+                        stateKey: S.unitStateKey(unit.u, root.services)
+                        stateText: root.stateText(unit.stateKey)
+                        // timer: proxima/ultima execucao; oneshot parado entre execucoes = "Idle", nao "dead"
+                        summary: S.unitSummary(unit.u, root.services, root.info.backup)
+                        logUnit: unit.u.unit ?? ""
+                        onShowLog: name => root.page.showLogs(name)
+                    }
+                }
+            }
         }
     }
 }

@@ -16,17 +16,24 @@ import qs.modules.nexus.common
 // "Up" sobe. So leitura: `caelestia-storage browse <pasta> --json` (du -x,
 // nao atravessa para outra particao). Resultados ficam em cache enquanto a
 // pagina esta aberta, entao voltar e instantaneo.
+// nState.storageRemote: a mesma arvore, mas de uma pasta do NAS
+// (`caelestia-nas du <pasta> --json`, mesmo formato; o du roda la por ssh e o
+// resultado fica 10 min em cache no PC; o refresh passa --fresh).
 PageBase {
     id: root
 
     property string path: root.nState.storagePath || "/"
     property var cache: ({})
     property int shown: 40
+    property bool fresh
+    readonly property bool remote: root.nState.storageRemote
 
-    readonly property var doc: root.cache[root.path] ?? null
+    // Chave com o lado (PC ou NAS): "/" existe nos dois
+    readonly property var doc: root.cache[root.key(root.path)] ?? null
     readonly property var entries: root.doc?.entries ?? []
     readonly property real biggest: root.entries.length > 0 ? Math.max(1, root.entries[0].size) : 1
     readonly property string bin: `${Quickshell.env("HOME")}/.local/bin/caelestia-storage`
+    readonly property string nasBin: `${Quickshell.env("HOME")}/.local/bin/caelestia-nas`
 
     function fmt(bytes: var): string {
         if (bytes === null || bytes === undefined)
@@ -46,16 +53,21 @@ PageBase {
         root.flickable.contentY = -root.flickable.topMargin;
     }
 
+    function key(p: string): string {
+        return (root.remote ? "nas:" : "pc:") + p;
+    }
+
     function load(force: bool): void {
-        if (!force && root.cache[root.path])
+        if (!force && root.cache[root.key(root.path)])
             return;
+        root.fresh = force;
         proc.target = root.path;
         proc.running = false;
         proc.running = true;
     }
 
-    title: root.path === "/" ? "/" : root.path.split("/").filter(x => x).pop()
-    description: root.path
+    title: (root.remote ? "NAS  ·  " : "") + (root.path === "/" ? "/" : root.path.split("/").filter(x => x).pop())
+    description: root.remote ? qsTr("%1 on the NAS").arg(root.path) : root.path
     isSubPage: true
 
     Component.onCompleted: root.load(false)
@@ -67,17 +79,17 @@ PageBase {
 
             property string target
 
-            command: [root.bin, "browse", proc.target, "--json"]
+            command: root.remote ? [root.nasBin, "du", proc.target, ...(root.fresh ? ["--fresh"] : []), "--json"] : [root.bin, "browse", proc.target, "--json"]
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
                         const d = JSON.parse(text);
                         const c = Object.assign({}, root.cache);
-                        c[d.path] = d;
+                        c[root.key(d.path)] = d;
                         root.cache = c;
                     } catch (e) {
                         const c = Object.assign({}, root.cache);
-                        c[proc.target] = { path: proc.target, entries: [], total: 0, denied: 0, error: qsTr("Could not read this folder") };
+                        c[root.key(proc.target)] = { path: proc.target, entries: [], total: 0, denied: 0, error: qsTr("Could not read this folder") };
                         root.cache = c;
                     }
                 }
@@ -158,7 +170,9 @@ PageBase {
                     onClicked: root.load(true)
                 }
 
+                // Pasta do NAS nao abre no gerenciador local (sem caminho aqui)
                 IconButton {
+                    visible: !root.remote
                     icon: "open_in_new"
                     type: IconButton.Tonal
                     isRound: true
@@ -214,11 +228,26 @@ PageBase {
                             fill: entry.modelData.dir ? 1 : 0
                         }
 
-                        StyledText {
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            text: entry.modelData.name
-                            font: Tokens.font.body.small
-                            elide: Text.ElideMiddle
+                            spacing: 0
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                text: entry.modelData.name
+                                font: Tokens.font.body.small
+                                elide: Text.ElideMiddle
+                            }
+
+                            // Aviso do caelestia-nas (ex.: .snapshots do btrfs conta em dobro)
+                            StyledText {
+                                Layout.fillWidth: true
+                                visible: !!entry.modelData.note
+                                text: entry.modelData.note ?? ""
+                                color: Colours.palette.m3outline
+                                font: Tokens.font.label.small
+                                wrapMode: Text.WordWrap
+                            }
                         }
 
                         StyledText {
