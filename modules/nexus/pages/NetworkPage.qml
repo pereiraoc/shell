@@ -359,5 +359,16 @@ PageBase {
                 root.nState.openSubPage(4); // Add/edit provider sub-page
             }
         }
+
+        // ---- saida pela Proton (setup § 5d, CF-35): exit node do NetBird no NAS.
+        // caelestia-vpn on/off = netbird networks select/deselect da rota 0.0.0.0/0;
+        // desligar para jogar (servidor em Miami, +~130 ms).
+        ToolSection {
+            Layout.topMargin: Tokens.spacing.large
+            tool: "vpn"
+            title: Tr.tr("Private internet (Proton via NAS)")
+            icon: "shield_lock"
+            hint: Tr.tr("Sends this PC's internet through the NAS and out of Proton VPN, so sites never see the home IP. If Proton drops, the internet stops instead of leaking. Turn it off for games: the server is in Miami (+~130 ms).")
+        }
     }
 }
