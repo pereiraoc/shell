@@ -38,6 +38,13 @@ QtObject {
             group: qsTr("Connectivity")
         },
         {
+            id: "privacy",
+            label: qsTr("Privacy"),
+            icon: "shield_lock",
+            description: qsTr("Proton VPN, DNS filter, what is exposed"),
+            group: qsTr("Connectivity")
+        },
+        {
             id: "bluetooth",
             label: qsTr("Bluetooth"),
             icon: "bluetooth",

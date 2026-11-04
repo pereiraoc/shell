@@ -38,10 +38,11 @@ PageBase {
     property string pinName
 
     title: Tr.tr("Network")
-    description: Tr.tr("How you are connected, what is on this network, home, remote access")
+    description: Tr.tr("How you are connected, what is on this network, home, how the traffic flows")
     tabs: [
         { id: "local", label: Tr.tr("This network") },
-        { id: "home", label: Tr.tr("Home") }
+        { id: "home", label: Tr.tr("Home") },
+        { id: "services", label: Tr.tr("Services") }
     ]
 
     ToolBridge {
@@ -57,6 +58,22 @@ PageBase {
         id: nas
 
         live: root.visible && root.tab === "home"
+    }
+
+    // Network > Services: o caminho do trafego (portal, tunel, VPN, Proton) vem do caelestia-privacy
+    ToolBridge {
+        id: privacy
+
+        tool: "privacy"
+        autoRefresh: root.visible && root.tab === "services" ? 30000 : 0
+    }
+
+    // Saida deste PC pela Proton (exit node do NAS): muda o no "Internet" do diagrama
+    ToolBridge {
+        id: vpn
+
+        tool: "vpn"
+        autoRefresh: root.visible && root.tab === "local" ? 20000 : 0
     }
 
     ToolBridge {
@@ -108,12 +125,36 @@ PageBase {
                     NetNode {
                         icon: "public"
                         label: Tr.tr("Internet")
-                        sub: VPN.connected ? Tr.tr("via VPN · %1").arg(VPN.providerName) : ""
+                        sub: vpn.info.exit_on ? Tr.tr("sees Proton's IP") : Tr.tr("sees the home IP")
                         dim: !Nmcli.isConnected
                     }
 
                     NetLink {
-                        label: VPN.connected && VPN.pingMs >= 0 ? Tr.tr("%1 ms").arg(VPN.pingMs) : ""
+                        visible: vpn.info.exit_on === true
+                        label: Tr.tr("+~130 ms")
+                    }
+
+                    NetNode {
+                        visible: vpn.info.exit_on === true
+                        icon: "vpn_lock"
+                        label: Tr.tr("Proton")
+                        sub: vpn.info.public_ip?.ip ?? ""
+                    }
+
+                    NetLink {
+                        visible: vpn.info.exit_on === true
+                        label: Tr.tr("kill switch")
+                    }
+
+                    NetNode {
+                        visible: vpn.info.exit_on === true
+                        icon: "dns"
+                        label: Tr.tr("NAS")
+                        sub: Tr.tr("exit node")
+                    }
+
+                    NetLink {
+                        label: vpn.info.exit_on ? Tr.tr("NetBird") : (VPN.connected && VPN.pingMs >= 0 ? Tr.tr("%1 ms").arg(VPN.pingMs) : "")
                     }
 
                     NetNode {
@@ -217,6 +258,31 @@ PageBase {
                         }
                     }
                 }
+            }
+        }
+
+        TabPane {
+            id: servicesPane
+
+            active: root.tab === "services"
+
+            Loader {
+                Layout.fillWidth: true
+                active: servicesPane.opened
+                sourceComponent: ServicesFlow {
+                    info: privacy.info
+                }
+            }
+
+            RowButton {
+                Layout.topMargin: Tokens.spacing.large
+                first: true
+                last: true
+                icon: "shield_lock"
+                text: Tr.tr("Privacy settings")
+                subtext: Tr.tr("This PC through Proton, pause the DNS filter, reconnect Proton")
+                trailingIcon: "chevron_right"
+                onClicked: root.nState.openPage("privacy", 0, "")
             }
         }
 

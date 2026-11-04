@@ -15,11 +15,64 @@ PageBase {
 
     title: Tr.tr("Internet")
 
+    // Caminho do trafego agora (pedido de 04/11): este PC -> Wi-Fi/cabo -> (NAS -> Proton) ou
+    // roteador -> Internet, com o IP que os sites veem e o DNS. Dados: caelestia-vpn (secao no fim).
+    readonly property var exitInfo: vpnSection.bridge.info
+    readonly property bool viaProton: root.exitInfo.exit_on === true
+    readonly property string linkName: Nmcli.activeEthernet ? Tr.tr("Cable") : (Nmcli.active ? (Nmcli.active.ssid ?? Tr.tr("Wi-Fi")) : Tr.tr("No connection"))
+    readonly property string publicIp: root.exitInfo.public_ip?.ip ?? ""
+    readonly property var pathNodes: root.viaProton ? [
+        { icon: "laptop_mac", label: Tr.tr("This PC"), sub: root.linkName },
+        { icon: "shield", label: Tr.tr("NAS"), sub: Tr.tr("kill switch") },
+        { icon: "vpn_lock", label: Tr.tr("Proton VPN"), sub: Tr.tr("Miami · Brazilian IP") },
+        { icon: "public", label: Tr.tr("Internet"), sub: root.publicIp ? Tr.tr("sees %1").arg(root.publicIp) : "" }
+    ] : [
+        { icon: "laptop_mac", label: Tr.tr("This PC"), sub: "" },
+        { icon: "router", label: Tr.tr("Vivo router"), sub: "" },
+        { icon: "public", label: Tr.tr("Internet"), sub: root.publicIp ? Tr.tr("sees the home IP %1").arg(root.publicIp) : "" }
+    ]
+    readonly property var pathLinks: root.viaProton ? [
+        { label: Tr.tr("NetBird"), detail: Tr.tr("exit node"), tunnel: true },
+        { label: Tr.tr("WireGuard tunnel"), detail: Tr.tr("+~130 ms"), tunnel: true },
+        { label: "", detail: "" }
+    ] : [
+        { label: root.linkName, detail: "" },
+        { label: "", detail: "" }
+    ]
+
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        // Caminho do trafego agora (mesmo desenho de Network > This network)
+        ConnectedRect {
+            Layout.fillWidth: true
+            first: true
+            implicitHeight: pathDiagram.implicitHeight + Tokens.padding.large * 2
+
+            PathDiagram {
+                id: pathDiagram
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: Tokens.padding.large
+                nodes: root.pathNodes
+                links: root.pathLinks
+            }
+        }
+
+        InfoRow {
+            Layout.fillWidth: true
+            Layout.bottomMargin: Tokens.spacing.large
+            last: true
+            icon: "filter_alt"
+            label: Tr.tr("Website names (DNS)")
+            subtext: root.exitInfo.netbird ? Tr.tr("Ads and trackers are blocked before anything loads") : Tr.tr("VPN is off: the router answers, nothing is filtered")
+            value: root.exitInfo.netbird ? Tr.tr("Filter on the NAS") : Tr.tr("Router")
+        }
 
         Timer {
             running: root.visible && Nmcli.wifiEnabled
@@ -364,6 +417,8 @@ PageBase {
         // caelestia-vpn on/off = netbird networks select/deselect da rota 0.0.0.0/0;
         // desligar para jogar (servidor em Miami, +~130 ms).
         ToolSection {
+            id: vpnSection
+
             Layout.topMargin: Tokens.spacing.large
             tool: "vpn"
             title: Tr.tr("Private internet (Proton via NAS)")

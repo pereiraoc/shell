@@ -71,6 +71,14 @@ QtObject {
         }
     }
 
+    readonly property Component privacyComp: Component {
+        StackPage {
+            Component {
+                PrivacyPage {}
+            }
+        }
+    }
+
     readonly property Component bluetoothComp: Component {
         StackPage {
             Component {
