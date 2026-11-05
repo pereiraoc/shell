@@ -18,7 +18,9 @@ import qs.services
 // - tunnel: linha dupla com cadeado = trafego dentro de um tunel cifrado; o
 //   label diz QUAL servico faz o tunel; detail diz protocolo/porta;
 // - encrypted (sem tunel): linha simples com cadeado (TLS/HTTPS/DoH);
-// - state: "on" (primary), "off" (apagado), "error".
+// - state: "on" (primary), "off" (apagado), "error", "blocked" (o no que barra:
+//   vermelho fixo, porque no esquema monocromatico o m3error sai amarelo);
+// - blocked (no link): o trafego para ali (linha vermelha tracejada, X no fim).
 // So linha, sem preenchimento; cor so para estado.
 RowLayout {
     id: root
@@ -27,8 +29,11 @@ RowLayout {
     property var links: []
 
     readonly property real box: Tokens.padding.extraExtraLarge * 2
+    readonly property color blockColour: Colours.light ? "#c62828" : "#ef6b6b"
 
     function stateColour(state: string): color {
+        if (state === "blocked")
+            return root.blockColour;
         if (state === "error")
             return Colours.palette.m3error;
         if (state === "off")
@@ -69,7 +74,7 @@ RowLayout {
                     radius: Tokens.rounding.medium
                     color: "transparent"
                     border.width: 1
-                    border.color: seg.modelData.state === "off" ? Colours.palette.m3outlineVariant : seg.modelData.state === "error" ? Colours.palette.m3error : Colours.palette.m3outline
+                    border.color: seg.modelData.state === "off" ? Colours.palette.m3outlineVariant : seg.modelData.state === "error" ? Colours.palette.m3error : seg.modelData.state === "blocked" ? root.blockColour : Colours.palette.m3outline
 
                     MaterialIcon {
                         anchors.centerIn: parent
@@ -130,6 +135,8 @@ RowLayout {
 
                 readonly property bool tunnel: seg.link.tunnel === true
                 readonly property bool locked: lk.tunnel || seg.link.encrypted === true
+                readonly property bool blocked: seg.link.blocked === true
+                readonly property color lineColour: lk.blocked ? root.blockColour : lk.locked ? Colours.palette.m3primary : Colours.palette.m3outline
 
                 visible: seg.hasLink
                 Layout.fillWidth: true
@@ -146,7 +153,7 @@ RowLayout {
                     spacing: 0
 
                     MaterialIcon {
-                        visible: lk.locked
+                        visible: lk.locked && !lk.blocked
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "lock"
                         color: Colours.palette.m3primary
@@ -177,12 +184,34 @@ RowLayout {
                     height: lk.tunnel ? 5 : 1
 
                     Rectangle {
+                        visible: !lk.blocked
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.rightMargin: chev.width / 2
                         anchors.top: parent.top
                         height: 1
-                        color: lk.locked ? Colours.palette.m3primary : Colours.palette.m3outline
+                        color: lk.lineColour
+                    }
+
+                    // bloqueado: tracejado (so linha, sem preenchimento)
+                    Row {
+                        visible: lk.blocked
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.rightMargin: chev.width / 2
+                        anchors.top: parent.top
+                        spacing: 4
+                        clip: true
+
+                        Repeater {
+                            model: Math.max(1, Math.floor(line.width / 9))
+
+                            Rectangle {
+                                width: 5
+                                height: 1
+                                color: lk.lineColour
+                            }
+                        }
                     }
 
                     Rectangle {
@@ -201,8 +230,8 @@ RowLayout {
                         anchors.right: parent.right
                         anchors.rightMargin: -width / 3
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "chevron_right"
-                        color: lk.locked ? Colours.palette.m3primary : Colours.palette.m3outline
+                        text: lk.blocked ? "close" : "chevron_right"
+                        color: lk.lineColour
                     }
                 }
 
