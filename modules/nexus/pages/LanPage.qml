@@ -76,6 +76,14 @@ PageBase {
         autoRefresh: root.visible && root.tab === "local" ? 20000 : 0
     }
 
+    // Aparelhos aprovados pelo celular/PC (nas-approve, CF-38): rapido enquanto ha pedido esperando
+    ToolBridge {
+        id: approve
+
+        tool: "approve"
+        autoRefresh: root.visible && root.tab === "home" ? ((approve.info.pending ?? []).length > 0 ? 3000 : 15000) : 0
+    }
+
     ToolBridge {
         id: remote
 
@@ -203,7 +211,7 @@ PageBase {
                 tool: "remote"
                 title: Tr.tr("Use this PC from your phone or tablet")
                 icon: "cast"
-                hint: Tr.tr("Sunshine streams the screen (HEVC on the GPU) with touch, keyboard, mouse and controller. On the device, install Moonlight, pick this PC and type the PIN it shows below. On the home network now; over the VPN once Tailscale is logged in.")
+                hint: Tr.tr("Sunshine streams the screen (HEVC on the GPU) with touch, keyboard, mouse and controller. On the device, install Moonlight, pick this PC and type the PIN it shows below. Works on the home network and, away from home, over NetBird.")
             }
 
             // PIN do Moonlight: campo curto, nome do aparelho, botao. Sem texto de apoio
@@ -290,6 +298,10 @@ PageBase {
             id: homePane
 
             active: root.tab === "home"
+
+            DeviceApprovals {
+                bridge: approve
+            }
 
             // So nasce na primeira abertura (lista os aparelhos pela CLI a cada 30 s enquanto visivel).
             Loader {
