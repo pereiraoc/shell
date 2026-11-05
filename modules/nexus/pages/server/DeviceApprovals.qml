@@ -187,7 +187,7 @@ ColumnLayout {
         last: true
         icon: "verified_user"
         label: Tr.tr("No approved devices yet")
-        subtext: Tr.tr("On a new device, open a private site and pick 'Approve from my phone'")
+        subtext: Tr.tr("On a new device, open a private site and pick 'Approval by admin'")
     }
 
     Repeater {
