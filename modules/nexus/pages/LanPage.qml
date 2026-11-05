@@ -42,6 +42,7 @@ PageBase {
     tabs: [
         { id: "local", label: Tr.tr("This network") },
         { id: "home", label: Tr.tr("Home") },
+        { id: "sign-ins", label: Tr.tr("Sign-ins") },
         { id: "services", label: Tr.tr("Services") }
     ]
 
@@ -81,7 +82,7 @@ PageBase {
         id: approve
 
         tool: "approve"
-        autoRefresh: root.visible && root.tab === "home" ? ((approve.info.pending ?? []).length > 0 ? 3000 : 15000) : 0
+        autoRefresh: root.visible && root.tab === "sign-ins" ? ((approve.info.pending ?? []).length > 0 ? 3000 : 15000) : 0
     }
 
     ToolBridge {
@@ -294,14 +295,21 @@ PageBase {
             }
         }
 
+        // Sign-ins (CF-38): pedidos de "Approval by admin" e aparelhos aprovados (nas-approve)
         TabPane {
-            id: homePane
+            id: signinsPane
 
-            active: root.tab === "home"
+            active: root.tab === "sign-ins"
 
             DeviceApprovals {
                 bridge: approve
             }
+        }
+
+        TabPane {
+            id: homePane
+
+            active: root.tab === "home"
 
             // So nasce na primeira abertura (lista os aparelhos pela CLI a cada 30 s enquanto visivel).
             Loader {
