@@ -26,7 +26,7 @@ ColumnLayout {
             return "smartphone";
         if (/iPad|tablet/i.test(kind))
             return "tablet_android";
-        if (/TV/.test(kind))
+        if (/TV|LG|Chromecast/.test(kind))
             return "tv";
         if (/app/.test(kind))
             return "apps";
@@ -115,7 +115,8 @@ ColumnLayout {
 
                         StyledText {
                             Layout.fillWidth: true
-                            text: Tr.tr("Wants %1 · %2 · %3 s left").arg(req.r.site ?? "").arg(req.r.where ?? "").arg(req.r.expires_in ?? 0)
+                            text: (req.r.lan ?? false) ? Tr.tr("New on the home network · %1 · %2").arg(req.r.ip ?? "").arg(req.r.mac ?? "")
+                                : Tr.tr("Wants %1 · %2 · %3 s left").arg(req.r.site ?? "").arg(req.r.where ?? "").arg(req.r.expires_in ?? 0)
                             color: Colours.palette.m3onSurfaceVariant
                             font: Tokens.font.label.small
                             elide: Text.ElideRight
@@ -164,9 +165,17 @@ ColumnLayout {
                         }
                     }
 
+                    // aparelho da rede de casa (nas-lan): TV/Chromecast so com o Jellyfin
+                    TextButton {
+                        visible: req.r.lan ?? false
+                        text: Tr.tr("Media only")
+                        enabled: root.bridge.busyAction === ""
+                        onClicked: root.press(`approve~${req.r.id}~media~${req.nick.replace(/~/g, " ").trim()}`, false)
+                    }
+
                     TextButton {
                         type: TextButton.Text
-                        text: Tr.tr("Deny")
+                        text: (req.r.lan ?? false) ? Tr.tr("Block") : Tr.tr("Deny")
                         enabled: root.bridge.busyAction === ""
                         onClicked: root.press(`deny~${req.r.id}`, false)
                     }
@@ -205,7 +214,7 @@ ColumnLayout {
             icon: root.deviceIcon(dev.d.kind ?? "")
             text: dev.d.nickname ?? ""
             subtext: root.armed === `revoke~${dev.d.id}` ? Tr.tr("Click again to revoke: it will need a new approval")
-                : Tr.tr("%1 · %2 · last seen %3").arg(dev.d.kind ?? "").arg(dev.d.forever ? Tr.tr("always") : (dev.d.until ?? "")).arg(dev.d.where ?? "")
+                : Tr.tr("%1 · %2 · last seen %3").arg(dev.d.kind ?? "").arg(dev.d.until ?? (dev.d.forever ? Tr.tr("always") : "")).arg(dev.d.where ?? "")
             trailingIcon: "delete"
             onClicked: root.press(`revoke~${dev.d.id}`, true)
         }
