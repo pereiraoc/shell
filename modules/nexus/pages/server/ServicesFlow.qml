@@ -96,7 +96,7 @@ ColumnLayout {
                 { icon: "dns", label: Tr.tr("NAS"), sub: Tr.tr("logins on every service"), state: "blocked" }
             ],
             links: [{ label: Tr.tr("home network"), detail: Tr.tr("needs a login"), blocked: true }],
-            protections: [Tr.tr("Shared folder: user and password, no guest access"), Tr.tr("The *.nas.local names use the same central login as the private names"), Tr.tr("This PC's firewall lets the home network reach only Sunshine (paired devices), Steam Remote Play and mDNS")],
+            protections: [Tr.tr("Shared folder: user and password, no guest access"), Tr.tr("The *.nas.local names use the same central login as the private names"), Tr.tr("This PC's firewall lets the home network reach only Sunshine (paired devices), Steam Remote Play and mDNS"), Tr.tr("A new device on the Wi-Fi sends an alert to your phone (NetAlertX)")],
             gaps: [Tr.tr("No guest Wi-Fi: guests share the network with the NAS and this PC")]
         },
         {
@@ -300,8 +300,8 @@ ColumnLayout {
                 ]
             }
         ]
-        protections: [Tr.tr("Mail is never sent from the home IP"), Tr.tr("The NAS trusts the sender address only when it comes from the portal"), Tr.tr("Sending and reading are private: NetBird + your mail password")]
-        gaps: [Tr.tr("No spam filter or rate limit configured on incoming mail")]
+        protections: [Tr.tr("Mail is never sent from the home IP"), Tr.tr("The NAS trusts the sender address only when it comes from the portal"), Tr.tr("Sending and reading are private: NetBird + your mail password"), Tr.tr("Spam filter runs on the NAS: rules, blocklists (looked up by the NAS's own DNS) and a classifier that learns from your mail; spam goes to Junk"), Tr.tr("Incoming limits per sender IP and per sender and recipient")]
+        gaps: [Tr.tr("The spam classifier is still learning: it switches on after about 100 spam and 100 good messages")]
     }
 
     // ============================================================ dentro de casa
