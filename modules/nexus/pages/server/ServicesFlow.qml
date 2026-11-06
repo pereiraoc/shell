@@ -97,7 +97,7 @@ ColumnLayout {
             ],
             links: [{ label: Tr.tr("home network"), detail: Tr.tr("needs a login"), blocked: true }],
             protections: [Tr.tr("Devices not registered at home can't open the NAS; a new one becomes a request: Allow, Media only (Jellyfin) or Block"), Tr.tr("Shared folder: user and password, no guest access"), Tr.tr("The *.nas.local names use the same central login as the private names"), Tr.tr("This PC's firewall lets the home network reach only Sunshine (paired devices), Steam Remote Play and mDNS"), Tr.tr("A new device on the Wi-Fi sends an alert to your phone (NetAlertX)")],
-            gaps: [Tr.tr("The home-network block is still in watch mode: it only logs until it is switched to enforce"), Tr.tr("No guest Wi-Fi: guests share the network with the NAS and this PC")]
+            gaps: [Tr.tr("No guest Wi-Fi: guests share the network with the NAS and this PC")]
         },
         {
             icon: "person_alert",
