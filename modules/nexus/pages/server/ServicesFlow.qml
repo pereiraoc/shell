@@ -96,8 +96,8 @@ ColumnLayout {
                 { icon: "dns", label: Tr.tr("NAS"), sub: Tr.tr("logins on every service"), state: "blocked" }
             ],
             links: [{ label: Tr.tr("home network"), detail: Tr.tr("needs a login"), blocked: true }],
-            protections: [Tr.tr("Shared folder: user and password, no guest access"), Tr.tr("The *.nas.local names use the same central login as the private names"), Tr.tr("This PC's firewall lets the home network reach only Sunshine (paired devices), Steam Remote Play and mDNS"), Tr.tr("A new device on the Wi-Fi sends an alert to your phone (NetAlertX)")],
-            gaps: [Tr.tr("No guest Wi-Fi: guests share the network with the NAS and this PC")]
+            protections: [Tr.tr("Devices not registered at home can't open the NAS; a new one becomes a request: Allow, Media only (Jellyfin) or Block"), Tr.tr("Shared folder: user and password, no guest access"), Tr.tr("The *.nas.local names use the same central login as the private names"), Tr.tr("This PC's firewall lets the home network reach only Sunshine (paired devices), Steam Remote Play and mDNS"), Tr.tr("A new device on the Wi-Fi sends an alert to your phone (NetAlertX)")],
+            gaps: [Tr.tr("The home-network block is still in watch mode: it only logs until it is switched to enforce"), Tr.tr("No guest Wi-Fi: guests share the network with the NAS and this PC")]
         },
         {
             icon: "person_alert",
@@ -108,8 +108,8 @@ ColumnLayout {
                 { icon: "casino", label: Tr.tr("Foundry · Pleitost"), sub: Tr.tr("own login · row-level security"), state: "blocked" }
             ],
             links: [{ label: Tr.tr("HTTPS via portal"), detail: Tr.tr("only its own data"), blocked: true }],
-            protections: [Tr.tr("Pleitost database: row-level security on every table; e-mail sign-up off (GitHub only)"), Tr.tr("Only the 4 Supabase APIs the app uses are public; Studio returns 404"), Tr.tr("Each app runs in its own container, published only to the NAS itself")],
-            gaps: [Tr.tr("Foundry has no lockout for wrong passwords"), Tr.tr("CF-32 lists 4 known row-level-security weak points to review")]
+            protections: [Tr.tr("Foundry logins from the internet: 10 tries per 10 minutes per address (the portal passes the real IP to the NAS)"), Tr.tr("Pleitost: GitHub sign-in required before anything loads"), Tr.tr("Pleitost database: row-level security on every table; e-mail sign-up off (GitHub only)"), Tr.tr("Only the 4 Supabase APIs the app uses are public; Studio returns 404"), Tr.tr("Each app runs in its own container, published only to the NAS itself")],
+            gaps: [Tr.tr("CF-32 lists 4 known row-level-security weak points to review")]
         },
         {
             icon: "visibility",
@@ -121,7 +121,7 @@ ColumnLayout {
             ],
             links: [{ label: Tr.tr("looks for the home IP"), detail: Tr.tr("sees Proton"), blocked: true }],
             protections: [Tr.tr("If Proton drops, protected traffic stops: a blackhole route plus a firewall drop, checked every 2 min with an alert"), Tr.tr("IPv6 blocked for tunnelled traffic, so nothing slips around it"), Tr.tr("qBittorrent can only leave through its own tunnel (gluetun)"), Tr.tr("AdGuard drops tracker and ad domains (3 lists, DNSSEC)")],
-            gaps: [Tr.tr("Not covered: guests' devices, the TV, and this PC while its Proton switch is off")]
+            gaps: [Tr.tr("Not covered: guests' devices and the TV; on this PC, Steam, games and Discord show the home IP by design")]
         }
     ]
 
@@ -180,7 +180,7 @@ ColumnLayout {
             { label: Tr.tr("asks once"), detail: "" },
             { label: "", detail: "" }
         ]
-        protections: [Tr.tr("The names only resolve to the NetBird address; the internet cannot reach them"), Tr.tr("Central login with two factors (photos, files, movies, alerts and home sign in through it too)"), Tr.tr("Passkey: your phone's fingerprint replaces password and code (from a computer, scan a QR with the phone)"), Tr.tr("Admin-only: Odysseus, DNS filter, database admin, settings"), Tr.tr("The NetBird server on the portal only introduces devices; it never sees the traffic")]
+        protections: [Tr.tr("The names only resolve to the NetBird address; the internet cannot reach them"), Tr.tr("Approved devices skip the sign-in: an admin approves a new one from the phone, the notification or Nexus › Network › Sign-ins (30 days or always, with a nickname; revoke there)"), Tr.tr("Photos, files, movies, home and timeline sign in through the NAS login (login.pereiraoc.com), which also accepts approved devices"), Tr.tr("Central login with two factors (photos, files, movies, alerts and home sign in through it too)"), Tr.tr("Passkey: your phone's fingerprint replaces password and code (from a computer, scan a QR with the phone)"), Tr.tr("Admin-only: Odysseus, DNS filter, database admin, settings"), Tr.tr("The NetBird server on the portal only introduces devices; it never sees the traffic")]
         gaps: []
     }
 
@@ -391,7 +391,7 @@ ColumnLayout {
             { label: Tr.tr("WireGuard (Proton)"), detail: Tr.tr("+~130 ms"), tunnel: true },
             { label: "", detail: "" }
         ]
-        protections: [Tr.tr("DNS filter for every NetBird device, even with Proton off"), Tr.tr("Turn Proton off for online games (latency)")]
+        protections: [Tr.tr("DNS filter for every NetBird device, even with Proton off"), Tr.tr("Proton turns on at login; Steam, games and Discord go direct with the home IP (no added latency)")]
         gaps: [Tr.tr("Guests' phones and the TV use the Vivo router directly: home IP, no filter")]
     }
 
