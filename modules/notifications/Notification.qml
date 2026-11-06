@@ -500,7 +500,22 @@ StyledRect {
                         label.anchors.verticalCenter: verticalCenter
                         label.anchors.centerIn: undefined
                         label.anchors.margins: Tokens.padding.medium
+                        label.anchors.leftMargin: root.modelData.hasActionIcons ? Tokens.padding.medium + actionIcon.implicitWidth + Tokens.spacing.extraSmall : Tokens.padding.medium
                         label.elide: Text.ElideRight
+
+                        // Acao com icone (hint action-icons, ex. pedido de login do NAS): o id e o nome do icone
+                        // Material; o texto curto fica ao lado
+                        MaterialIcon {
+                            id: actionIcon
+
+                            visible: root.modelData.hasActionIcons
+                            anchors.left: parent.left
+                            anchors.leftMargin: Tokens.padding.medium
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: parent.modelData.identifier
+                            color: parent.inactiveOnColour
+                            fontStyle: Tokens.font.icon.small
+                        }
                     }
                 }
 
