@@ -5,13 +5,16 @@ import QtQuick.Layouts
 import Quickshell
 import Caelestia.Config
 import qs.components
+import qs.components.containers
+import qs.components.controls
 import qs.services
 import qs.modules.nexus.common
 
-// O que esta desatualizado, por fonte, e o botao que abre o aplicador num
-// terminal. A pagina so le: a lista vem de ~/.cache/caelestia/updates.json,
-// gravado pelo timer, pelo "Check now" ou pelo proprio caelestia-update ao
-// terminar.
+// O que esta desatualizado, por fonte, e o botao do aplicador, que roda aqui
+// mesmo (progresso abaixo do botao; a senha vem pela caixa do Caelestia). A
+// pagina so le: a lista vem de ~/.cache/caelestia/updates.json, gravado pelo
+// timer, pelo "Check now" ou pelo proprio caelestia-update ao terminar; o
+// progresso, de update-state.json.
 PageBase {
     id: root
 
@@ -38,7 +41,7 @@ PageBase {
             label: qsTr("CRAFTING APPS"),
             icon: "fork_right"
         },
-        // Segurados de proposito no caelestia-update (AUR_HOLD): nao contam
+        // Segurados de proposito no caelestia-update (--print-hold): nao contam
         // como pendentes e o "Update everything" nao os toca.
         {
             key: "held",
@@ -53,6 +56,79 @@ PageBase {
             icon: "rate_review"
         }
     ]
+
+    readonly property var runSteps: [
+        {
+            key: "repo",
+            label: qsTr("Official repositories")
+        },
+        {
+            key: "aur",
+            label: qsTr("AUR")
+        },
+        {
+            key: "flatpak",
+            label: qsTr("Flatpak")
+        },
+        {
+            key: "forks",
+            label: qsTr("Crafting Apps")
+        },
+        // TV da sala (caelestia-sala-jogos sync --scrape): pulado com o Pi desligado; nao muda o resultado
+        {
+            key: "tv",
+            label: qsTr("Living-room TV")
+        },
+        {
+            key: "checks",
+            label: qsTr("Checks before restarting")
+        }
+    ]
+
+    readonly property var run: SoftwareInventory.updateRun
+    readonly property bool runKnown: root.run.started_at !== undefined
+    readonly property bool runFailed: !SoftwareInventory.updating && root.runKnown && (root.run.rc !== 0 || SoftwareInventory.updateRunDead)
+
+    function currentStep(): string {
+        const s = root.runSteps.find(s => root.run.steps?.[s.key] === "running");
+        return s ? s.label : qsTr("Starting");
+    }
+
+    function runTitle(): string {
+        if (SoftwareInventory.updating)
+            return qsTr("Updating: %1").arg(root.currentStep());
+        if (SoftwareInventory.updateRunDead)
+            return qsTr("The last update was interrupted");
+        if (root.run.cancelled)
+            return qsTr("Update cancelled");
+        return root.run.rc === 0 ? qsTr("Updates installed") : qsTr("Update finished with errors");
+    }
+
+    function runSubtext(): string {
+        if (SoftwareInventory.updating)
+            return qsTr("You can close this window; the update keeps going");
+        if (root.run.block_reboot)
+            return qsTr("Do not restart yet: see the problems below");
+        if (root.run.reboot)
+            return qsTr("Restart to use the new kernel or driver");
+        if (root.run.relogin)
+            return qsTr("Log out and back in to load the new compositor");
+        return Qt.formatDateTime(new Date((root.run.finished_at || root.run.started_at) * 1000), "dd/MM hh:mm");
+    }
+
+    function stepIcon(state: string): string {
+        return ({ pending: "schedule", running: "pending", done: "check_circle", failed: "error", skipped: "remove_circle_outline" })[state] ?? "schedule";
+    }
+
+    function stepColour(state: string): color {
+        if (state === "failed")
+            return Colours.palette.m3error;
+        return state === "running" || state === "done" ? Colours.palette.m3primary : Colours.palette.m3outline;
+    }
+
+    function stepText(state: string): string {
+        return ({ pending: qsTr("Waiting"), running: qsTr("Running"), done: qsTr("Done"), failed: qsTr("Failed"), skipped: qsTr("Skipped") })[state] ?? "";
+    }
 
     // Secoes que so aparecem quando tem algo (as outras mostram "Up to date").
     readonly property var onlyWhenPending: ["held", "review"]
@@ -87,7 +163,7 @@ PageBase {
             Layout.fillWidth: true
             Layout.leftMargin: Tokens.padding.small
             Layout.bottomMargin: Tokens.spacing.medium
-            text: qsTr("Checked every 6 hours in the background; a notification appears only when the pending list changes. Updating opens a terminal: official repositories first, then AUR, then Flatpak, then the Crafting Apps forks, and it tells you afterwards whether a reboot or a plugin rebuild is needed. Forks with our own changes are only listed for review.")
+            text: qsTr("Checked every 6 hours in the background; a notification appears only when the pending list changes. Updating runs here and asks for your password once: official repositories first, then AUR, then Flatpak, then the Crafting Apps forks, then the living-room TV catalogue (Steam games and ROM box art), and it tells you afterwards whether a reboot or a plugin rebuild is needed. Forks with our own changes are only listed for review.")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -111,12 +187,144 @@ PageBase {
         }
 
         RowButton {
-            last: true
-            icon: "terminal"
+            last: !root.runFailed
+            icon: "system_update_alt"
             text: qsTr("Update everything")
-            subtext: qsTr("Opens a terminal running caelestia-update (asks for sudo)")
-            trailingIcon: "open_in_new"
+            subtext: SoftwareInventory.updating ? qsTr("Running, progress below") : qsTr("Installs everything listed here, except what is held or needs review")
+            disabled: SoftwareInventory.updating
             onClicked: SoftwareInventory.runUpdate()
+        }
+
+        // Reserva: sem terminal o pacman nao faz perguntas, entao o que precisa
+        // de uma decisao (conflito, troca de pacote) falha e cai aqui.
+        RowButton {
+            last: true
+            visible: root.runFailed
+            icon: "terminal"
+            text: qsTr("Open in a terminal")
+            subtext: qsTr("If the package manager needs a decision from you")
+            trailingIcon: "open_in_new"
+            onClicked: SoftwareInventory.runUpdateInTerminal()
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: root.runKnown
+            spacing: Tokens.spacing.extraSmall / 2
+
+            SectionHeader {
+                text: SoftwareInventory.updating ? qsTr("UPDATE IN PROGRESS") : qsTr("LAST UPDATE")
+            }
+
+            InfoRow {
+                first: true
+                icon: SoftwareInventory.updating ? "pending" : (root.runFailed ? (root.run.cancelled ? "cancel" : "error") : "check_circle")
+                iconColour: root.runFailed && !root.run.cancelled ? Colours.palette.m3error : Colours.palette.m3primary
+                label: root.runTitle()
+                subtext: root.runKnown ? root.runSubtext() : ""
+            }
+
+            Repeater {
+                model: root.runSteps.length
+
+                InfoRow {
+                    id: stepRow
+
+                    required property int index
+                    readonly property string state_: root.run.steps?.[root.runSteps[stepRow.index].key] ?? "pending"
+
+                    icon: root.stepIcon(stepRow.state_)
+                    iconColour: root.stepColour(stepRow.state_)
+                    label: root.runSteps[stepRow.index].label
+                    value: root.stepText(stepRow.state_)
+                }
+            }
+
+            Repeater {
+                model: (root.run.notes ?? []).length
+
+                // Sem elide: e o erro do pacman, tem de dar para ler inteiro.
+                ConnectedRect {
+                    id: noteRow
+
+                    required property int index
+
+                    Layout.fillWidth: true
+                    implicitHeight: noteLayout.implicitHeight + Tokens.padding.medium * 2
+
+                    RowLayout {
+                        id: noteLayout
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: Tokens.padding.largeIncreased
+                        anchors.rightMargin: Tokens.padding.largeIncreased
+                        spacing: Tokens.spacing.medium
+
+                        MaterialIcon {
+                            text: "warning"
+                            color: Colours.palette.m3tertiary
+                            fontStyle: Tokens.font.icon.small
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: (root.run.notes ?? [])[noteRow.index] ?? ""
+                            font: Tokens.font.body.small
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                }
+            }
+
+            ConnectedRect {
+                last: true
+                Layout.fillWidth: true
+                implicitHeight: 340
+                visible: SoftwareInventory.updateLog !== ""
+
+                // Log inteiro na pagina. Segue o fim enquanto ele cresce; rolar para
+                // cima solta, e voltar ao fim prende de novo.
+                StyledFlickable {
+                    id: logFlick
+
+                    property bool follow: true
+
+                    anchors.fill: parent
+                    anchors.margins: Tokens.padding.medium
+                    anchors.leftMargin: Tokens.padding.largeIncreased
+                    anchors.rightMargin: Tokens.padding.largeIncreased
+                    contentWidth: width
+                    contentHeight: logText.implicitHeight
+                    flickableDirection: Flickable.VerticalFlick
+                    clip: true
+
+                    function toEnd(): void {
+                        contentY = Math.max(0, contentHeight - height);
+                    }
+
+                    onContentHeightChanged: if (follow) toEnd()
+                    onHeightChanged: if (follow) toEnd()
+                    onContentYChanged: follow = contentY >= contentHeight - height - 4
+
+                    StyledScrollBar.vertical: StyledScrollBar {
+                        flickable: logFlick
+                    }
+
+                    // Text puro: StyledText animaria a cor a cada linha nova.
+                    Text {
+                        id: logText
+
+                        width: logFlick.width - Tokens.padding.large
+                        text: SoftwareInventory.updateLog
+                        textFormat: Text.PlainText
+                        color: Colours.palette.m3onSurfaceVariant
+                        font: Tokens.font.mono.small
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    }
+                }
+            }
         }
 
         Repeater {
@@ -171,7 +379,7 @@ PageBase {
                         subtext: {
                             const v = row.modelData.from ? `${row.modelData.from}  →  ${row.modelData.to}` : row.modelData.to;
                             if (section.modelData.key === "held")
-                                return qsTr("%1  ·  kept back until the shell is rebuilt for it").arg(v);
+                                return qsTr("%1  ·  kept back on purpose, not installed by Update everything").arg(v);
                             if (section.modelData.key === "review")
                                 return qsTr("%1  ·  has our own changes, update by hand").arg(v);
                             return v;

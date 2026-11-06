@@ -14,8 +14,10 @@ import qs.utils
 // setup, entao nao vira superficie de conflito a cada rebase do upstream.
 //
 // Nada aqui escreve: o CLI e somente leitura por design. Atualizar e' o
-// caelestia-update, aberto num terminal (runUpdate) -- sudo e prompts do
-// pacman precisam de alguem olhando, nao de um botao silencioso.
+// caelestia-update, destacado (runUpdate): fechar o Nexus nao para o update, a
+// senha vem pela caixa do Caelestia (pkexec) e aqui so se le o update-state.json
+// que ele grava. O terminal fica de reserva (runUpdateInTerminal) para quando o
+// pacman precisa de uma decisao, que sem tty vira erro.
 Singleton {
     id: root
 
@@ -31,6 +33,13 @@ Singleton {
     property bool loadingInventory: invProc.running
     property bool loadingUpdates: updProc.running
     property bool updatesFetched: false
+
+    // Ultimo update, em andamento ou nao. updateRunDead: o estado diz "rodando"
+    // mas o processo sumiu (kill -9, queda de energia) -- nao travar a pagina.
+    property var updateRun: ({})
+    property bool updateRunDead: false
+    property string updateLog: ""
+    readonly property bool updating: (root.updateRun.running ?? false) && !root.updateRunDead
 
     readonly property int updateCount: root.updates.count ?? 0
     // Parcial = alguma fonte nao respondeu ou o checkupdates falta. Um zero
@@ -93,10 +102,28 @@ Singleton {
         updProc.running = true;
     }
 
-    // Abre o terminal configurado (general.apps.terminal) com o aplicador. Ao
-    // terminar ele regrava o cache, e o FileView abaixo atualiza a pagina.
+    // Ao terminar o aplicador regrava o cache, e o FileView abaixo atualiza a
+    // pagina. Sem tty ele nao faz perguntas e eleva por pkexec.
     function runUpdate(): void {
-        Quickshell.execDetached([...GlobalConfig.general.apps.terminal, `${root.bin}/caelestia-update`]);
+        if (!root.updating)
+            Quickshell.execDetached([`${root.bin}/caelestia-update`]);
+    }
+
+    function runUpdateInTerminal(): void {
+        if (!root.updating)
+            Quickshell.execDetached([...GlobalConfig.general.apps.terminal, `${root.bin}/caelestia-update`]);
+    }
+
+    function pollUpdate(): void {
+        const pid = root.updateRun.pid ?? 0;
+        if (root.updateRun.running && pid && !aliveProc.running) {
+            aliveProc.command = ["test", "-d", `/proc/${pid}`];
+            aliveProc.running = true;
+        }
+        if (root.updateRun.log && !logProc.running) {
+            logProc.command = ["tail", "-n", "3000", root.updateRun.log];
+            logProc.running = true;
+        }
     }
 
     Component.onCompleted: root.refresh()
@@ -136,6 +163,47 @@ Singleton {
 
         command: [`${root.bin}/caelestia-update-check`, "--no-notify"]
         onExited: cacheFile.reload()
+    }
+
+    Process {
+        id: aliveProc
+
+        onExited: code => root.updateRunDead = code !== 0
+    }
+
+    Process {
+        id: logProc
+
+        stdout: StdioCollector {
+            // Rodada de terminal grava cores e controle de cursor no log.
+            onStreamFinished: root.updateLog = text.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "").replace(/\s+$/, "")
+        }
+    }
+
+    Timer {
+        running: root.updating
+        interval: 1000
+        repeat: true
+        onTriggered: root.pollUpdate()
+    }
+
+    FileView {
+        id: runFile
+
+        path: `${Paths.cache}/update-state.json`
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                root.updateRun = JSON.parse(text());
+                root.updateRunDead = false;
+                root.pollUpdate();
+            } catch (e) {
+                // Escrita e atomica: ilegivel so se alguem editou a mao.
+                console.warn("[SoftwareInventory] update-state.json ilegivel:", e);
+            }
+        }
     }
 
     // Ultima resposta conhecida, de quem quer que tenha checado (timer, botao,
